@@ -351,6 +351,13 @@ Route::prefix('admin')
             [InvoiceController::class, 'viewPdf']
         )->name('invoice.view');
 
+        Route::delete(
+            '/notifications/{notification}',
+            [AdminNotificationController::class, 'destroy']
+        )->name(
+            'admin.notifications.destroy'
+        );
+
 
     });
 

@@ -7,6 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\CompanySetting;
 
 class InvoiceMail extends Mailable
 {
@@ -47,5 +48,10 @@ class InvoiceMail extends Mailable
                 '.pdf'
 
             );
+
+            $setting =
+            CompanySetting::first();
     }
+
+
 }

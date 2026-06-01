@@ -25,5 +25,15 @@ class CompanySetting extends Model
         'bank_bca',
         'bank_bca_name',
 
+        'website',
+
+        'logo',
+
+        'instagram',
+
+        'facebook',
+
+        'linkedin',
+
     ];
 }

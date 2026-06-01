@@ -13,7 +13,8 @@
     </div>
 
     <form action="{{ route('settings.update') }}"
-          method="POST">
+          method="POST"
+          enctype="multipart/form-data">
 
         @csrf
         @method('PUT')
@@ -58,12 +59,87 @@
 
             <div class="mb-3">
 
+                <label>Instagram</label>
+
+                <input type="text"
+                    name="instagram"
+                    class="form-control"
+                    value="{{ $setting->instagram }}">
+
+            </div>
+
+            <div class="mb-3">
+
+                <label>LinkedIn</label>
+
+                <input type="text"
+                    name="linkedin"
+                    class="form-control"
+                    value="{{ $setting->linkedin }}">
+
+            </div>
+
+            <div class="mb-3">
+
+                <label>Facebook</label>
+
+                <input type="text"
+                    name="facebook"
+                    class="form-control"
+                    value="{{ $setting->facebook }}">
+
+            </div>
+
+
+            <div class="mb-3">
+
                 <label>Alamat</label>
 
                 <textarea
                     name="company_address"
                     class="form-control"
                     rows="3">{{ $setting->company_address }}</textarea>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label>Website</label>
+
+                <input type="text"
+                    name="website"
+                    class="form-control"
+                    value="{{ $setting->website }}">
+
+            </div>
+
+            <div class="mb-3">
+
+                <label>Logo Perusahaan</label>
+
+                <input type="file"
+                    name="logo"
+                    class="form-control">
+
+                    @if($setting->logo)
+
+                        <div class="mt-2">
+
+                            <img
+                                src="{{ asset('storage/'.$setting->logo) }}"
+                                style="max-height:100px;">
+
+                        </div>
+
+                    @endif
+
+                <small class="text-muted">
+
+                Format:
+                PNG, JPG, JPEG, WEBP
+                (Maksimal 2 MB)
+
+                </small>
 
             </div>
 
@@ -151,10 +227,20 @@
 
         </div>
 
-        <div class="card-footer text-right">
+
+        <div class="card-footer d-flex justify-content-between">
+
+            <a href="{{ route('admin.dashboard') }}"
+            class="btn btn-secondary">
+
+                <i class="fas fa-arrow-left"></i>
+                Kembali
+
+            </a>
 
             <button class="btn btn-primary">
 
+                <i class="fas fa-save"></i>
                 Simpan Setting
 
             </button>

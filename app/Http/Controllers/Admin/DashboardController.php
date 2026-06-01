@@ -38,16 +38,25 @@ class DashboardController extends Controller
             'unpaid'
         )->count();
 
+        $partialInvoices = Invoice::where(
+            'status',
+            'partial'
+        )->count();
+
         $monthlyPayments = Payment::select(
 
-                DB::raw('MONTH(payment_date) as month'),
+            DB::raw(
+                "DATE_FORMAT(payment_date,'%Y-%m') as month"
+            ),
 
-                DB::raw('SUM(amount) as total')
-
+            DB::raw(
+                "SUM(amount) as total"
             )
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get();
+
+        )
+        ->groupBy('month')
+        ->orderBy('month')
+        ->get();
 
         $completedProjects = Project::where(
             'status',
@@ -59,13 +68,25 @@ class DashboardController extends Controller
             'pending'
         )->count();
 
-        $totalCashback = Invoice::sum('cashback');
+        $totalCashback = Invoice::get()
+        ->sum(function ($invoice) {
 
-        $totalPayments = Payment::count();
+            return (
+                $invoice->grand_total *
+                $invoice->cashback / 100
+            );
 
-        $pendingRevenue = Invoice::where(
+        });
+
+
+        $totalPaymentAmount = Payment::sum('amount');
+
+        $pendingRevenue = Invoice::whereIn(
             'status',
-            'unpaid'
+            [
+                'unpaid',
+                'partial'
+            ]
         )->sum('grand_total');
 
         $latestInvoices = Invoice::with('client')
@@ -78,16 +99,37 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        $topClients = Client::withCount('projects')
-            ->orderByDesc('projects_count')
-            ->take(5)
-            ->get();
+        $topClients = Client::withSum(
+            'invoices',
+            'grand_total'
+        )
+        ->withCount('projects')
+        ->orderByDesc('invoices_sum_grand_total')
+        ->limit(5)
+        ->get();
 
         $openTickets = Ticket::where(
             'status',
             '!=',
             'closed'
         )->count();
+
+        $closedTickets = Ticket::where(
+            'status',
+            'closed'
+        )->count();
+
+        $progressProjects = Project::where(
+            'status',
+            'progress'
+        )->count();
+
+        $rewardClients = Invoice::where(
+            'cashback',
+            '>',
+            0
+        )->distinct('client_id')
+        ->count('client_id');
 
         $latestTickets = Ticket::with('client')
             ->latest()
@@ -100,6 +142,19 @@ class DashboardController extends Controller
                 ($completedProjects / $totalProjects) * 100
             )
             : 0;
+        $overdueInvoices = Invoice::where(
+            'due_date',
+            '<',
+            now()
+        )
+        ->whereNotIn(
+            'status',
+            ['paid','cancelled']
+        )
+        ->count();
+
+        $totalInvoices = Invoice::count();
+
 
 
         return view(
@@ -116,10 +171,12 @@ class DashboardController extends Controller
                     'currentMonthIncome',
                     'paidInvoices',
                     'unpaidInvoices',
+                    'partialInvoices',
                     'monthlyPayments',
 
                     'totalCashback',
-                    'totalPayments',
+
+                    'totalPaymentAmount',
                     'pendingRevenue',
 
                     'latestInvoices',
@@ -128,9 +185,15 @@ class DashboardController extends Controller
                     'topClients',
 
                     'openTickets',
+                    'closedTickets',
                     'latestTickets',
 
                     'projectCompletionRate',
+
+                    'totalInvoices',
+                    'progressProjects',
+                    'rewardClients',
+                    'overdueInvoices',
                 )
 
             );

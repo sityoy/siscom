@@ -18,7 +18,7 @@
 
             <span class="badge badge-danger">
 
-                {{ $notifications->total() }}
+                {{ $unreadCount }}
 
             </span>
 
@@ -30,7 +30,15 @@
 
         @forelse($notifications as $notification)
 
-        <div class="card border-0 shadow-sm mb-3">
+        <div class="card shadow-sm mb-3
+
+            @if(!$notification->is_read)
+
+            border-left border-primary
+
+            @endif
+
+            ">
 
             <div class="card-body">
 
@@ -38,6 +46,7 @@
                     class="d-flex justify-content-between align-items-center">
 
                     <div>
+
 
                         <strong>
 
@@ -49,7 +58,7 @@
 
                             <span class="badge badge-warning ml-2">
 
-                                Ticket
+                                🎫 Ticket
 
                             </span>
 
@@ -57,7 +66,7 @@
 
                             <span class="badge badge-success ml-2">
 
-                                Payment
+                                💰 Payment
 
                             </span>
 
@@ -65,19 +74,47 @@
 
                             <span class="badge badge-primary ml-2">
 
-                                Invoice
+                                📄 Invoice
 
                             </span>
 
                         @endif
 
+
                     </div>
 
                     <small class="text-muted">
 
-                        {{ $notification->created_at->diffForHumans() }}
+                        @if(
+                            $notification->created_at->isToday()
+                        )
+
+                            {{ $message->created_at->format('d M Y H:i') }}
+
+                        @else
+
+                            {{ $notification->created_at->format('d/m/Y H:i') }}
+
+                        @endif
+
+                        <form
+                            action="{{ route('admin.notifications.destroy',$notification) }}"
+                            method="POST">
+
+                            @csrf
+                            @method('DELETE')
+
+                            <button
+                                class="btn btn-sm btn-danger">
+
+                                Hapus
+
+                            </button>
+
+                        </form>
 
                     </small>
+
 
                 </div>
 
@@ -88,6 +125,7 @@
                 </p>
 
             </div>
+
 
         </div>
 
@@ -104,6 +142,20 @@
         </div>
 
         @endforelse
+
+
+
+        <div class="d-flex justify-content-between">
+
+            <a href="{{ route('admin.dashboard') }}"
+            class="btn btn-secondary">
+
+                <i class="fas fa-arrow-left"></i>
+                Kembali
+
+            </a>
+
+        </div>
 
         <div class="mt-4">
 

@@ -9,19 +9,36 @@ class NotificationController extends Controller
 {
     public function index()
     {
+        $unreadCount = AdminNotification::where(
+            'is_read',
+            false
+        )->count();
+
         $notifications = AdminNotification::latest()
             ->paginate(10);
 
-        AdminNotification::where(
-            'is_read',
-            false
-        )->update([
-            'is_read' => true
-        ]);
+        // AdminNotification::where(
+        //     'is_read',
+        //     false
+        // )->limit(20)
+        // ->update([
+        //     'is_read' => true
+        // ]);
 
-        return view(
+       return view(
             'admin.notifications.index',
-            compact('notifications')
+            compact(
+                'notifications',
+                'unreadCount'
+            )
         );
+    }
+
+    public function destroy(
+        AdminNotification $notification
+    ){
+        $notification->delete();
+
+        return back();
     }
 }
