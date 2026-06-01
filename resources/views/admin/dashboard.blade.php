@@ -9,7 +9,7 @@
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <small class="text-muted">Jumlah Pemasukan</small>
+                <small class="text-muted">Total Revenue</small>
                 <h2 class="font-weight-bold text-success mt-2">
                     Rp {{ number_format($totalIncome,0,',','.') }}
                 </h2>
@@ -20,7 +20,7 @@
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <small class="text-muted">Pemasukan Bulan Ini</small>
+                <small class="text-muted">Monthly Revenue</small>
                 <h2 class="font-weight-bold text-primary mt-2">
                     Rp {{ number_format($currentMonthIncome,0,',','.') }}
                 </h2>
@@ -31,7 +31,7 @@
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <small class="text-muted">Jumlah Klien</small>
+                <small class="text-muted">Total Clients</small>
                 <h2 class="font-weight-bold text-info mt-2">
                     {{ $totalClients }}
                 </h2>
@@ -42,7 +42,7 @@
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <small class="text-muted">Jumlah Pengguna</small>
+                <small class="text-muted">Total Users</small>
                 <h2 class="font-weight-bold text-dark mt-2">
                     {{ $totalUsers }}
                 </h2>
@@ -57,7 +57,7 @@
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <small class="text-muted">Jumlah Proyek</small>
+                <small class="text-muted">Total Porjects</small>
                 <h2 class="font-weight-bold text-warning mt-2">
                     {{ $totalProjects }}
                 </h2>
@@ -68,7 +68,7 @@
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <small class="text-muted">Proyek Selesai</small>
+                <small class="text-muted">Completed Projects</small>
                 <h2 class="font-weight-bold text-success mt-2">
                     {{ $completedProjects }}
                 </h2>
@@ -79,7 +79,7 @@
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <small class="text-muted">Proyek Tertunda</small>
+                <small class="text-muted">Pending Projects</small>
                 <h2 class="font-weight-bold text-danger mt-2">
                     {{ $pendingProjects }}
                 </h2>
@@ -90,7 +90,7 @@
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <small class="text-muted">Open Ticket</small>
+                <small class="text-muted">Open Tickets</small>
                 <h2 class="font-weight-bold text-warning mt-2">
                     {{ $openTickets }}
                 </h2>
@@ -105,7 +105,7 @@
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <small class="text-muted">Faktur Terbayar</small>
+                <small class="text-muted">Paid Invoices</small>
                 <h2 class="font-weight-bold text-primary mt-2">
                     {{ $paidInvoices }}
                 </h2>
@@ -116,7 +116,7 @@
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <small class="text-muted">Tagihan Belum Dibayar</small>
+                <small class="text-muted">Unpaid Invoices</small>
                 <h2 class="font-weight-bold text-danger mt-2">
                     {{ $unpaidInvoices }}
                 </h2>
@@ -127,7 +127,7 @@
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <small class="text-muted">Jumlah Pembayaran</small>
+                <small class="text-muted">Total Payments</small>
                 <h2 class="font-weight-bold text-info mt-2">
                     {{ $totalPayments }}
                 </h2>
@@ -138,7 +138,7 @@
     <div class="col-lg-3 col-md-6 mb-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <small class="text-muted">Pendapatan Tertunda</small>
+                <small class="text-muted">Pending Revenue</small>
                 <h2 class="font-weight-bold text-danger mt-2">
                     Rp {{ number_format($pendingRevenue,0,',','.') }}
                 </h2>
@@ -153,7 +153,7 @@
         <div class="col-lg-6 mb-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <small class="text-muted">Jumlah Cashback</small>
+                    <small class="text-muted">Clients Cashback Rewards</small>
                     <h2 class="font-weight-bold text-success mt-2">
                         Rp {{ number_format($totalCashback,0,',','.') }}
                     </h2>
@@ -164,7 +164,7 @@
         <div class="col-lg-6 mb-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <small class="text-muted">Penyelesaian Proyek</small>
+                    <small class="text-muted">Projects Completion Rate</small>
 
                     <h2 class="font-weight-bold text-primary">
                         {{ $projectCompletionRate }}%
@@ -190,7 +190,7 @@
         <div class="card border-0 shadow-sm">
 
             <div class="card-header bg-white">
-                <h4 class="mb-0">Invoice Terbaru</h4>
+                <h4 class="mb-0">Latest Invoices</h4>
             </div>
 
             <div class="table-responsive">
@@ -219,7 +219,7 @@
 
                         <tr>
                             <td colspan="3" class="text-center text-muted">
-                                Belum ada invoice
+                                Not yet invoice
                             </td>
                         </tr>
 
@@ -240,7 +240,7 @@
         <div class="card border-0 shadow-sm">
 
             <div class="card-header bg-white">
-                <h4 class="mb-0">Pembayaran Terbaru</h4>
+                <h4 class="mb-0">Latest Payments</h4>
             </div>
 
             <div class="table-responsive">
@@ -269,7 +269,7 @@
 
                         <tr>
                             <td colspan="3" class="text-center text-muted">
-                                Belum ada pembayaran
+                                Not yet payments
                             </td>
                         </tr>
 
@@ -294,7 +294,7 @@
 
                 <h5 class="mb-0">
 
-                    Top Client
+                    Top Clients
 
                 </h5>
 
@@ -308,7 +308,7 @@
 
                         <tr>
 
-                            <th>Client</th>
+                            <th>Clients</th>
                             <th>Total Project</th>
 
                         </tr>
@@ -369,8 +369,8 @@
 
                         <tr>
 
-                            <th>Client</th>
-                            <th>Subject</th>
+                            <th>Clients</th>
+                            <th>Subjects</th>
                             <th>Status</th>
 
                         </tr>
@@ -437,7 +437,7 @@
 
         <h4 class="mb-0">
 
-            Statistik Pendapatan
+            Revenue Statistics
 
         </h4>
 
@@ -460,7 +460,7 @@
 <script>
 
 const ctx =
-    document.getElementById('dashboardChart');
+    document.getElementById('incomeChart');
 
 new Chart(ctx, {
 

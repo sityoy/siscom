@@ -136,6 +136,19 @@
 
                 </div>
 
+                <div class="col-md-6 mb-3">
+
+                    <label>Progress (%)</label>
+
+                    <input type="number"
+                        name="progress"
+                        class="form-control"
+                        value="{{ $project->progress ?? 0 }}"
+                        min="0"
+                        max="100">
+
+                </div>
+
                 {{-- DEADLINE --}}
                 <div class="col-md-6 mb-3">
 

@@ -297,11 +297,14 @@
 
                 <label>Cashback (%)</label>
 
-                    <input type="number"
+                    <input
+                        type="number"
                         name="cashback"
                         id="cashback"
                         class="form-control"
-                        value="0" max="20">
+                        value="0"
+                        min="0"
+                        max="20">
 
                 </div>
 
@@ -343,17 +346,44 @@
             </div>
 
             <hr>
+            <div class="text-right">
 
-            <h3 class="text-right">
+                <h6>
 
-                Grand Total:
-                Rp <span id="grand-total">
+                    Subtotal:
+                    Rp <span id="subtotal">0</span>
 
-                    0
+                </h6>
 
-                </span>
+                <h6>
 
-            </h3>
+                    PPN:
+                    Rp <span id="vat-amount">0</span>
+
+                </h6>
+
+                <h6>
+
+                    Service Fee:
+                    Rp <span id="service-fee-view">10.000</span>
+
+                </h6>
+
+                <h5>
+
+                    Grand Total:
+                    Rp <span id="grand-total">0</span>
+
+                </h5>
+
+                <h5 class="text-success">
+
+                    Cashback Reward:
+                    Rp <span id="cashback-reward">0</span>
+
+                </h5>
+
+            </div>
 
             <div class="mt-3">
 
@@ -388,9 +418,17 @@ document.addEventListener('DOMContentLoaded', function () {
     function calculateTotals() {
 
         let subtotal = 0;
+
         let cashback = parseFloat(
-                document.getElementById('cashback').value
-            ) || 0;
+            document.getElementById('cashback').value
+        ) || 0;
+
+        if (cashback > 20) {
+
+            cashback = 20;
+
+            document.getElementById('cashback').value = 20;
+        }
 
 
         document.querySelectorAll('.invoice-item').forEach(item => {
@@ -425,14 +463,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
         let vat = subtotal * vatPercent / 100;
 
-        let cashbackAmount =
-            (subtotal + vat + serviceFee) * cashback / 100;
-
         let grandTotal =
-            subtotal + vat + serviceFee - cashbackAmount;
+            subtotal + vat + serviceFee;
+
+        let cashbackAmount =
+            grandTotal * cashback / 100;
+
+        document.getElementById('subtotal')
+            .innerText =
+            subtotal.toLocaleString('id-ID');
+
+        document.getElementById('vat-amount')
+            .innerText =
+            vat.toLocaleString('id-ID');
+
+        document.getElementById('service-fee-view')
+            .innerText =
+            serviceFee.toLocaleString('id-ID');
 
         document.getElementById('grand-total')
             .innerText = grandTotal.toLocaleString('id-ID');
+
+        document.getElementById('cashback-reward')
+            .innerText =
+        cashbackAmount.toLocaleString('id-ID');
 
     }
 
@@ -484,6 +538,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     document.addEventListener('input', calculateTotals);
+
+    document.addEventListener('change', calculateTotals);
 
     document.getElementById('add-item')
         .addEventListener('click', function () {

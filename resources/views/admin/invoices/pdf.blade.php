@@ -707,8 +707,12 @@
         $cashbackAmount =
             ($invoice->grand_total * $invoice->cashback) / 100;
 
+
         $finalTotal =
-            $invoice->grand_total - $cashbackAmount;
+            $invoice->grand_total;
+
+        // $finalTotal =
+        //     $invoice->grand_total - $cashbackAmount;
 
     @endphp
 
@@ -734,7 +738,7 @@
 
             <td>
 
-                PPN 11%
+                PPN {{ $invoice->vat_percent }}%
 
             </td>
 
@@ -782,14 +786,14 @@
 
             <td style="color:green; font-weight:bold;">
 
-                Cashback {{ $invoice->cashback }}%
+                Cashback Reward {{ $invoice->cashback }}%
 
             </td>
 
             <td class="text-right"
                 style="color:green; font-weight:bold;">
 
-                - Rp {{ number_format($cashbackAmount,0,',','.') }}
+                Rp {{ number_format($cashbackAmount,0,',','.') }}
 
             </td>
 
@@ -804,7 +808,7 @@
 
             <td>
 
-                TOTAL BAYAR
+                TOTAL DIBAYAR
 
             </td>
 

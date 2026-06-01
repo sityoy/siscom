@@ -55,6 +55,10 @@ class InvoiceController extends Controller
             $subtotal += $qty * $price;
         }
 
+        $request->validate([
+            'cashback' => 'nullable|numeric|min:0|max:20',
+        ]);
+
         $vatPercent = $request->vat_percent ?? 0;
 
         $vat = ($subtotal * $vatPercent) / 100;
@@ -63,9 +67,9 @@ class InvoiceController extends Controller
 
         $cashback = $request->cashback ?? 0;
 
-        $cashbackAmount =
-            ($subtotal + $vat + $serviceFee)
-            * $cashback / 100;
+        // $cashbackAmount =
+        //     ($subtotal + $vat + $serviceFee)
+        //     * $cashback / 100;
 
         $grandTotal =
         $subtotal + $vat + $serviceFee;
@@ -80,6 +84,8 @@ class InvoiceController extends Controller
             'invoice_number' => $request->invoice_number,
 
             'subtotal' => $subtotal,
+
+            'vat_percent' => $vatPercent,
 
             'vat' => $vat,
 
@@ -226,7 +232,8 @@ class InvoiceController extends Controller
                 Catatan :
                 " . ($invoice->notes ?: '-') . "
 
-                Silakan login ke Portal Client SIS.COM untuk melihat detail invoice.
+                Silakan login ke Portal Client
+                SIS.COM untuk melihat detail invoice.
 
                 Terima kasih.
 
@@ -247,6 +254,7 @@ class InvoiceController extends Controller
                     'success',
                     'Invoice berhasil dibuat'
                 );
+
             }
 
     public function edit(Invoice $invoice)
@@ -276,7 +284,7 @@ class InvoiceController extends Controller
         $subtotal += $qty * $price;
     }
 
-    $vatPercent = 11;
+    $vatPercent = $request->vat_percent ?? 0;
 
     $vat = ($subtotal * $vatPercent) / 100;
 
@@ -284,9 +292,9 @@ class InvoiceController extends Controller
 
     $cashback = $request->cashback ?? 0;
 
-    $cashbackAmount =
-        ($subtotal + $vat + $serviceFee)
-        * $cashback / 100;
+    // $cashbackAmount =
+    //     ($subtotal + $vat + $serviceFee)
+    //     * $cashback / 100;
 
     $grandTotal =
         $subtotal + $vat + $serviceFee;
@@ -301,6 +309,8 @@ class InvoiceController extends Controller
         'invoice_number' => $request->invoice_number,
 
         'subtotal' => $subtotal,
+
+        'vat_percent' => $vatPercent,
 
         'vat' => $vat,
 

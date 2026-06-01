@@ -65,6 +65,8 @@
 
                         <th>Status</th>
 
+                        <th>Progress</th>
+
                         <th class="text-center">
 
                             Aksi
@@ -187,6 +189,28 @@
                                     </span>
 
                                 @endif
+
+                            </td>
+
+                            <td>
+
+                            <div class="progress">
+
+                                <div class="progress-bar
+                                    @if($project->progress >= 100)
+                                        bg-success
+                                    @elseif($project->progress >= 50)
+                                        bg-info
+                                    @else
+                                        bg-warning
+                                    @endif"
+                                    style="width: {{ $project->progress }}%">
+
+                                    {{ $project->progress }}%
+
+                                </div>
+
+                            </div>
 
                             </td>
 

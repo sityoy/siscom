@@ -289,7 +289,7 @@
                            name="vat_percent"
                            class="form-control"
                            id="vat-percent"
-                           value="11">
+                           value="{{ $invoice->vat_percent }}">
 
                 </div>
 
@@ -316,7 +316,7 @@
            class="form-control"
            value="{{ $invoice->cashback ?? 0 }}"
            min="0"
-           max="100">
+           max="20">
 
 </div>
 
@@ -366,36 +366,38 @@
             <hr>
 
 
-<div class="text-right">
+    <div class="text-right">
 
-    <h5>
+        <h5>
 
-        Grand Total:
-        Rp <span id="grand-total">
+            Grand Total:
+            Rp <span id="grand-total">
 
-            {{ number_format($invoice->grand_total,0,',','.') }}
+                {{ number_format($invoice->grand_total,0,',','.') }}
 
-        </span>
+            </span>
 
-    </h5>
+        </h5>
 
-    <h5 class="text-success">
+        <h5 class="text-success">
 
-        Cashback:
-        <span id="cashback-percent">
+            Cashback Reward:
+            <span id="cashback-percent">
 
-            {{ $invoice->cashback ?? 0 }}
+                {{ $invoice->cashback ?? 0 }}
 
-        </span>%
-        (
-        Rp <span id="cashback-amount">
+            </span>%
+            (
+            Rp <span id="cashback-amount">
 
-            0
+                0
 
-        </span>
-        )
+            </span>
+            )
 
-    </h5>
+        </h5>
+
+    </div>
 
     <h3 class="text-primary">
 
@@ -408,7 +410,8 @@
 
     </h3>
 
-</div>
+
+
 
             <div class="mt-3">
 
@@ -439,6 +442,17 @@
 <script>
 
 document.addEventListener('DOMContentLoaded', function () {
+
+    document.getElementById('cashback')
+        .addEventListener('input', function(){
+
+            if(this.value > 20){
+
+                this.value = 20;
+
+            }
+
+        });
 
     function calculateTotals() {
 
@@ -485,17 +499,16 @@ document.addEventListener('DOMContentLoaded', function () {
         let cashbackAmount =
             grandTotal * cashback / 100;
 
-        let finalTotal =
-            grandTotal - cashbackAmount;
+
+
+        // let finalTotal =
+        //     grandTotal - cashbackAmount;
 
         document.getElementById('cashback-percent')
             .innerText = cashback;
 
         document.getElementById('cashback-amount')
             .innerText = cashbackAmount.toLocaleString('id-ID');
-
-        document.getElementById('final-total')
-            .innerText = finalTotal.toLocaleString('id-ID');
 
 
         document.getElementById('grand-total')
@@ -575,9 +588,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if(e.target.classList.contains('remove-item')){
 
-            e.target.closest('.invoice-item').remove();
+            if(document.querySelectorAll('.invoice-item').length > 1){
 
-            calculateTotals();
+                e.target.closest('.invoice-item').remove();
+
+                calculateTotals();
+
+            }
 
         }
 
@@ -586,6 +603,8 @@ document.addEventListener('DOMContentLoaded', function () {
     calculateTotals();
 
 });
+
+
 </script>
 
 @endsection

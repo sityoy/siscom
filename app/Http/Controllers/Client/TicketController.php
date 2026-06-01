@@ -98,14 +98,12 @@ class TicketController extends Controller
         ]);
 
         AdminNotification::create([
-
             'title' => 'Ticket Baru',
-
             'message' =>
                 $client->name .
                 ' membuat ticket baru: ' .
                 $ticket->subject,
-
+            'is_read' => false,
         ]);
 
         return redirect()
@@ -210,6 +208,15 @@ class TicketController extends Controller
 
             'status' => 'open'
 
+        ]);
+
+        AdminNotification::create([
+            'title' => 'Balasan Ticket',
+            'message' =>
+                $client->name .
+                ' membalas ticket: ' .
+                $ticket->subject,
+            'is_read' => false,
         ]);
 
         return back()->with(

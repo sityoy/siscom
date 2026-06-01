@@ -51,7 +51,13 @@ class ProjectController extends Controller
 
             'description' => $request->description,
 
+            'budget'      => $request->budget,
+
+            'deadline'    => $request->deadline,
+
             'status'      => $request->status,
+
+            'progress'    => $request->progress ?? 0,
 
         ]);
 
@@ -97,18 +103,70 @@ class ProjectController extends Controller
         Project $project
     ) {
 
-        $project->update($request->all());
+        $status = $request->status;
+
+            if($request->progress >= 100){
+
+                $status = 'completed';
+
+            }
+            elseif($request->progress > 0){
+
+                $status = 'progress';
+
+            }
+            elseif($request->progress == 0){
+
+                $status = 'pending';
+
+            }
+
+        $project->update([
+
+            'client_id'   => $request->client_id,
+
+            'title'       => $request->title,
+
+            'description' => $request->description,
+
+            'budget'      => $request->budget,
+
+            'deadline'    => $request->deadline,
+
+            'status'      => $status,
+
+            'progress'    => $request->progress ?? 0,
+
+        ]);
+
+        Notification::create([
+
+            'client_id' => $project->client_id,
+
+            'title' => 'Project Diperbarui',
+
+            'message' =>
+                'Project "' .
+                $project->title .
+                '" telah diperbarui.',
+
+        ]);
 
         return redirect()
             ->route('projects.index')
             ->with(
                 'success',
-                'Project berhasil diupdate',
+                'Project berhasil diperbarui'
             );
     }
 
     public function destroy(Project $project)
     {
+        ProjectFile::where(
+            'project_id',
+            $project->id
+        )->delete();
+
         $project->delete();
 
         return back()->with(
