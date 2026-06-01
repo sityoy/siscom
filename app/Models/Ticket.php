@@ -13,6 +13,8 @@ class Ticket extends Model
         'subject',
         'message',
         'status',
+        'client',
+        'project',
 
     ];
 
@@ -28,6 +30,11 @@ class Ticket extends Model
 
     public function messages()
     {
-        return $this->hasMany(TicketMessage::class);
+        return $this->hasMany(
+            TicketMessage::class
+        )->orderBy(
+            'created_at',
+            'asc'
+        );
     }
 }

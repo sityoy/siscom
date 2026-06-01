@@ -16,6 +16,8 @@ class Payment extends Model
 
         'payment_method',
 
+        'proof',
+
         'notes',
 
     ];

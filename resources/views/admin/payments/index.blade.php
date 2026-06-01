@@ -70,6 +70,7 @@
                         <th>Nominal</th>
                         <th>Tanggal</th>
                         <th>Metode</th>
+                        <th>Proof</th>
                         <th>Status</th>
                         <th class="text-center">
 
@@ -151,6 +152,25 @@
 
                             <td>
 
+                            @if($payment->proof)
+
+                                <a href="{{ asset('storage/'.$payment->proof) }}"
+                                target="_blank">
+
+                                    View
+
+                                </a>
+
+                            @else
+
+                                -
+
+                            @endif
+
+                            </td>
+
+                            <td>
+
                                 @if($remaining <= 0)
 
                                     <span class="badge bg-success">
@@ -205,7 +225,7 @@
 
                         <tr>
 
-                            <td colspan="8"
+                            <td colspan="9"
                                 class="text-center text-muted py-4">
 
                                 Data pembayaran kosong

@@ -14,7 +14,11 @@ class PaymentController extends Controller
 {
     public function index()
     {
-        $payments = Payment::with('invoice')
+        $payments = Payment::with([
+            'invoice.client',
+            'invoice.payments'
+        ])
+
             ->latest()
             ->paginate(10);
 
@@ -44,7 +48,45 @@ class PaymentController extends Controller
 
             'payment_date' => 'required',
 
+            'proof' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+
         ]);
+
+
+        $invoice = Invoice::findOrFail(
+        $request->invoice_id
+            );
+
+            $totalPaid =
+                $invoice->payments()
+                    ->sum('amount');
+
+            $remaining =
+                $invoice->grand_total
+                - $totalPaid;
+
+            if($request->amount > $remaining){
+
+                return back()
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'Nominal melebihi sisa tagihan'
+                    );
+
+            }
+
+            $proof = null;
+
+            if($request->hasFile('proof')){
+
+                $proof = $request->file('proof')
+                    ->store(
+                        'payments',
+                        'public'
+                    );
+
+            }
 
         Payment::create([
 
@@ -55,6 +97,8 @@ class PaymentController extends Controller
             'payment_date' => $request->payment_date,
 
             'payment_method' => $request->payment_method,
+
+            'proof' => $proof,
 
             'notes' => $request->notes,
 
@@ -154,6 +198,45 @@ class PaymentController extends Controller
 
         ]);
 
+        $invoice = Invoice::findOrFail(
+        $request->invoice_id
+        );
+
+        $totalPaid =
+            $invoice->payments()
+                ->where(
+                    'id',
+                    '!=',
+                    $payment->id
+                )
+                ->sum('amount');
+
+        $remaining =
+            $invoice->grand_total
+            - $totalPaid;
+
+        if($request->amount > $remaining){
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Nominal melebihi sisa tagihan'
+                );
+
+        }
+
+        $proof = $payment->proof;
+
+        if($request->hasFile('proof')){
+
+            $proof = $request->file('proof')
+                ->store(
+                    'payments',
+                    'public'
+                );
+        }
+
         $payment->update([
 
             'invoice_id' => $request->invoice_id,
@@ -163,6 +246,8 @@ class PaymentController extends Controller
             'payment_date' => $request->payment_date,
 
             'payment_method' => $request->payment_method,
+
+            'proof' => $proof,
 
             'notes' => $request->notes,
 

@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('page-title', 'Tambah Pembayaran')
+@section('page-title', 'Add Payment')
 
 @section('admin-content')
 
@@ -23,7 +23,8 @@
     </div>
 
     <form action="{{ route('payments.store') }}"
-          method="POST">
+      method="POST"
+      enctype="multipart/form-data">
 
         @csrf
 
@@ -41,14 +42,20 @@
                             required>
 
                         <option value="">
-                            -- Pilih Invoice --
+                            -- Choose Invoice --
                         </option>
 
                         @foreach($invoices as $invoice)
 
-                            <option value="{{ $invoice->id }}">
+                            <option value="{{ $invoice->id }}"
+                                    data-total="{{ $invoice->grand_total }}"
+                                    data-paid="{{ $invoice->payments->sum('amount') }}">
 
                                 {{ $invoice->invoice_number }}
+-
+                                {{ $invoice->client->name }}
+                                -
+                                Rp {{ number_format($invoice->grand_total,0,',','.') }}
                                 -
                                 {{ $invoice->client->name }}
 
@@ -57,6 +64,45 @@
                         @endforeach
 
                     </select>
+
+                    <div class="row">
+
+                        <div class="col-md-4">
+                            <br>
+                            <label>Total Invoice</label>
+
+                            <input type="text"
+                                id="invoice-total"
+                                class="form-control"
+                                readonly >
+
+                        </div>
+
+                        <div class="col-md-4">
+
+                            <br>
+                            <label>Sudah Dibayar</label>
+
+                            <input type="text"
+                                id="paid-total"
+                                class="form-control"
+                                readonly >
+
+                        </div>
+
+                        <div class="col-md-4">
+
+                            <br>
+                            <label>Sisa Tagihan</label>
+
+                            <input type="text"
+                                id="remaining-total"
+                                class="form-control"
+                                readonly>
+
+                        </div>
+
+                    </div>
 
                 </div>
 
@@ -69,9 +115,21 @@
                            name="payment_date"
                            class="form-control"
                            value="{{ date('Y-m-d') }}"
-                           required>
+                           required required>
+
+                    <div class="col-md-12 mb-3">
+                        <br>
+                        <label>Bukti Pembayaran</label>
+
+                        <input type="file"
+                            name="proof"
+                            class="form-control" required>
+
+                    </div>
 
                 </div>
+
+
 
             </div>
 
@@ -96,7 +154,7 @@
                     <label>Metode Pembayaran</label>
 
                     <select name="payment_method"
-                            class="form-control">
+                            class="form-control" required>
 
                         <option value="Transfer Bank">
                             Transfer Bank
@@ -154,5 +212,46 @@
     </form>
 
 </div>
+
+<script>
+
+document
+.querySelector('[name="invoice_id"]')
+.addEventListener('change', function(){
+
+    let option =
+        this.options[this.selectedIndex];
+
+    let total =
+        parseFloat(
+            option.dataset.total || 0
+        );
+
+    let paid =
+        parseFloat(
+            option.dataset.paid || 0
+        );
+
+    let remaining =
+        total - paid;
+
+    document
+        .getElementById('invoice-total')
+        .value =
+        total.toLocaleString('id-ID');
+
+    document
+        .getElementById('paid-total')
+        .value =
+        paid.toLocaleString('id-ID');
+
+    document
+        .getElementById('remaining-total')
+        .value =
+        remaining.toLocaleString('id-ID');
+
+});
+
+</script>
 
 @endsection

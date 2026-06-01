@@ -93,7 +93,7 @@ class TicketController extends Controller
         Request $request,
         Ticket $ticket
     ) {
-        $client = auth()->user()->client;
+        // $client = auth()->user()->client;
             if ($ticket->status == 'closed') {
 
             return back()->with(
@@ -108,7 +108,7 @@ class TicketController extends Controller
 
         $request->validate([
 
-            'message' => 'required'
+            'message' => 'required|string|min:3'
 
         ]);
 
@@ -128,20 +128,23 @@ class TicketController extends Controller
 
             'client_id' => $ticket->client_id,
 
-            'title' => 'Balasan Ticket',
+            'title' => 'Status Ticket Diperbarui',
 
             'message' =>
-                'Ticket "' .
+                'Status ticket "' .
                 $ticket->subject .
-                '" telah mendapatkan balasan dari Admin.',
+                '" diubah menjadi "' .
+                strtoupper($request->status) .
+                '".',
 
         ]);
 
 
 
-        $ticket->update([
+        $request->validate([
 
-            'status' => 'progress'
+            'status' =>
+                'required|in:open,progress,closed'
 
         ]);
 

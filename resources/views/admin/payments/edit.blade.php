@@ -23,7 +23,8 @@
     </div>
 
     <form action="{{ route('payments.update', $payment->id) }}"
-          method="POST">
+          method="POST"
+          enctype="multipart/form-data">
 
         @csrf
         @method('PUT')
@@ -125,6 +126,16 @@
                         </option>
 
                     </select>
+
+
+                </div>
+                <div class="col-md-12 mb-3">
+
+                    <label>Bukti Pembayaran</label>
+
+                    <input type="file"
+                        name="proof"
+                        class="form-control" required>
 
                 </div>
 

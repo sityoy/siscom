@@ -31,6 +31,7 @@
                         <th>Subject</th>
                         <th>Project</th>
                         <th>Status</th>
+                        <th>Replies</th>
                         <th>Tanggal</th>
                         <th>Action</th>
 
@@ -99,6 +100,12 @@
                                     </span>
 
                                 @endif
+
+                            </td>
+
+                            <td>
+
+                            {{ $ticket->messages->count() }}
 
                             </td>
 

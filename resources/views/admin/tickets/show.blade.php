@@ -117,7 +117,11 @@
 
                             <strong class="text-primary">
 
-                                {{ $ticket->client->name }}
+                                {{ $ticket->client->name }} |
+
+                                {{-- {{ $ticket->client->phone ?? '-' }} | --}}
+
+                                {{ $ticket->client->company ?? '-' }}
 
                             </strong>
 
