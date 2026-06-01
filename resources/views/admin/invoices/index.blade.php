@@ -358,7 +358,7 @@
 
         <span class="text-muted">
 
-            Cashback {{ $invoice->cashback }}%
+            Cashback {{ number_format($invoice->cashback),0 }}%
 
         </span>
 
@@ -377,10 +377,8 @@
     {{-- TOTAL BAYAR --}}
    <div class="fw-bold text-success">
 
-        Total Dibayar
-
+        Invoice Total
         <br>
-
         Rp {{ number_format($invoice->grand_total,0,',','.') }}
 
     </div>

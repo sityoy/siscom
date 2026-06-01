@@ -341,6 +341,17 @@ Route::prefix('admin')
             [AdminTicketController::class, 'reply']
         )->name('admin.tickets.reply');
 
+        Route::get(
+            '/invoice/{invoice}/download',
+            [App\Http\Controllers\Admin\InvoiceController::class, 'pdf']
+        )->name('invoice.download');
+
+        Route::get(
+            '/invoice/{invoice}/view',
+            [InvoiceController::class, 'viewPdf']
+        )->name('invoice.view');
+
+
     });
 
 

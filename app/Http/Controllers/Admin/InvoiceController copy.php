@@ -184,89 +184,90 @@ class InvoiceController extends Controller
         try {
 
                 $pdfUrl = route(
-                'invoice.view',
+                'invoice.download',
                 $invoice->id
-
             );
 
 
 
             WhatsAppService::sendDocument(
 
-            $invoice->client->phone,
+                $invoice->client->phone,
 
-"📄 *INVOICE BARU SIS.COM*
+                "📄 *INVOICE BARU SIS.COM*
 
-Halo, {$invoice->client->name},
-Invoice baru telah diterbitkan.
+                Halo, {$invoice->client->name},
 
-━━━━━━━━━━━━━━━
+                    Invoice baru telah diterbitkan.
 
-No Invoice :
-{$invoice->invoice_number}
+                    ━━━━━━━━━━━━━━━
 
-Project :
-" . ($invoice->project->title ?? '-') . "
+                    No Invoice :
+                    {$invoice->invoice_number}
 
-Tanggal Jatuh Tempo :
-{$invoice->due_date}
+                    Project :
+                    " . ($invoice->project->title ?? '-') . "
 
-Status :
-" . strtoupper($invoice->status) . "
+                    Tanggal Jatuh Tempo :
+                    {$invoice->due_date}
 
-━━━━━━━━━━━━━━━
+                    Status :
+                    " . strtoupper($invoice->status) . "
 
-Subtotal :
-Rp " . number_format(
-$invoice->subtotal,
-0,
-',',
-'.'
-) . "
+                    ━━━━━━━━━━━━━━━
 
-PPN (" . number_format($invoice->vat_percent,0) . "%)
-Rp " . number_format(
-$invoice->vat,
-0,
-',',
-'.'
-) . "
+                    Subtotal :
+                    Rp " . number_format(
+                        $invoice->subtotal,
+                        0,
+                        ',',
+                        '.'
+                    ) . "
 
-Service Fee :
-Rp " . number_format(
-$invoice->service_fee,
-0,
-',',
-'.'
-) . "
+                    PPN :
+                    Rp " . number_format(
+                        $invoice->vat,
+                        0,
+                        ',',
+                        '.'
+                    ) . "
 
-━━━━━━━━━━━━━━━
+                    Service Fee :
+                    Rp " . number_format(
+                        $invoice->service_fee,
+                        0,
+                        ',',
+                        '.'
+                    ) . "
 
-GRAND TOTAL :
-Rp " . number_format(
-$invoice->grand_total,
-0,
-',',
-'.'
-) . "
+                    ━━━━━━━━━━━━━━━
 
-Catatan :
-" . ($invoice->notes ?: '-') . "
+                    GRAND TOTAL :
+                    Rp " . number_format(
+                        $invoice->grand_total,
+                        0,
+                        ',',
+                        '.'
+                    ) . "
+
+                    Catatan :
+                    " . ($invoice->notes ?: '-') . "
 
 
-Silakan login ke Portal Client:
+                    Silakan login ke Portal Client
+                    SIS.COM untuk melihat detail
+                    invoice.
 
-https://sis.com/login
+                    Terima kasih.
 
-untuk melihat detail invoice dan status pembayaran.
+                    SIS.COM
+                    Software House & IT Solutions
 
-Software House & IT Solutions
+                    📎 Download Invoice:
 
-📎 Download Invoice:
+                    {$pdfUrl}",
 
-{$pdfUrl}",
-
-$pdfUrl
+                        $pdfUrl
             );
 
 

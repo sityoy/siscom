@@ -27,7 +27,7 @@
         <a href="{{ route('projects.create') }}"
            class="btn btn-primary">
 
-            + Tambah Project
+            + Creat Project
 
         </a>
 
@@ -133,24 +133,34 @@
 
                             <td>
 
-                                @php
+                                @if($project->deadline)
 
-                                    $deadline =
-                                        \Carbon\Carbon::parse($project->deadline);
+                                    @php
+                                        $deadline =
+                                            \Carbon\Carbon::parse(
+                                                $project->deadline
+                                            );
+                                    @endphp
 
-                                @endphp
+                                    <span class="
+                                        @if($deadline->isPast())
+                                            text-danger
+                                        @else
+                                            text-primary
+                                        @endif
+                                    ">
+                                        {{ $deadline->format('d M Y') }}
+                                    </span>
 
-                                <span class="
-                                    @if($deadline->isPast())
-                                        text-danger
-                                    @else
-                                        text-primary
-                                    @endif
-                                ">
+                                @else
 
-                                    {{ $deadline->format('d M Y') }}
+                                    <span class="text-muted">
 
-                                </span>
+                                        No Deadline
+
+                                    </span>
+
+                                @endif
 
                             </td>
 
@@ -219,9 +229,15 @@
                                 <a href="{{ route('project.files', $project->id) }}"
                                    class="btn btn-info btn-sm">
 
-                                    Files
+                                    Files {{ $project->files()->count() }}
 
                                 </a>
+
+
+
+
+
+
 
                                 <a href="{{ route('projects.edit', $project->id) }}"
                                    class="btn btn-warning btn-sm">
@@ -255,7 +271,7 @@
 
                         <tr>
 
-                            <td colspan="7"
+                            <td colspan="8"
                                 class="text-center text-muted py-4">
 
                                 Belum ada data project

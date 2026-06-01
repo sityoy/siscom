@@ -53,6 +53,7 @@
                         @foreach($projects as $project)
 
                             <option value="{{ $project->id }}"
+                                data-client="{{ $project->client_id }}"
                                 @selected($invoice->project_id == $project->id)>
 
                                 {{ $project->title }}
@@ -443,6 +444,27 @@
 </div>
 
 <script>
+
+const clientSelect =
+    document.querySelector('[name="client_id"]');
+
+const projectSelect =
+    document.querySelector('[name="project_id"]');
+
+clientSelect.addEventListener('change', function(){
+
+    let clientId = this.value;
+
+    Array.from(projectSelect.options).forEach(option => {
+
+        if(!option.value) return;
+
+        option.hidden =
+            option.dataset.client != clientId;
+
+    });
+
+});
 
 document.addEventListener('DOMContentLoaded', function () {
 

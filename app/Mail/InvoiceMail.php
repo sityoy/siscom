@@ -14,7 +14,9 @@ class InvoiceMail extends Mailable
 
     public $invoice;
 
-    public function __construct($invoice)
+    public function __construct(
+        Invoice $invoice
+    )
     {
         $this->invoice = $invoice;
     }

@@ -43,6 +43,22 @@ class ProjectController extends Controller
 
         ]);
 
+        $status = $request->status;
+
+        if ($request->progress >= 100) {
+
+            $status = 'completed';
+
+        } elseif ($request->progress > 0) {
+
+            $status = 'progress';
+
+        } else {
+
+            $status = 'pending';
+
+        }
+
         $project = Project::create([
 
             'client_id'   => $request->client_id,
@@ -55,9 +71,11 @@ class ProjectController extends Controller
 
             'deadline'    => $request->deadline,
 
-            'status'      => $request->status,
+            'status'      => $status,
 
             'progress'    => $request->progress ?? 0,
+
+
 
         ]);
 
@@ -162,16 +180,28 @@ class ProjectController extends Controller
 
     public function destroy(Project $project)
     {
-        ProjectFile::where(
-            'project_id',
-            $project->id
-        )->delete();
+        foreach ($project->files as $file) {
+
+            if (
+                $file->file_path &&
+                \Storage::disk('public')->exists(
+                    $file->file_path
+                )
+            ) {
+
+                \Storage::disk('public')->delete(
+                    $file->file_path
+                );
+            }
+
+            $file->delete();
+        }
 
         $project->delete();
 
         return back()->with(
             'success',
-            'Project berhasil dihapus',
+            'Project berhasil dihapus'
         );
     }
 }

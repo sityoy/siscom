@@ -30,7 +30,10 @@ class ProjectFileController extends Controller
 
         $request->validate([
 
-            'file' => 'required|file|max:10240',
+            'file' =>
+            'required|file|
+            mimes:pdf,doc,docx,xls,xlsx,zip,rar,png,jpg,jpeg|
+            max:10240',
 
         ]);
 

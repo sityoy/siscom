@@ -54,10 +54,9 @@
 
                         @foreach($projects as $project)
 
-                            <option value="{{ $project->id }}">
-
-                                {{ $project->title }}
-
+                            <option value="{{ $project->id }}"
+                                    data-client="{{ $project->client_id }}">
+                                    {{ $project->title }}
                             </option>
 
                         @endforeach
@@ -278,7 +277,7 @@
                            name="vat_percent"
                            class="form-control"
                            id="vat-percent"
-                           value="">
+                           value="11">
 
                 </div>
 
@@ -412,6 +411,28 @@
 </div>
 
 <script>
+
+const clientSelect =
+    document.querySelector('[name="client_id"]');
+
+const projectSelect =
+    document.querySelector('[name="project_id"]');
+
+clientSelect.addEventListener('change', function(){
+
+    let clientId = this.value;
+
+    Array.from(projectSelect.options).forEach(option => {
+
+        if(!option.value) return;
+
+        option.hidden =
+            option.dataset.client != clientId;
+
+    });
+
+    projectSelect.value = '';
+});
 
 document.addEventListener('DOMContentLoaded', function () {
 

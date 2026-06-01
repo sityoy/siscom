@@ -20,6 +20,8 @@ class Project extends Model
 
         'status',
 
+        'progress',
+
     ];
 
     public function client()
