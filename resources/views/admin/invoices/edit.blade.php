@@ -285,11 +285,14 @@
 
                     <label>PPN (%)</label>
 
-                    <input type="number"
-                           name="vat_percent"
-                           class="form-control"
-                           id="vat-percent"
-                           value="{{ $invoice->vat_percent }}">
+                    <input  type="number"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            name="vat_percent"
+                            class="form-control"
+                            id="vat-percent"
+                            value="{{ old('vat_percent', number_format($invoice->vat_percent,0)) }}">
 
                 </div>
 
@@ -314,7 +317,7 @@
            name="cashback"
            id="cashback"
            class="form-control"
-           value="{{ $invoice->cashback ?? 0 }}"
+           value="{{ number_format($invoice->cashback,0) ?? 0 }}"
            min="0"
            max="20">
 
@@ -513,6 +516,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.getElementById('grand-total')
             .innerText = grandTotal.toLocaleString('id-ID');
+
+        document.getElementById('final-total')
+            .innerText =
+            grandTotal.toLocaleString('id-ID');
     }
 
     function updateSummary(item) {

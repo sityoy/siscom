@@ -36,11 +36,28 @@
 
                     <label>Nama Client</label>
 
-                    <input type="text"
-                           name="name"
-                           class="form-control"
-                           placeholder="Masukkan nama client"
-                           required>
+                        <select name="user_id"
+                            id="user-select"
+                            class="form-control">
+
+                        <option value="">
+                            Pilih User
+                        </option>
+
+                        @foreach($users as $user)
+
+                            <option
+                                value="{{ $user->id }}"
+                                data-name="{{ $user->name }}"
+                                data-email="{{ $user->email }}">
+
+                                {{ $user->name }}
+
+                            </option>
+
+                        @endforeach
+
+                    </select>
 
                 </div>
 
@@ -65,10 +82,17 @@
 
                     <label>Email</label>
 
+                    <input
+                        type="text"
+                        name="name"
+                        id="client-name"
+                        readonly hidden>
+
                     <input type="email"
                            name="email"
+                           id="client-email"
                            class="form-control"
-                           placeholder="email@client.com">
+                           readonly>
 
                 </div>
 
@@ -80,7 +104,7 @@
                     <input type="text"
                            name="phone"
                            class="form-control"
-                           placeholder="08xxxxxxxxxx">
+                           placeholder="62xxxxxxxxxx" maxlength="13">
 
                 </div>
 
@@ -120,5 +144,26 @@
     </form>
 
 </div>
+
+<script>
+document
+    .getElementById('user-select')
+    .addEventListener('change', function(){
+
+        let option =
+            this.options[this.selectedIndex];
+
+        document
+            .getElementById('client-name')
+            .value =
+            option.dataset.name || '';
+
+        document
+            .getElementById('client-email')
+            .value =
+            option.dataset.email || '';
+
+    });
+</script>
 
 @endsection

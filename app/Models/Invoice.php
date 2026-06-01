@@ -16,6 +16,8 @@ class Invoice extends Model
 
         'subtotal',
 
+        'vat_percent',
+
         'vat',
 
         'service_fee',

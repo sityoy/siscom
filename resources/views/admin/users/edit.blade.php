@@ -42,9 +42,10 @@
 
                 <label>Password</label>
 
-                <input type="password"
-                       name="password"
-                       class="form-control">
+               <input   type="password"
+                        name="password"
+                        class="form-control"
+                        autocomplete="new-password">
 
                 <small class="text-muted">
 

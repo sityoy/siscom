@@ -9,6 +9,8 @@ class Client extends Model
 {
     protected $fillable = [
 
+        'user_id',
+
         'name',
 
         'company',
@@ -20,6 +22,13 @@ class Client extends Model
         'address',
 
     ];
+
+    // protected $with = [
+
+    //     'projects',
+
+    //     'invoices'
+    // ];
 
     public function projects()
         {
@@ -35,6 +44,7 @@ class Client extends Model
         {
             return $this->belongsTo(User::class);
         }
+
 
     public function notifications()
         {

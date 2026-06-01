@@ -278,7 +278,7 @@
                            name="vat_percent"
                            class="form-control"
                            id="vat-percent"
-                           value="11">
+                           value="">
 
                 </div>
 

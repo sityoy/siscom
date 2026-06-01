@@ -38,10 +38,11 @@
                 <tr>
 
                     <th>#</th>
-                    <th>Nama</th>
-                    <th>Email</th>
+                    <th>Name</th>
+                    <th>E-mail</th>
                     <th>Role</th>
-                    <th>Aksi</th>
+                    <th>Created At</th>
+                    <th>Action</th>
 
                 </tr>
 
@@ -67,8 +68,12 @@
 
                         <td>
 
-                            {{ $user->roles->pluck('name')->first() }}
+                            {{ $user->roles->pluck('name')->implode(', ') }}
 
+                        </td>
+
+                        <td>
+                            {{ $user->created_at->format('d M Y') }}
                         </td>
 
                         <td>
@@ -105,7 +110,7 @@
 
                     <tr>
 
-                        <td colspan="5"
+                        <td colspan="6"
                             class="text-center">
 
                             Data kosong

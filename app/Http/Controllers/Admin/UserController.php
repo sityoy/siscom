@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -38,7 +39,7 @@ class UserController extends Controller
 
             'name' => 'required',
 
-            'email' => 'required|email|unique:users',
+            'email' => 'required|email|unique:users,email',
 
             'password' => 'required|min:6',
 
@@ -87,7 +88,12 @@ class UserController extends Controller
 
             'name' => 'required',
 
-            'email' => 'required|email',
+            'email' => [
+                            'required',
+                            'email',
+                            Rule::unique('users')
+                                ->ignore($user->id),
+                        ],
 
             'role' => 'required',
 
@@ -124,6 +130,22 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        if ($user->hasRole('super_admin')) {
+
+            return back()->with(
+                'error',
+                'Super Admin tidak boleh dihapus'
+            );
+        }
+
+        if ($user->id == auth()->id()) {
+
+            return back()->with(
+                'error',
+                'Tidak bisa menghapus akun sendiri'
+            );
+        }
+
         $user->delete();
 
         return back()->with(

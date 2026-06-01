@@ -59,6 +59,12 @@
 
                         <th>Perusahaan</th>
 
+                        <th>Projects</th>
+
+                        <th>Invoices</th>
+
+                        <th>Created</th>
+
                         <th>Email</th>
 
                         <th>WhatsApp</th>
@@ -132,6 +138,12 @@
 
                             </td>
 
+                            <td>{{ $client->projects->count() }}</td>
+
+                            <td>{{ $client->invoices->count() }}</td>
+
+                            <td>{{ $client->created_at->format('d M Y') }}</td>
+
                             <td>
 
                                 {{ $client->email ?? '-' }}
@@ -192,7 +204,7 @@
 
                         <tr>
 
-                            <td colspan="6"
+                            <td colspan="9"
                                 class="text-center text-muted py-4">
 
                                 Belum ada data client

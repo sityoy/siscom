@@ -738,7 +738,7 @@
 
             <td>
 
-                PPN {{ $invoice->vat_percent }}%
+                PPN {{ number_format($invoice->vat_percent,0) }}%
 
             </td>
 

@@ -39,10 +39,11 @@
 
                 <label>Password</label>
 
-                <input type="password"
-                       name="password"
-                       class="form-control"
-                       required>
+                <input  type="password"
+                        name="password"
+                        class="form-control"
+                        autocomplete="new-password"
+                        required>
 
             </div>
 

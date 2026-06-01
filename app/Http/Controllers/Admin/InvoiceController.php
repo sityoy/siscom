@@ -233,7 +233,8 @@ class InvoiceController extends Controller
                 " . ($invoice->notes ?: '-') . "
 
                 Silakan login ke Portal Client
-                SIS.COM untuk melihat detail invoice.
+                SIS.COM untuk melihat detail
+                invoice.
 
                 Terima kasih.
 
@@ -275,102 +276,106 @@ class InvoiceController extends Controller
 
     public function update(Request $request, Invoice $invoice)
     {
-    $subtotal = 0;
+            $request->validate([
+                'vat_percent' => 'required|numeric|min:0|max:100',
+                'cashback' => 'nullable|numeric|min:0|max:20',
+            ]);
+            $subtotal = 0;
 
-    foreach ($request->price as $index => $price) {
+            foreach ($request->price as $index => $price) {
 
-        $qty = $request->qty[$index];
+                $qty = $request->qty[$index];
 
-        $subtotal += $qty * $price;
+                $subtotal += $qty * $price;
+            }
+
+            $vatPercent = $request->vat_percent ?? 0;
+
+            $vat = ($subtotal * $vatPercent) / 100;
+
+            $serviceFee = $request->service_fee ?? 0;
+
+            $cashback = $request->cashback ?? 0;
+
+            // $cashbackAmount =
+            //     ($subtotal + $vat + $serviceFee)
+            //     * $cashback / 100;
+
+            $grandTotal =
+                $subtotal + $vat + $serviceFee;
+
+
+            $invoice->update([
+
+                'client_id' => $request->client_id,
+
+                'project_id' => $request->project_id,
+
+                'invoice_number' => $request->invoice_number,
+
+                'subtotal' => $subtotal,
+
+                'vat_percent' => $vatPercent,
+
+                'vat' => $vat,
+
+                'service_fee' => $serviceFee,
+
+                'cashback' => $cashback,
+
+                'grand_total' => $grandTotal,
+
+                'due_date' => $request->due_date,
+
+                'status' => $request->status,
+
+                'notes' => $request->notes,
+
+            ]);
+
+            $invoice->items()->delete();
+
+            foreach ($request->description as $index => $description) {
+
+                $qty = $request->qty[$index];
+
+                $price = $request->price[$index];
+
+                $total = $qty * $price;
+
+
+                InvoiceItem::create([
+
+                    'invoice_id' => $invoice->id,
+
+                    'description' => $description,
+
+                    'qty' => $qty,
+
+                    'price' => $price,
+
+                    'total' => $total,
+
+                    'duration' => $request->duration[$index],
+
+                    'duration_type' => $request->duration_type[$index],
+
+                    'start_date' => $request->start_date[$index],
+
+                    'end_date' => $request->end_date[$index],
+
+                ]);
+
+
+            }
+
+            return redirect()
+                ->route('invoices.index')
+                ->with(
+                    'success',
+                    'Invoice berhasil diupdate'
+                );
     }
-
-    $vatPercent = $request->vat_percent ?? 0;
-
-    $vat = ($subtotal * $vatPercent) / 100;
-
-    $serviceFee = $request->service_fee ?? 0;
-
-    $cashback = $request->cashback ?? 0;
-
-    // $cashbackAmount =
-    //     ($subtotal + $vat + $serviceFee)
-    //     * $cashback / 100;
-
-    $grandTotal =
-        $subtotal + $vat + $serviceFee;
-
-
-    $invoice->update([
-
-        'client_id' => $request->client_id,
-
-        'project_id' => $request->project_id,
-
-        'invoice_number' => $request->invoice_number,
-
-        'subtotal' => $subtotal,
-
-        'vat_percent' => $vatPercent,
-
-        'vat' => $vat,
-
-        'service_fee' => $serviceFee,
-
-        'cashback' => $cashback,
-
-        'grand_total' => $grandTotal,
-
-        'due_date' => $request->due_date,
-
-        'status' => $request->status,
-
-        'notes' => $request->notes,
-
-    ]);
-
-    $invoice->items()->delete();
-
-    foreach ($request->description as $index => $description) {
-
-        $qty = $request->qty[$index];
-
-        $price = $request->price[$index];
-
-        $total = $qty * $price;
-
-
-        InvoiceItem::create([
-
-            'invoice_id' => $invoice->id,
-
-            'description' => $description,
-
-            'qty' => $qty,
-
-            'price' => $price,
-
-            'total' => $total,
-
-            'duration' => $request->duration[$index],
-
-            'duration_type' => $request->duration_type[$index],
-
-            'start_date' => $request->start_date[$index],
-
-            'end_date' => $request->end_date[$index],
-
-        ]);
-
-
-    }
-
-    return redirect()
-        ->route('invoices.index')
-        ->with(
-            'success',
-            'Invoice berhasil diupdate'
-        );
-}
 
     public function destroy(Invoice $invoice)
     {

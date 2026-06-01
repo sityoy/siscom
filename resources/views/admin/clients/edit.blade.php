@@ -35,15 +35,36 @@
                 {{-- NAMA --}}
                 <div class="col-md-6 mb-3">
 
-                    <label>Nama Client</label>
+                <label>User</label>
 
-                    <input type="text"
-                           name="name"
-                           class="form-control"
-                           value="{{ old('name', $client->name) }}"
-                           required>
+                <select name="user_id"
+                        class="form-control">
 
-                </div>
+                    @foreach($users as $user)
+
+                        <option value="{{ $user->id }}"
+                            {{ $client->user_id == $user->id ? 'selected' : '' }}>
+
+                            {{ $user->name }}
+
+                        </option>
+
+                    @endforeach
+
+                </select>
+
+            </div>
+
+
+
+                <label hidden>Nama User</label>
+
+                <input type="text"
+                    class="form-control"
+                    value="{{ $client->user?->name }}"
+                    readonly hidden>
+
+
 
                 {{-- PERUSAHAAN --}}
                 <div class="col-md-6 mb-3">
@@ -67,9 +88,10 @@
                     <label>Email</label>
 
                     <input type="email"
-                           name="email"
-                           class="form-control"
-                           value="{{ old('email', $client->email) }}">
+                    name="email"
+                    class="form-control"
+                    value="{{ $client->user?->email }}"
+                    readonly>
 
                 </div>
 
@@ -81,7 +103,7 @@
                     <input type="text"
                            name="phone"
                            class="form-control"
-                           value="{{ old('phone', $client->phone) }}">
+                           value="{{ old('phone', $client->phone) }}" maxlength="13">
 
                 </div>
 
