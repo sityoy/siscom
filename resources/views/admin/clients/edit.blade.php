@@ -182,7 +182,7 @@
             type="date"
             name="subscription_start"
             class="form-control"
-            value="{{ old('subscription_start', $client->subscription_start) }}">
+            value="{{ old('subscription_start', optional($client->subscription_start)->format('Y-m-d')) }}">
 
     </div>
 
@@ -194,7 +194,7 @@
             type="date"
             name="subscription_end"
             class="form-control"
-            value="{{ old('subscription_end', $client->subscription_end) }}">
+            value="{{ old('subscription_end', optional($client->subscription_end)->format('Y-m-d')) }}">
 
     </div>
 

@@ -46,6 +46,37 @@
         @endif
 
         <div class="table-responsive">
+            <div class="mb-3">
+
+    <a href="{{ route('clients.index') }}"
+       class="btn btn-secondary">
+
+        Semua
+
+    </a>
+
+    <a href="{{ route('clients.index', ['status' => 'active']) }}"
+       class="btn btn-success">
+
+        Aktif
+
+    </a>
+
+    <a href="{{ route('clients.index', ['status' => 'grace']) }}"
+       class="btn btn-warning">
+
+        Masa Tenggang
+
+    </a>
+
+    <a href="{{ route('clients.index', ['status' => 'expired']) }}"
+       class="btn btn-danger">
+
+        Expired
+
+    </a>
+
+</div>
 
             <table class="table table-hover align-middle">
 

@@ -10,20 +10,22 @@ use App\Models\User;
 
 class ClientController extends Controller
 {
-    public function index()
-    {
-        $clients = Client::withCount([
-            'projects',
-            'invoices'
-        ])
+public function index(Request $request)
+{
+    $clients = Client::withCount([
+        'projects',
+        'invoices'
+    ]);
+
+    $clients = $clients
         ->latest()
         ->paginate(10);
 
-        return view(
-            'admin.clients.index',
-            compact('clients')
-        );
-    }
+    return view(
+        'admin.clients.index',
+        compact('clients')
+    );
+}
 
     public function create()
     {

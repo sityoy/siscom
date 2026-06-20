@@ -6,6 +6,8 @@ use Carbon\Carbon;
 
 use Illuminate\Database\Eloquent\Model;
 
+
+
 class Client extends Model
 {
     protected $fillable = [
@@ -22,6 +24,14 @@ class Client extends Model
         'subscription_start',
         'subscription_end',
         'grace_period_days',
+
+    ];
+
+        protected $casts = [
+
+        'subscription_start' => 'date',
+
+        'subscription_end' => 'date',
 
     ];
 
@@ -59,30 +69,30 @@ class Client extends Model
         }
 
     public function getSubscriptionStatusAttribute()
-        {
-            if (!$this->subscription_end) {
-                return 'active';
-            }
+    {
+        if (!$this->subscription_end) {
+            return 'active';
+        }
 
-            $today = Carbon::today();
+        $today = Carbon::today();
 
-            $endDate = Carbon::parse(
-                $this->subscription_end
+        $endDate = Carbon::parse(
+            $this->subscription_end
+        );
+
+        $graceEnd = $endDate->copy()
+            ->addDays(
+                $this->grace_period_days ?? 7
             );
 
-            $graceDate = $endDate->copy()
-                ->addDays(
-                    $this->grace_period_days ?? 7
-                );
-
-            if ($today->lte($endDate)) {
-                return 'active';
-            }
-
-            if ($today->lte($graceDate)) {
-                return 'grace';
-            }
-
-            return 'expired';
+        if ($today->lte($endDate)) {
+            return 'active';
         }
+
+        if ($today->lte($graceEnd)) {
+            return 'grace';
+        }
+
+        return 'expired';
+    }
 }
