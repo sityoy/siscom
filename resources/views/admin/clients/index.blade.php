@@ -198,25 +198,19 @@
                                 @if($client->subscription_status == 'active')
 
                                     <span class="badge bg-success">
-
                                         Aktif
-
                                     </span>
 
                                 @elseif($client->subscription_status == 'grace')
 
-                                    <span class="badge bg-warning">
-
+                                    <span class="badge bg-warning text-dark">
                                         Masa Tenggang
-
                                     </span>
 
                                 @else
 
                                     <span class="badge bg-danger">
-
                                         Expired
-
                                     </span>
 
                                 @endif

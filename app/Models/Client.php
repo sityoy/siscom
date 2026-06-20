@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+use Carbon\Carbon;
 
 
 use Illuminate\Database\Eloquent\Model;
@@ -60,23 +61,25 @@ class Client extends Model
     public function getSubscriptionStatusAttribute()
         {
             if (!$this->subscription_end) {
-                return 'inactive';
-            }
-
-            $today = now();
-
-            if ($today <= $this->subscription_end) {
                 return 'active';
             }
 
-            if (
-                $today <=
-                \Carbon\Carbon::parse(
-                    $this->subscription_end
-                )->addDays(
-                    $this->grace_period_days
-                )
-            ) {
+            $today = Carbon::today();
+
+            $endDate = Carbon::parse(
+                $this->subscription_end
+            );
+
+            $graceDate = $endDate->copy()
+                ->addDays(
+                    $this->grace_period_days ?? 7
+                );
+
+            if ($today->lte($endDate)) {
+                return 'active';
+            }
+
+            if ($today->lte($graceDate)) {
                 return 'grace';
             }
 

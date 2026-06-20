@@ -12,6 +12,45 @@
         {{ auth()->user()->name }}
 
     </h3>
+    @if($graceClients > 0)
+
+<div class="alert alert-warning mt-3">
+
+    <strong>
+        ⚠ {{ $graceClients }}
+        Client Dalam Masa Tenggang
+    </strong>
+
+    <a href="{{ route('clients.index') }}"
+       class="float-end">
+
+        Lihat
+
+    </a>
+
+</div>
+
+@endif
+
+@if($expiredClients > 0)
+
+<div class="alert alert-danger">
+
+    <strong>
+        ❌ {{ $expiredClients }}
+        Client Expired
+    </strong>
+
+    <a href="{{ route('clients.index') }}"
+       class="float-end text-white">
+
+        Lihat
+
+    </a>
+
+</div>
+
+@endif
 
     <small class="text-muted">
 
@@ -20,6 +59,7 @@
     </small>
 
 </div>
+
 
 @if($expiringSoonClients > 0)
 

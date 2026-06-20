@@ -200,6 +200,18 @@ class DashboardController extends Controller
             })
             ->count();
 
+        $graceClients = Client::all()
+            ->filter(fn($client) =>
+                $client->subscription_status == 'grace'
+            )
+            ->count();
+
+        $expiredClients = Client::all()
+            ->filter(fn($client) =>
+                $client->subscription_status == 'expired'
+            )
+            ->count();
+
         $expiringSoonClients = Client::whereNotNull(
                 'subscription_end'
             )
@@ -256,6 +268,8 @@ class DashboardController extends Controller
                     'graceClients',
                     'expiredClients',
                     'expiringSoonClients',
+
+                    
                 )
 
             );
