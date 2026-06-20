@@ -47,8 +47,18 @@ class ClientController extends Controller
     {
         $request->validate([
 
-            'user_id' => 'required|exists:users,id',
-            'phone' => 'nullable|string|max:20',
+        'user_id' => 'required|exists:users,id',
+        'phone' => 'nullable|string|max:20',
+
+        'package_name' => 'nullable|string|max:100',
+
+        'package_price' => 'nullable|numeric',
+
+        'subscription_start' => 'nullable|date',
+
+        'subscription_end' => 'nullable|date',
+
+        'grace_period_days' => 'nullable|integer|min:0',
 
         ]);
 
@@ -70,7 +80,24 @@ class ClientController extends Controller
 
             'address' => $request->address,
 
+            'package_name' => $request->package_name,
+
+            'package_price' => $request->package_price,
+
+            'subscription_start' => $request->subscription_start,
+
+            'subscription_end' => $request->subscription_end,
+
+            'grace_period_days' => $request->grace_period_days ?? 7,
+
         ]);
+        
+        return redirect()
+        ->route('clients.index')
+        ->with(
+            'success',
+            'Client berhasil ditambahkan'
+        );
     }
 
     public function edit(Client $client)
@@ -117,6 +144,16 @@ class ClientController extends Controller
             'phone' => $request->phone,
 
             'address' => $request->address,
+
+            'package_name' => $request->package_name,
+
+            'package_price' => $request->package_price,
+
+            'subscription_start' => $request->subscription_start,
+
+            'subscription_end' => $request->subscription_end,
+
+            'grace_period_days' => $request->grace_period_days ?? 7,
 
         ]);
 

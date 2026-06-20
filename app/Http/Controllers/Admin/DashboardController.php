@@ -155,6 +155,63 @@ class DashboardController extends Controller
 
         $totalInvoices = Invoice::count();
 
+        $today = Carbon::today();
+
+        $activeClients = Client::whereDate(
+            'subscription_end',
+            '>=',
+            $today
+        )->count();
+
+        $graceClients = Client::get()
+            ->filter(function ($client) use ($today) {
+
+                if (!$client->subscription_end) {
+                    return false;
+                }
+
+                $graceEnd = Carbon::parse(
+                    $client->subscription_end
+                )->addDays(
+                    $client->grace_period_days ?? 7
+                );
+
+                return $today->gt(
+                        Carbon::parse($client->subscription_end)
+                    )
+                    && $today->lte($graceEnd);
+            })
+            ->count();
+
+        $expiredClients = Client::get()
+            ->filter(function ($client) use ($today) {
+
+                if (!$client->subscription_end) {
+                    return false;
+                }
+
+                $graceEnd = Carbon::parse(
+                    $client->subscription_end
+                )->addDays(
+                    $client->grace_period_days ?? 7
+                );
+
+                return $today->gt($graceEnd);
+            })
+            ->count();
+
+        $expiringSoonClients = Client::whereNotNull(
+                'subscription_end'
+            )
+            ->whereBetween(
+                'subscription_end',
+                [
+                    $today,
+                    $today->copy()->addDays(7)
+                ]
+            )
+            ->count();
+
 
 
         return view(
@@ -194,6 +251,11 @@ class DashboardController extends Controller
                     'progressProjects',
                     'rewardClients',
                     'overdueInvoices',
+
+                    'activeClients',
+                    'graceClients',
+                    'expiredClients',
+                    'expiringSoonClients',
                 )
 
             );

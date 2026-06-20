@@ -59,6 +59,14 @@
 
                         <th>Perusahaan</th>
 
+                        <th>Paket</th>
+
+                        <th>Berakhir</th>
+
+                        <th></th>
+
+                        <th>Status</th>
+
                         <th>Projects</th>
 
                         <th>Invoices</th>
@@ -68,7 +76,6 @@
                         <th>Email</th>
 
                         <th>WhatsApp</th>
-
                         <th class="text-center">
 
                             Aksi
@@ -137,10 +144,88 @@
                                 {{ $client->company ?? '-' }}
 
                             </td>
+                            <td>
+                                {{ $client->package_name ?? '-' }}
+                            </td>
+                            <td>
+                                {{ $client->subscription_end
+                                    ? \Carbon\Carbon::parse($client->subscription_end)->format('d M Y')
+                                    : '-' }}
+                            </td>
 
-                            <td>{{ $client->projects->count() }}</td>
+                            <td>
+                                @if($client->subscription_end)
 
-                            <td>{{ $client->invoices->count() }}</td>
+                                    @php
+                                        $daysLeft = floor(
+                                            now()->diffInDays(
+                                                $client->subscription_end,
+                                                false
+                                            )
+                                        );
+                                    @endphp
+
+                                    @if($daysLeft > 30)
+
+                                        <span class="badge bg-success">
+                                            {{ $daysLeft }} Hari
+                                        </span>
+
+                                    @elseif($daysLeft >= 0)
+
+                                        <span class="badge bg-warning text-dark">
+                                            {{ $daysLeft }} Hari
+                                        </span>
+
+                                    @else
+
+                                        <span class="badge bg-danger">
+                                            Terlambat {{ abs($daysLeft) }} Hari
+                                        </span>
+
+                                    @endif
+
+                                @else
+
+                                    -
+
+                                @endif
+                            </td>
+
+
+                            <td>
+
+                                @if($client->subscription_status == 'active')
+
+                                    <span class="badge bg-success">
+
+                                        Aktif
+
+                                    </span>
+
+                                @elseif($client->subscription_status == 'grace')
+
+                                    <span class="badge bg-warning">
+
+                                        Masa Tenggang
+
+                                    </span>
+
+                                @else
+
+                                    <span class="badge bg-danger">
+
+                                        Expired
+
+                                    </span>
+
+                                @endif
+
+                            </td>
+
+                            <td>{{ $client->projects_count }}</td>
+
+                            <td>{{ $client->invoices_count }}</td>
 
                             <td>{{ $client->created_at->format('d M Y') }}</td>
 
@@ -204,7 +289,7 @@
 
                         <tr>
 
-                            <td colspan="9"
+                            <td colspan="13"
                                 class="text-center text-muted py-4">
 
                                 Belum ada data client

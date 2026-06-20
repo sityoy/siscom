@@ -10,16 +10,17 @@ class Client extends Model
     protected $fillable = [
 
         'user_id',
-
         'name',
-
         'company',
-
         'email',
-
         'phone',
-
         'address',
+
+        'package_name',
+        'package_price',
+        'subscription_start',
+        'subscription_end',
+        'grace_period_days',
 
     ];
 
@@ -54,5 +55,31 @@ class Client extends Model
     public function tickets()
         {
             return $this->hasMany(Ticket::class);
+        }
+
+    public function getSubscriptionStatusAttribute()
+        {
+            if (!$this->subscription_end) {
+                return 'inactive';
+            }
+
+            $today = now();
+
+            if ($today <= $this->subscription_end) {
+                return 'active';
+            }
+
+            if (
+                $today <=
+                \Carbon\Carbon::parse(
+                    $this->subscription_end
+                )->addDays(
+                    $this->grace_period_days
+                )
+            ) {
+                return 'grace';
+            }
+
+            return 'expired';
         }
 }

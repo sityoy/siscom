@@ -119,7 +119,98 @@
                           rows="4">{{ old('address', $client->address) }}</textarea>
 
             </div>
+<hr>
 
+<h5 class="mb-3">
+    Informasi Langganan
+</h5>
+
+<div class="row">
+
+    <div class="col-md-6 mb-3">
+
+        <label>Paket</label>
+
+        <select
+            name="package_name"
+            class="form-control">
+
+            <option value="">
+                Pilih Paket
+            </option>
+
+            <option value="Basic"
+                {{ $client->package_name == 'Basic' ? 'selected' : '' }}>
+                Basic
+            </option>
+
+            <option value="Standard"
+                {{ $client->package_name == 'Standard' ? 'selected' : '' }}>
+                Standard
+            </option>
+
+            <option value="Premium"
+                {{ $client->package_name == 'Premium' ? 'selected' : '' }}>
+                Premium
+            </option>
+
+        </select>
+
+    </div>
+
+    <div class="col-md-6 mb-3">
+
+        <label>Harga Paket</label>
+
+        <input
+            type="number"
+            name="package_price"
+            class="form-control"
+            value="{{ old('package_price', $client->package_price) }}">
+
+    </div>
+
+</div>
+
+<div class="row">
+
+    <div class="col-md-4 mb-3">
+
+        <label>Tanggal Mulai</label>
+
+        <input
+            type="date"
+            name="subscription_start"
+            class="form-control"
+            value="{{ old('subscription_start', $client->subscription_start) }}">
+
+    </div>
+
+    <div class="col-md-4 mb-3">
+
+        <label>Tanggal Berakhir</label>
+
+        <input
+            type="date"
+            name="subscription_end"
+            class="form-control"
+            value="{{ old('subscription_end', $client->subscription_end) }}">
+
+    </div>
+
+    <div class="col-md-4 mb-3">
+
+        <label>Masa Tenggang (Hari)</label>
+
+        <input
+            type="number"
+            name="grace_period_days"
+            class="form-control"
+            value="{{ old('grace_period_days', $client->grace_period_days ?? 7) }}">
+
+    </div>
+
+</div>
         </div>
 
         <div class="card-footer d-flex justify-content-between">

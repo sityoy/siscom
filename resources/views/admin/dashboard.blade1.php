@@ -4,325 +4,166 @@
 
 @section('admin-content')
 
+<div class="mb-4">
 
-{{-- TOP STATS --}}
+    <h3 class="mb-1">
+
+        Welcome Back,
+        {{ auth()->user()->name }}
+
+    </h3>
+
+    <small class="text-muted">
+
+        {{ now()->format('l, d F Y H:i') }}
+
+    </small>
+
+</div>
+
+@if($expiringSoonClients > 0)
+
+<div class="alert alert-warning">
+
+    <strong>
+        ⚠️ Subscription Alert!
+    </strong>
+
+    There are
+
+    <strong>
+        {{ $expiringSoonClients }}
+    </strong>
+
+    client subscriptions expiring within the next 7 days.
+
+</div>
+
+@endif
+
+
+@if($expiredClients > 0)
+
+<div class="alert alert-danger">
+
+    <strong>
+        🚨 Subscription Expired!
+    </strong>
+
+    There are
+
+    <strong>
+        {{ $expiredClients }}
+    </strong>
+
+    clients whose subscription grace period has ended.
+
+</div>
+
+@endif
+
+{{-- BARIS 1 --}}
 <div class="row">
 
-    {{-- TOTAL PEMASUKAN --}}
     <div class="col-lg-3 col-md-6 mb-4">
-
         <div class="card border-0 shadow-sm h-100">
-
             <div class="card-body">
-
-                <small class="text-muted">
-
-                    Jumlah Pemasukan
-
-                </small>
-
-                <h3 class="font-weight-bold text-success mt-2">
-
+                <small class="text-muted">Total Revenue</small>
+                <h2 class="font-weight-bold text-success mt-2">
                     Rp {{ number_format($totalIncome,0,',','.') }}
-
-                </h3>
-
+                </h2>
             </div>
-
         </div>
-
     </div>
 
-    {{-- BULAN INI --}}
     <div class="col-lg-3 col-md-6 mb-4">
-
         <div class="card border-0 shadow-sm h-100">
-
             <div class="card-body">
-
-                <small class="text-muted">
-
-                    Pemasukan Bulan Ini
-
-                </small>
-
-                <h3 class="font-weight-bold text-primary mt-2">
-
+                <small class="text-muted">Monthly Revenue</small>
+                <h2 class="font-weight-bold text-primary mt-2">
                     Rp {{ number_format($currentMonthIncome,0,',','.') }}
-
-                </h3>
-
+                </h2>
             </div>
-
         </div>
-
     </div>
 
-    {{-- CLIENT --}}
     <div class="col-lg-3 col-md-6 mb-4">
-
         <div class="card border-0 shadow-sm h-100">
-
             <div class="card-body">
-
-                <small class="text-muted">
-
-                    Jumlah Klien
-
-                </small>
-
-                <h3 class="font-weight-bold text-info mt-2">
-
-                    {{ $totalClients }}
-
-                </h3>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    {{-- USERS --}}
-    <div class="col-lg-3 col-md-6 mb-4">
-
-        <div class="card border-0 shadow-sm h-100">
-
-            <div class="card-body">
-
-                <small class="text-muted">
-
-                    Jumlah Pengguna
-
-                </small>
-
-                <h3 class="font-weight-bold text-dark mt-2">
-
-                    {{ $totalUsers }}
-
-                </h3>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-{{-- SECOND ROW --}}
-<div class="row">
-
-    {{-- PROJECT --}}
-    <div class="col-lg-3 col-md-6 mb-4">
-
-        <div class="card border-0 shadow-sm h-100">
-
-            <div class="card-body">
-
-                <small class="text-muted">
-
-                    Jumlah Proyek
-
-                </small>
-
-                <h3 class="font-weight-bold text-warning mt-2">
-
-                    {{ $totalProjects }}
-
-                </h3>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    {{-- COMPLETED --}}
-    <div class="col-lg-3 col-md-6 mb-4">
-
-        <div class="card border-0 shadow-sm h-100">
-
-            <div class="card-body">
-
-                <small class="text-muted">
-
-                    Proyek Selesai
-
-                </small>
-
-                <h3 class="font-weight-bold text-success mt-2">
-
-                    {{ $completedProjects }}
-
-                </h3>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    {{-- PENDING --}}
-    <div class="col-lg-3 col-md-6 mb-4">
-
-        <div class="card border-0 shadow-sm h-100">
-
-            <div class="card-body">
-
-                <small class="text-muted">
-
-                    Proyek Tertunda
-
-                </small>
-
-                <h3 class="font-weight-bold text-danger mt-2">
-
-                    {{ $pendingProjects }}
-
-                </h3>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    {{-- PAID --}}
-    <div class="col-lg-3 col-md-6 mb-4">
-
-        <div class="card border-0 shadow-sm h-100">
-
-            <div class="card-body">
-
-                <small class="text-muted">
-
-                    Faktur Terbayar
-
-                </small>
-
-                <h3 class="font-weight-bold text-primary mt-2">
-
-                    {{ $paidInvoices }}
-
-                </h3>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-{{-- THIRD ROW --}}
-<div class="row">
-
-    {{-- UNPAID --}}
-    <div class="col-lg-3 col-md-6 mb-4">
-
-        <div class="card border-0 shadow-sm h-100">
-
-            <div class="card-body">
-
-                <small class="text-muted">
-
-                    Tagihan Belum Dibayar
-
-                </small>
-
-                <h3 class="font-weight-bold text-danger mt-2">
-
-                    {{ $unpaidInvoices }}
-
-                </h3>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-<div class="col-lg-3 col-md-6 mb-4">
-
-    <div class="card border-0 shadow-sm h-100">
-
-        <div class="card-body">
-
-            <small class="text-muted">
-
-                Open Ticket
-
-            </small>
-
-            <h3 class="font-weight-bold text-warning mt-2">
-
-                {{ $openTickets }}
-
-            </h3>
-
-        </div>
-
-    </div>
-
-</div>
-
-{{-- ANALYTICS ROW --}}
-<div class="row">
-
-    {{-- TOTAL PAYMENT --}}
-    <div class="col-lg-3 col-md-6 mb-4">
-
-        <div class="card border-0 shadow-sm h-100">
-
-            <div class="card-body">
-
-                <small class="text-muted">
-
-                    Jumlah Pembayaran
-
-                </small>
-
-                <h3 class="font-weight-bold text-info mt-2">
-
-                    {{ $totalPayments }}
-
-                </h3>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    {{-- PENDING REVENUE --}}
-    <div class="col-lg-3 col-md-6 mb-4">
-
-        <div class="card border-0 shadow-sm h-100">
-
-            <div class="card-body">
-
-                <small class="text-muted">
-
-                    Pendapatan Tertunda
-
-                </small>
-
-                <h3 class="font-weight-bold text-danger mt-2">
-
+                <small class="text-muted">Pending Revenue</small>
+                <h2 class="font-weight-bold text-danger mt-2">
                     Rp {{ number_format($pendingRevenue,0,',','.') }}
-
-                </h3>
-
+                </h2>
             </div>
-
         </div>
-
     </div>
 
-    {{-- CASHBACK --}}
+    <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <small class="text-muted">Clients Cashback Rewards</small>
+                    <h2 class="font-weight-bold text-success mt-2">
+                        Rp {{ number_format($totalCashback,0,',','.') }}
+                    </h2>
+                </div>
+            </div>
+        </div>
+</div>
+
+{{-- BARIS 2 --}}
+<div class="row">
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">Total Users</small>
+                <h2 class="font-weight-bold text-dark mt-2">
+                    {{ $totalUsers }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">Total Clients</small>
+                <h2 class="font-weight-bold text-info mt-2">
+                    {{ $totalClients }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">Total Projects</small>
+                <h2 class="font-weight-bold text-warning mt-2">
+                    {{ $totalProjects }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">
+                    Total Invoices
+                </small>
+                <h2 class="font-weight-bold text-primary mt-2">
+                    {{ $totalInvoices }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{{-- SUBSCRIPTION CLIENT --}}
+<div class="row">
+
     <div class="col-lg-3 col-md-6 mb-4">
 
         <div class="card border-0 shadow-sm h-100">
@@ -331,15 +172,15 @@
 
                 <small class="text-muted">
 
-                    Jumlah Cashback
+                    Active Clients
 
                 </small>
 
-                <h3 class="font-weight-bold text-success mt-2">
+                <h2 class="font-weight-bold text-success mt-2">
 
-                    {{ $totalCashback }}%
+                    {{ $activeClients }}
 
-                </h3>
+                </h2>
 
             </div>
 
@@ -347,7 +188,7 @@
 
     </div>
 
-    {{-- PROJECT RATE --}}
+
     <div class="col-lg-3 col-md-6 mb-4">
 
         <div class="card border-0 shadow-sm h-100">
@@ -356,122 +197,283 @@
 
                 <small class="text-muted">
 
-                    Penyelesaian Proyek
+                    Grace Period
 
                 </small>
 
-                <h3 class="font-weight-bold text-primary mt-2">
+                <h2 class="font-weight-bold text-warning mt-2">
 
-                    {{ $projectCompletionRate }}%
+                    {{ $graceClients }}
 
-                </h3>
+                </h2>
 
-                <div class="progress mt-3"
-                     style="height:8px;">
+            </div>
 
-                    <div class="progress-bar bg-primary"
-                         style="
-                            width:
-                            {{ $projectCompletionRate }}%;
-                         ">
+        </div>
 
+    </div>
+
+
+    <div class="col-lg-3 col-md-6 mb-4">
+
+        <div class="card border-0 shadow-sm h-100">
+
+            <div class="card-body">
+
+                <small class="text-muted">
+
+                    Expired
+
+                </small>
+
+                <h2 class="font-weight-bold text-danger mt-2">
+
+                    {{ $expiredClients }}
+
+                </h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-3 col-md-6 mb-4">
+
+        <div class="card border-0 shadow-sm h-100">
+
+            <div class="card-body">
+
+                <small class="text-muted">
+
+                    Expiring Soon
+
+                </small>
+
+                <h2 class="font-weight-bold text-primary mt-2">
+
+                    {{ $expiringSoonClients }}
+
+                </h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{{-- BARIS 3 --}}
+<div class="row">
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">Completed Projects</small>
+                <h2 class="font-weight-bold text-success mt-2">
+                    {{ $completedProjects }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">
+                    In Progress Projects
+                </small>
+                <h2 class="font-weight-bold text-info mt-2">
+                    {{ $progressProjects }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">
+                    Pending Projects
+                </small>
+
+                <h2 class="font-weight-bold text-danger mt-2">
+                    {{ $pendingProjects }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">Open Tickets</small>
+                <h2 class="font-weight-bold text-warning mt-2">
+                    {{ $openTickets }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{{-- BARIS 4 --}}
+<div class="row">
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">Paid Invoices</small>
+                <h2 class="font-weight-bold text-primary mt-2">
+                    {{ $paidInvoices }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">
+                    Partial Invoices
+                </small>
+                <h2 class="font-weight-bold text-warning mt-2">
+                    {{ $partialInvoices }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">Unpaid Invoices</small>
+                <h2 class="font-weight-bold text-danger mt-2">
+                    {{ $unpaidInvoices }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">
+                    Overdue Invoices
+                </small>
+                <h2 class="font-weight-bold text-danger mt-2">
+                    {{ $overdueInvoices }}
+                </h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{{-- BARIS 5 --}}
+<div class="row">
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">
+                    Reward Clients
+                </small>
+                <h2 class="font-weight-bold text-success mt-2">
+                    {{ $rewardClients }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">
+                    Closed Tickets
+                </small>
+                <h2 class="font-weight-bold text-success mt-2">
+                    {{ $closedTickets }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">Total Payment Amount</small>
+                <h2 class="font-weight-bold text-info mt-2">
+                    Rp {{ number_format($totalPaymentAmount,0,',','.') }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted">Projects Completion Rate</small>
+
+                <h2 class="font-weight-bold text-primary">
+                        {{ $projectCompletionRate }}%
+                </h2>
+                <div class="progress">
+                    <div class="progress-bar bg-success"
+                        style="width: {{ $projectCompletionRate }}%">
                     </div>
-
                 </div>
 
             </div>
-
         </div>
-
     </div>
-
 </div>
 
-{{-- LATEST DATA --}}
+    <div class="row">
 
-    {{-- LATEST INVOICES --}}
-<div class="row">
+    {{-- Invoice Terbaru --}}
     <div class="col-lg-6 mb-4">
 
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card border-0 shadow-sm">
 
-            <div class="card-header bg-white border-0">
-
-                <h5 class="mb-0 font-weight-bold">
-
-                    Invoice Terbaru
-
-                </h5>
-
+            <div class="card-header bg-white">
+                <h4 class="mb-0">Latest Invoices</h4>
             </div>
 
-            <div class="card-body p-0">
+            <div class="table-responsive">
 
-                <table class="table table-hover mb-0">
+                <table class="table mb-0">
 
                     <thead>
-
                         <tr>
-
                             <th>Invoice</th>
                             <th>Client</th>
                             <th>Status</th>
-
+                            <th>Total</th>
                         </tr>
-
                     </thead>
 
                     <tbody>
 
-                        @foreach($latestInvoices as $invoice)
+                    @forelse($latestInvoices as $invoice)
 
-                            <tr>
+                        <tr>
+                            <td>{{ $invoice->invoice_number }}</td>
+                            <td>{{ $invoice->client->name ?? '-' }}</td>
+                            <td>{{ ucfirst($invoice->status) }}</td>
+                            <td>Rp {{ number_format($invoice->grand_total,0,',','.') }}</td>
+                        </tr>
 
-                                <td>
+                    @empty
 
-                                    {{ $invoice->invoice_number }}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">
+                                No invoices found
+                            </td>
+                        </tr>
 
-                                </td>
-
-                                <td>
-
-                                    {{ $invoice->client->name ?? '-' }}
-
-                                </td>
-
-                                <td>
-
-                                    @if($invoice->status == 'paid')
-
-                                        <span class="badge bg-success">
-
-                                            Paid
-
-                                        </span>
-
-                                    @elseif($invoice->status == 'partial')
-
-                                        <span class="badge bg-warning">
-
-                                            Partial
-
-                                        </span>
-
-                                    @else
-
-                                        <span class="badge bg-danger">
-
-                                            Unpaid
-
-                                        </span>
-
-                                    @endif
-
-                                </td>
-
-                            </tr>
-
-                        @endforeach
+                    @endforelse
 
                     </tbody>
 
@@ -483,16 +485,68 @@
 
     </div>
 
-    {{-- LATEST PAYMENTS --}}
+
+    {{-- Pembayaran Terbaru --}}
     <div class="col-lg-6 mb-4">
 
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card border-0 shadow-sm">
 
-            <div class="card-header bg-white border-0">
+            <div class="card-header bg-white">
+                <h4 class="mb-0">Latest Payments</h4>
+            </div>
 
-                <h5 class="mb-0 font-weight-bold">
+            <div class="table-responsive">
 
-                    Pembayaran Terbaru
+                <table class="table mb-0">
+
+                    <thead>
+                        <tr>
+                            <th>Invoice</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                    @forelse($latestPayments as $payment)
+
+                        <tr>
+                            <td>{{ $payment->invoice->invoice_number ?? '-' }}</td>
+                            <td>Rp {{ number_format($payment->amount,0,',','.') }}</td>
+                            <td>{{ \Carbon\Carbon::parse($payment->payment_date)->format('d M Y') }}</td>
+                        </tr>
+
+                    @empty
+
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">
+                                No payments found
+                            </td>
+                        </tr>
+
+                    @endforelse
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-6 mb-4">
+
+        <div class="card border-0 shadow-sm">
+
+            <div class="card-header bg-white">
+
+                <h5 class="mb-0">
+
+                    Top Clients
 
                 </h5>
 
@@ -500,15 +554,16 @@
 
             <div class="card-body p-0">
 
-                <table class="table table-hover mb-0">
+                <table class="table mb-0">
 
                     <thead>
 
                         <tr>
 
-                            <th>Invoice</th>
-                            <th>Nominal</th>
-                            <th>Tanggal</th>
+                            <th>Client</th>
+                            <th>Projects</th>
+                            <th>Revenue</th>
+
 
                         </tr>
 
@@ -516,31 +571,43 @@
 
                     <tbody>
 
-                        @foreach($latestPayments as $payment)
+                        @forelse($topClients as $client)
 
                             <tr>
 
                                 <td>
-
-                                    {{ $payment->invoice->invoice_number ?? '-' }}
-
-                                </td>
-
-                                <td class="text-success font-weight-bold">
-
-                                    Rp {{ number_format($payment->amount,0,',','.') }}
-
+                                    {{ $client->name }}
                                 </td>
 
                                 <td>
+                                    {{ $client->projects_count }}
+                                </td>
 
-                                    {{ \Carbon\Carbon::parse($payment->payment_date)->format('d M Y') }}
+                                <td>
+                                    Rp {{ number_format(
+                                        $client->invoices_sum_grand_total,
+                                        0,
+                                        ',',
+                                        '.'
+                                    ) }}
+                                </td>
+
+                            </tr>
+
+                        @empty
+
+                            <tr>
+
+                                <td colspan="3"
+                                    class="text-center text-muted">
+
+                                    No clients found
 
                                 </td>
 
                             </tr>
 
-                        @endforeach
+                        @endforelse
 
                     </tbody>
 
@@ -560,7 +627,7 @@
 
                 <h5 class="mb-0">
 
-                    Top Client
+                    Recent Tickets
 
                 </h5>
 
@@ -575,7 +642,8 @@
                         <tr>
 
                             <th>Client</th>
-                            <th>Total Project</th>
+                            <th>Subject</th>
+                            <th>Status</th>
 
                         </tr>
 
@@ -583,25 +651,54 @@
 
                     <tbody>
 
-                        @foreach($topClients as $client)
+                        @forelse($latestTickets as $ticket)
 
-                        <tr>
+                            <tr>
 
-                            <td>
+                                <td>{{ $ticket->client->name ?? '-' }}</td>
 
-                                {{ $client->name }}
+                                <td>{{ $ticket->subject }}</td>
 
-                            </td>
+                                <td>
 
-                            <td>
+                                    @if($ticket->status == 'closed')
 
-                                {{ $client->projects_count }}
+                                        <span class="badge badge-success">
+                                            Closed
+                                        </span>
 
-                            </td>
+                                    @elseif($ticket->status == 'progress')
 
-                        </tr>
+                                        <span class="badge badge-primary">
+                                            Progress
+                                        </span>
 
-                        @endforeach
+                                    @else
+
+                                        <span class="badge badge-warning">
+                                            Open
+                                        </span>
+
+                                    @endif
+
+                                </td>
+
+                            </tr>
+
+                        @empty
+
+                            <tr>
+
+                                <td colspan="3"
+                                    class="text-center text-muted">
+
+                                    No tickets found
+
+                                </td>
+
+                            </tr>
+
+                        @endforelse
 
                     </tbody>
 
@@ -610,120 +707,30 @@
             </div>
 
         </div>
-
-</div>
-
-<div class="col-lg-6 mb-4">
-
-    <div class="card border-0 shadow-sm">
-
-        <div class="card-header bg-white">
-
-            <h5 class="mb-0">
-
-                Recent Tickets
-
-            </h5>
-
-        </div>
-
-        <div class="card-body p-0">
-
-            <table class="table mb-0">
-
-                <thead>
-
-                    <tr>
-
-                        <th>Client</th>
-                        <th>Subject</th>
-                        <th>Status</th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                    @foreach($latestTickets as $ticket)
-
-                    <tr>
-
-                        <td>
-
-                            {{ $ticket->client->name ?? '-' }}
-
-                        </td>
-
-                        <td>
-
-                            {{ $ticket->subject }}
-
-                        </td>
-
-                        <td>
-
-                            @if($ticket->status == 'closed')
-
-                                <span class="badge badge-success">
-
-                                    Closed
-
-                                </span>
-
-                            @else
-
-                                <span class="badge badge-warning">
-
-                                    Open
-
-                                </span>
-
-                            @endif
-
-                        </td>
-
-                    </tr>
-
-                    @endforeach
-
-                </tbody>
-
-            </table>
-
-        </div>
-
     </div>
-
 </div>
 
-</div>
-</div>
+<div class="card border-0 shadow-sm">
 
+    <div class="card-header bg-white">
 
+        <h4 class="mb-0">
 
-{{-- CHART --}}
-<div class="card border-0 shadow-sm mt-2">
+            Revenue Statistics
 
-    <div class="card-header bg-white border-0">
-
-        <h5 class="mb-0 font-weight-bold">
-
-            Statistik Pendapatan
-
-        </h5>
+        </h4>
 
     </div>
 
     <div class="card-body">
 
-        <canvas id="dashboardChart"
-                height="100"></canvas>
+        <canvas id="incomeChart"></canvas>
 
     </div>
 
 </div>
-</div>
+
+
 
 @endsection
 
@@ -734,7 +741,7 @@
 <script>
 
 const ctx =
-    document.getElementById('dashboardChart');
+    document.getElementById('incomeChart');
 
 new Chart(ctx, {
 
@@ -746,7 +753,7 @@ new Chart(ctx, {
 
             @foreach($monthlyPayments as $payment)
 
-                'Bulan {{ $payment->month }}',
+                '{{ $payment->month }}',
 
             @endforeach
 
@@ -754,7 +761,7 @@ new Chart(ctx, {
 
         datasets: [{
 
-            label: 'Pendapatan',
+            label: 'Revenue',
 
             data: [
 

@@ -121,8 +121,95 @@
                           placeholder="Masukkan alamat client"></textarea>
 
             </div>
+<hr>
 
+<h5 class="mb-3">
+    Informasi Langganan
+</h5>
+
+<div class="row">
+
+    <div class="col-md-6 mb-3">
+
+        <label>Paket</label>
+
+        <select
+            name="package_name"
+            class="form-control">
+
+            <option value="">
+                Pilih Paket
+            </option>
+
+            <option value="Basic">
+                Basic
+            </option>
+
+            <option value="Standard">
+                Standard
+            </option>
+
+            <option value="Premium">
+                Premium
+            </option>
+
+        </select>
+
+    </div>
+
+    <div class="col-md-6 mb-3">
+
+        <label>Harga Paket</label>
+
+        <input
+            type="number"
+            name="package_price"
+            class="form-control"
+            placeholder="1500000">
+
+    </div>
+
+</div>
+
+<div class="row">
+
+    <div class="col-md-4 mb-3">
+
+        <label>Tanggal Mulai</label>
+
+        <input
+            type="date"
+            name="subscription_start"
+            class="form-control">
+
+    </div>
+
+    <div class="col-md-4 mb-3">
+
+        <label>Tanggal Berakhir</label>
+
+        <input
+            type="date"
+            name="subscription_end"
+            class="form-control">
+
+    </div>
+
+    <div class="col-md-4 mb-3">
+
+        <label>Masa Tenggang (Hari)</label>
+
+        <input
+            type="number"
+            name="grace_period_days"
+            class="form-control"
+            value="7">
+
+    </div>
+
+</div>
         </div>
+        
 
         <div class="card-footer d-flex justify-content-between">
 
