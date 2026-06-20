@@ -38,6 +38,14 @@ Route::resource(
     'role:super_admin'
 ])->names('clients');
 
+Route::post(
+    '/admin/clients/{client}/renew',
+    [App\Http\Controllers\Admin\ClientController::class, 'renew']
+)->middleware([
+    'auth',
+    'role:super_admin'
+])->name('clients.renew');
+
 Route::resource(
     '/admin/projects',
     App\Http\Controllers\Admin\ProjectController::class

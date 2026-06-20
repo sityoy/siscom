@@ -9,6 +9,8 @@ use App\Http\Controllers\Controller;
 use App\Exports\PaymentsExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Notification;
+use Carbon\Carbon;
+use App\Models\Client;
 
 class PaymentController extends Controller
 {
@@ -140,10 +142,10 @@ class PaymentController extends Controller
         if ($totalPaid >= $grandTotal) {
 
             $invoice->update([
-
                 'status' => 'paid'
-
             ]);
+
+            $this->processRenewalInvoice($invoice);
 
         } elseif ($totalPaid > 0) {
 
@@ -269,10 +271,10 @@ class PaymentController extends Controller
         if ($totalPaid >= $grandTotal) {
 
             $invoice->update([
-
                 'status' => 'paid'
-
             ]);
+
+            $this->processRenewalInvoice($invoice);
 
         } elseif ($totalPaid > 0) {
 
@@ -333,6 +335,72 @@ class PaymentController extends Controller
             'success',
             'Pembayaran berhasil dihapus'
         );
+    }
+
+    private function processRenewalInvoice($invoice)
+    {
+        if ($invoice->invoice_type != 'renewal') {
+            return;
+        }
+
+        $client = $invoice->client;
+
+        if (!$client) {
+            return;
+        }
+
+        $item = $invoice->items()->first();
+
+        if (!$item) {
+            return;
+        }
+
+        $duration = $item->duration ?? 12;
+
+        $durationType = $item->duration_type ?? 'month';
+
+        $currentEnd = $client->subscription_end
+            ? Carbon::parse($client->subscription_end)
+            : now();
+
+        if ($currentEnd->lt(now())) {
+            $currentEnd = now();
+        }
+
+        switch ($durationType) {
+
+            case 'Hari':
+
+                $newEnd = $currentEnd
+                    ->copy()
+                    ->addDays($duration);
+
+                break;
+
+            case 'Tahun':
+
+                $newEnd = $currentEnd
+                    ->copy()
+                    ->addYears($duration);
+
+                break;
+
+            default:
+
+                $newEnd = $currentEnd
+                    ->copy()
+                    ->addMonths($duration);
+
+                break;
+        }
+
+        $client->update([
+
+            'subscription_start' => now(),
+
+            'subscription_end' => $newEnd,
+
+        ]);
     }
 
     public function export()

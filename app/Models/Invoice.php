@@ -31,6 +31,8 @@ class Invoice extends Model
         'notes',
 
         'cashback',
+
+        'invoice_type',
     ];
 
     public function client()

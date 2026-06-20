@@ -50,25 +50,38 @@
     </div>
 
     {{-- BODY --}}
-    <div class="card-body px-0 pb-0">
+    <div class="px-4 mb-3">
 
-        @if(session('success'))
+    <a href="{{ route('invoices.index') }}"
+       class="btn btn-secondary btn-sm">
+        Semua
+    </a>
 
-            <div class="px-4 pt-2">
+    <a href="{{ route('invoices.index', ['type' => 'project']) }}"
+       class="btn btn-primary btn-sm">
+        Project
+    </a>
 
-                <div class="alert alert-success alert-dismissible fade show rounded-3">
+    <a href="{{ route('invoices.index', ['type' => 'renewal']) }}"
+       class="btn btn-info btn-sm">
+        Renewal
+    </a>
 
-                    {{ session('success') }}
+</div>
 
-                    <button type="button"
-                            class="btn-close"
-                            data-bs-dismiss="alert"></button>
+@if(session('success'))
 
-                </div>
+<div class="px-4 pt-2">
 
-            </div>
+    <div class="alert alert-success alert-dismissible fade show rounded-3">
 
-        @endif
+        {{ session('success') }}
+
+    </div>
+
+</div>
+
+@endif
 
         <div class="table-responsive">
 
@@ -88,6 +101,10 @@
 
                         <th width="16%">
                             Client
+                        </th>
+
+                        <th width="10%">
+                            Type
                         </th>
 
                         <th width="14%">
@@ -168,26 +185,47 @@
                             {{-- PROJECT --}}
                             <td>
 
-                                @if($invoice->project)
+    @if($invoice->invoice_type == 'renewal')
 
-                                    <div class="small fw-semibold text-dark">
+        <span class="badge bg-info">
 
-                                        {{ $invoice->project->title }}
+            Renewal
 
-                                    </div>
+        </span>
 
-                                @else
+    @else
 
-                                    <span class="text-muted">
+        <span class="badge bg-primary">
 
-                                        -
+            Project
 
-                                    </span>
+        </span>
 
-                                @endif
+    @endif
 
-                            </td>
+</td>
 
+<td>
+
+    @if($invoice->project)
+
+        <div class="small fw-semibold text-dark">
+
+            {{ $invoice->project->title }}
+
+        </div>
+
+    @else
+
+        <span class="text-muted">
+
+            -
+
+        </span>
+
+    @endif
+
+</td>
                             {{-- DETAIL ITEM --}}
                             <td>
 

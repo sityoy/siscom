@@ -16,18 +16,30 @@ use App\Models\Notification;
 
 class InvoiceController extends Controller
 {
-    public function index()
-    {
-        $invoices = Invoice::with([
-            'client',
-            'project'
-        ])->latest()->paginate(10);
+    public function index(Request $request)
+{
+    $query = Invoice::with([
+        'client',
+        'project'
+    ]);
 
-        return view(
-            'admin.invoices.index',
-            compact('invoices')
+    if ($request->type) {
+
+        $query->where(
+            'invoice_type',
+            $request->type
         );
     }
+
+    $invoices = $query
+        ->latest()
+        ->paginate(10);
+
+    return view(
+        'admin.invoices.index',
+        compact('invoices')
+    );
+}
 
     public function create()
     {

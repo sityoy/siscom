@@ -279,9 +279,25 @@
                                 @endif
 
                             </td>
+                            
 
                             <td class="text-center">
+                                <form
+                                    action="{{ route('clients.renew', $client->id) }}"
+                                    method="POST"
+                                    class="d-inline">
 
+                                    @csrf
+
+                                    <button
+                                        class="btn btn-info btn-sm"
+                                        onclick="return confirm('Generate invoice renewal?')">
+
+                                        Renew
+
+                                    </button>
+
+                                </form>
                                 <a href="{{ route('clients.edit', $client->id) }}"
                                    class="btn btn-warning btn-sm">
 
