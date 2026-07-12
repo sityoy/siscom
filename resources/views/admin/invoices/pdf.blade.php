@@ -10,7 +10,7 @@
     <style>
 
         @page {
-            margin: 10mm;
+            margin: 7mm;
         }
 
         body {
@@ -30,8 +30,8 @@
         .wrapper {
 
             border: 1px solid #dbe2ea;
-            border-radius: 14px;
-            padding: 12px;
+            border-radius: 1px;
+            padding: 8px;
 
         }
 
@@ -51,7 +51,7 @@
 
         .logo {
 
-            width: 150px;
+            width: 135px;
 
         }
 
@@ -87,7 +87,7 @@
 
         .invoice-title {
 
-            font-size: 40px;
+            font-size: 32px;
             font-weight: bold;
             color: #0a3b96;
             letter-spacing: 1px;
@@ -243,7 +243,7 @@
 
         .footer {
 
-            margin-top: 8px;
+            margin-top: 12px;
             text-align: center;
 
         }
@@ -257,10 +257,10 @@
 
         .footer-line {
 
-            height: 5px;
+            height: 3px;
             background: #0a3b96;
             border-radius: 30px;
-            margin-top: 12px;
+            margin-top: 8px;
 
         }
 
@@ -324,7 +324,7 @@
 
                 <p>Software House & IT Solutions</p>
 
-                <p>Email: tioirfanantoni@gmail.com</p>
+                <p>Email: sityoyitsolutions@gmail.com</p>
 
                 <p>Indonesia</p>
 
@@ -425,7 +425,7 @@
 
                     </strong>
 
-                    <p style="margin:6px 0;">
+                    {{-- <p style="margin:6px 0;">
 
                         {{ $invoice->client->email }}
 
@@ -435,7 +435,7 @@
 
                         {{ $invoice->client->phone ?? '-' }}
 
-                    </p>
+                    </p> --}}
 
                 </div>
 
@@ -473,11 +473,11 @@
             <tr>
 
                 <th width="5%">No</th>
-                <th width="28%">Deskripsi</th>
+                <th width="28%">Description</th>
                 <th width="8%">Qty</th>
-                <th width="15%">Harga</th>
-                <th width="12%">Durasi</th>
-                <th width="15%">Periode</th>
+                <th width="15%">Price</th>
+                <th width="12%">Duration</th>
+                <th width="15%">Period</th>
                 <th width="17%">Total</th>
 
             </tr>
@@ -586,7 +586,7 @@
 
                 <div class="section-title">
 
-                    CATATAN
+                    NOTES
 
                 </div>
 
@@ -598,7 +598,7 @@
 
                 <div class="section-title">
 
-                    INFORMASI PEMBAYARAN
+                    PAYMENT INFORMATION
 
                 </div>
 
@@ -624,17 +624,17 @@
 
                                 <br><br>
 
-                                300-23-31341-1
+                                43-2231-0520-1
 
                                 <br>
 
-                                A/N TIO IRFAN ANTONI
+                                A/N LENA SEPTIANA
 
                             </div>
 
                         </td>
 
-                        <td width="33%"
+                        {{-- <td width="33%"
                             style="padding-right:6px; border:none; vertical-align:top;">
 
                             <div style="
@@ -644,7 +644,7 @@
                                 min-height:70px;
                             ">
 
-                                <strong style="color:#0a3b96; font-size:10px;">
+                                <strong style="color:#0a3b96; font-size:8px;">
 
                                     BANK MANDIRI
 
@@ -660,7 +660,7 @@
 
                             </div>
 
-                        </td>
+                        </td> --}}
 
                         <td width="33%"
                             style="border:none; vertical-align:top;">
@@ -680,11 +680,11 @@
 
                                 <br><br>
 
-                                5310-7411-42
+                                5370-2568-63
 
                                 <br>
 
-                                A/N TIO IRFAN ANTONI
+                                A/N LENA SEPTIANA
 
                             </div>
 
@@ -738,7 +738,7 @@
 
             <td>
 
-                PPN {{ number_format($invoice->vat_percent,0) }}%
+                VAT {{ number_format($invoice->vat_percent,0) }}%
 
             </td>
 
@@ -754,7 +754,7 @@
 
             <td>
 
-                Biaya Layanan
+                Service Fee
 
             </td>
 
@@ -766,7 +766,7 @@
 
         </tr>
 
-        <tr class="grand-total">
+        {{-- <tr class="grand-total">
 
             <td>
 
@@ -780,9 +780,9 @@
 
             </td>
 
-        </tr>
+        </tr> --}}
 
-        <tr>
+        {{-- <tr>
 
             <td style="color:green; font-weight:bold;">
 
@@ -797,7 +797,7 @@
 
             </td>
 
-        </tr>
+        </tr> --}}
 
         <tr style="
             background:#0a3b96;
@@ -808,7 +808,7 @@
 
             <td>
 
-                TOTAL DIBAYAR
+                TOTAL
 
             </td>
 
@@ -821,20 +821,97 @@
         </tr>
 
     </table>
-
+</div>
 </td>
 
+    {{-- TANDA TANGAN --}}
 
-    </div>
+<table style="
+    width:100%;
+    margin-top:15px;
+    border:none;
+">
+
+    <tr>
+
+        <td width="33%"
+            style="border:none;">
+
+            <strong>Acknowledged By,</strong>
+
+            <br><br>
+
+            Foundation
+
+            <br><br><br><br>
+
+            ______________________
+
+        </td>
+
+        <td width="33%"
+            style="
+                border:none;
+                text-align:center;
+            ">
+
+            <strong>Acknowledged By,</strong>
+
+            <br><br>
+
+            Principal
+
+            <br><br><br><br>
+
+            ______________________
+
+        </td>
+
+        <td width="33%"
+            style="
+                border:none;
+                text-align:right;
+            ">
+
+            Tangerang,
+            {{ $invoice->created_at->format('d F Y') }}
+
+            <br><br>
+
+            Authorized Signature,
+
+            <br>
+{{--
+            <img
+                src="{{ public_path('logo/ttdsisok.png') }}"
+                style="
+                    width:70px;
+                    margin-top:8px;
+                "> --}}
+
+            <br><br><br>
+
+            <strong>
+                Sityoy IT Solutions
+            </strong>
+
+        </td>
+
+    </tr>
+
+</table>
 
     {{-- FOOTER --}}
     <div class="footer">
+<div style="
+    color:#0a3b96;
+    font-size:12px;
+    font-weight:bold;
+">
 
-        <h3>
+    Thank you for your business!
 
-            Thank you for your business!
-
-        </h3>
+</div>
 
         <a href="https://sis.com"> SIS.COM </a> - Software House & IT Solutions
 
