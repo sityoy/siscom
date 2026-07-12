@@ -89,7 +89,7 @@
                     <input type="date"
                            class="form-control"
                            value="{{ $invoice->created_at->format('Y-m-d') }}"
-                           readonly>
+                           >
 
                 </div>
 

@@ -271,7 +271,7 @@
 
                 <div class="col-md-4">
 
-                    <label>PPN (%)</label>
+                    <label>VAT (%)</label>
 
                     <input type="number"
                            name="vat_percent"
@@ -356,7 +356,7 @@
 
                 <h6>
 
-                    PPN:
+                    VAT 11%:
                     Rp <span id="vat-amount">0</span>
 
                 </h6>

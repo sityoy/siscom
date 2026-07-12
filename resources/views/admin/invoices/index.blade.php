@@ -300,7 +300,7 @@
 
         <span class="text-muted">
 
-            PPN ({{ number_format($invoice->vat_percent,0) }}%)
+            VAT ({{ number_format($invoice->vat_percent,0) }}%)
 
         </span>
 
@@ -318,7 +318,7 @@
 
         <span class="text-muted">
 
-            Biaya Layanan
+            Service Fee
 
         </span>
 
