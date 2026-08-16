@@ -35,11 +35,21 @@
 
     <div class="card-body">
 
-        @if(session('success'))
+@if(session('success'))
 
             <div class="alert alert-success">
 
                 {{ session('success') }}
+
+            </div>
+
+@endif
+
+        @if(session('error'))
+
+            <div class="alert alert-danger">
+
+                {{ session('error') }}
 
             </div>
 
@@ -259,6 +269,20 @@
                             </td>
 
                             <td class="text-center">
+
+                                @if($project->monthly_billing_active && $project->monthly_fee)
+
+                                    <a href="{{ route('invoices.create', [
+                                        'project_id' => $project->id,
+                                        'invoice_type' => 'renewal'
+                                    ]) }}"
+                                       class="btn btn-success btn-sm">
+
+                                        Invoice Bulanan
+
+                                    </a>
+
+                                @endif
 
                                 <a href="{{ route('project.files', $project->id) }}"
                                    class="btn btn-info btn-sm">

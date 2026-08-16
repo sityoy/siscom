@@ -11,7 +11,23 @@
 
         @csrf
 
+        <input type="hidden"
+               name="invoice_type"
+               value="{{ old('invoice_type', $invoiceDefaults['invoice_type']) }}">
+
         <div class="card-body">
+
+            @if($invoiceDefaults['invoice_type'] === 'renewal')
+
+                <div class="alert alert-info">
+
+                    <strong>Invoice Bulanan</strong><br>
+                    Data client, project, nominal, dan periode sudah diisi otomatis.
+                    Silakan periksa kembali sebelum menyimpan.
+
+                </div>
+
+            @endif
 
             <div class="row">
 
@@ -29,7 +45,8 @@
 
                         @foreach($clients as $client)
 
-                            <option value="{{ $client->id }}">
+                            <option value="{{ $client->id }}"
+                                @selected(old('client_id', $invoiceDefaults['client_id']) == $client->id)>
 
                                 {{ $client->name }}
 
@@ -55,7 +72,8 @@
                         @foreach($projects as $project)
 
                             <option value="{{ $project->id }}"
-                                    data-client="{{ $project->client_id }}">
+                                    data-client="{{ $project->client_id }}"
+                                    @selected(old('project_id', $invoiceDefaults['project_id']) == $project->id)>
                                     {{ $project->title }}
                             </option>
 
@@ -76,7 +94,7 @@
                     <input type="text"
                            name="invoice_number"
                            class="form-control"
-                           value="#{{ date('dmY') }}-{{ rand(1000,9999) }}"
+                           value="{{ old('invoice_number', '#' . date('dmY') . '-' . rand(1000,9999)) }}"
                            required>
 
                 </div>
@@ -98,7 +116,9 @@
 
                     <input type="date"
                            name="due_date"
-                           class="form-control">
+                           class="form-control"
+                           value="{{ old('due_date', $invoiceDefaults['due_date']) }}"
+                           required>
 
                 </div>
 
@@ -135,6 +155,7 @@
                                 <input type="text"
                                        name="description[]"
                                        class="form-control"
+                                       value="{{ old('description.0', $invoiceDefaults['description']) }}"
                                        placeholder="Deskripsi layanan">
 
                             </div>
@@ -157,6 +178,7 @@
                                 <input type="number"
                                        name="price[]"
                                        class="form-control price"
+                                       value="{{ old('price.0', $invoiceDefaults['price']) }}"
                                        placeholder="Harga">
 
                             </div>
@@ -168,7 +190,7 @@
                                 <input type="number"
                                        name="duration[]"
                                        class="form-control duration"
-                                       value="1">
+                                       value="{{ old('duration.0', $invoiceDefaults['duration']) }}">
 
                             </div>
 
@@ -179,19 +201,22 @@
                                 <select name="duration_type[]"
                                         class="form-control duration-type">
 
-                                    <option value="Hari">
+                                    <option value="Hari"
+                                        @selected(old('duration_type.0', $invoiceDefaults['duration_type']) === 'Hari')>
 
                                         Hari
 
                                     </option>
 
-                                    <option value="Bulan">
+                                    <option value="Bulan"
+                                        @selected(old('duration_type.0', $invoiceDefaults['duration_type']) === 'Bulan')>
 
                                         Bulan
 
                                     </option>
 
-                                    <option value="Tahun">
+                                    <option value="Tahun"
+                                        @selected(old('duration_type.0', $invoiceDefaults['duration_type']) === 'Tahun')>
 
                                         Tahun
 
@@ -232,7 +257,8 @@
 
                                 <input type="date"
                                        name="start_date[]"
-                                       class="form-control start-date">
+                                       class="form-control start-date"
+                                       value="{{ old('start_date.0', $invoiceDefaults['start_date']) }}">
 
                             </div>
 
@@ -243,6 +269,7 @@
                                 <input type="date"
                                        name="end_date[]"
                                        class="form-control end-date"
+                                       value="{{ old('end_date.0', $invoiceDefaults['end_date']) }}"
                                        readonly>
 
                             </div>
@@ -277,7 +304,7 @@
                            name="vat_percent"
                            class="form-control"
                            id="vat-percent"
-                           value="11">
+                           value="{{ old('vat_percent', $invoiceDefaults['vat_percent']) }}">
 
                 </div>
 
@@ -289,7 +316,7 @@
                            name="service_fee"
                            class="form-control"
                            id="service-fee"
-                           value="10000">
+                           value="{{ old('service_fee', $invoiceDefaults['service_fee']) }}">
 
                 </div>
                 <div class="col-md-4">
@@ -390,7 +417,7 @@
 
                 <textarea name="notes"
                           class="form-control"
-                          rows="4"></textarea>
+                          rows="4">{{ old('notes', $invoiceDefaults['notes']) }}</textarea>
 
             </div>
 
@@ -533,17 +560,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!startDate) return;
 
-        let date = new Date(startDate);
+        let date = new Date(startDate + 'T00:00:00');
 
         if (durationType === 'Hari') {
 
-            date.setDate(date.getDate() + duration);
+            date.setDate(date.getDate() + duration - 1);
 
         }
 
         if (durationType === 'Bulan') {
 
+            const originalDay = date.getDate();
+
+            date.setDate(1);
+
             date.setMonth(date.getMonth() + duration);
+
+            const lastDay = new Date(
+                date.getFullYear(),
+                date.getMonth() + 1,
+                0
+            ).getDate();
+
+            date.setDate(Math.min(originalDay, lastDay));
+
+            date.setDate(date.getDate() - 1);
 
         }
 
@@ -551,9 +592,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
             date.setFullYear(date.getFullYear() + duration);
 
+            date.setDate(date.getDate() - 1);
+
         }
 
-        let endDate = date.toISOString().split('T')[0];
+        let endDate = [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, '0'),
+            String(date.getDate()).padStart(2, '0')
+        ].join('-');
 
         item.querySelector('.end-date').value = endDate;
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use Carbon\Carbon;
 use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\Project;
@@ -41,37 +42,104 @@ class InvoiceController extends Controller
     );
 }
 
-    public function create()
+    public function create(Request $request)
     {
         $clients = Client::all();
 
         $projects = Project::all();
 
+        $invoiceType = $request->query('invoice_type') === 'renewal'
+            ? 'renewal'
+            : 'project';
+
+        $selectedProject = null;
+
+        if ($request->filled('project_id')) {
+            $selectedProject = Project::with('client')
+                ->find($request->integer('project_id'));
+        }
+
+        if (
+            $invoiceType === 'renewal' &&
+            (!$selectedProject || !$selectedProject->monthly_billing_active)
+        ) {
+            return redirect()
+                ->route('projects.index')
+                ->with(
+                    'error',
+                    'Tagihan bulanan project belum aktif.'
+                );
+        }
+
+        $periodStart = null;
+        $periodEnd = null;
+
+        if ($invoiceType === 'renewal') {
+            $latestPeriodEnd = InvoiceItem::query()
+                ->whereHas('invoice', function ($query) use ($selectedProject) {
+                    $query->where('project_id', $selectedProject->id)
+                        ->where('invoice_type', 'renewal')
+                        ->where('status', '!=', 'cancelled');
+                })
+                ->max('end_date');
+
+            $periodStart = $latestPeriodEnd
+                ? Carbon::parse($latestPeriodEnd)->addDay()
+                : Carbon::parse($selectedProject->monthly_billing_start);
+
+            $periodEnd = $periodStart
+                ->copy()
+                ->addMonthNoOverflow()
+                ->subDay();
+        }
+
+        $invoiceDefaults = [
+            'client_id' => $selectedProject?->client_id,
+            'project_id' => $selectedProject?->id,
+            'invoice_type' => $invoiceType,
+            'due_date' => now()->addDays(7)->format('Y-m-d'),
+            'description' => $invoiceType === 'renewal'
+                ? 'Biaya layanan bulanan ' .
+                    $periodStart->format('m/Y') .
+                    ' - ' . $selectedProject->title
+                : '',
+            'price' => $invoiceType === 'renewal'
+                ? $selectedProject->monthly_fee
+                : null,
+            'duration' => 1,
+            'duration_type' => $invoiceType === 'renewal'
+                ? 'Bulan'
+                : 'Hari',
+            'start_date' => $periodStart?->format('Y-m-d'),
+            'end_date' => $periodEnd?->format('Y-m-d'),
+            'vat_percent' => $invoiceType === 'renewal' ? 0 : 11,
+            'service_fee' => $invoiceType === 'renewal' ? 0 : 10000,
+            'notes' => $invoiceType === 'renewal'
+                ? 'Tagihan layanan bulanan periode ' .
+                    $periodStart->format('d/m/Y') .
+                    ' - ' . $periodEnd->format('d/m/Y')
+                : '',
+        ];
+
         return view(
             'admin.invoices.create',
             compact(
                 'clients',
-                'projects'
+                'projects',
+                'invoiceDefaults'
             )
         );
     }
 
     public function store(Request $request)
     {
-        $subtotal = 0;
-
-        foreach ($request->price as $index => $price) {
-
-            $qty = $request->qty[$index];
-
-            $subtotal += $qty * $price;
-        }
-
         $request->validate([
 
             'client_id' => 'required|exists:clients,id',
 
-            'project_id' => 'nullable|exists:projects,id',
+            'project_id' => 'nullable|required_if:invoice_type,renewal|exists:projects,id',
+
+            'invoice_type' => 'required|in:project,renewal',
 
             'invoice_number' => 'required',
 
@@ -82,7 +150,42 @@ class InvoiceController extends Controller
             'vat_percent' => 'nullable|numeric|min:0|max:100',
 
             'cashback' => 'nullable|numeric|min:0|max:20',
+
+            'service_fee' => 'nullable|numeric|min:0',
+
+            'description' => 'required|array|min:1',
+
+            'description.*' => 'required|string|max:255',
+
+            'qty' => 'required|array|min:1',
+
+            'qty.*' => 'required|numeric|min:1',
+
+            'price' => 'required|array|min:1',
+
+            'price.*' => 'required|numeric|min:0',
         ]);
+
+        if ($request->invoice_type === 'renewal') {
+            $monthlyProject = Project::find($request->project_id);
+
+            if (!$monthlyProject?->monthly_billing_active) {
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'project_id' => 'Tagihan bulanan project belum aktif.',
+                    ]);
+            }
+        }
+
+        $subtotal = 0;
+
+        foreach ($request->price as $index => $price) {
+
+            $qty = $request->qty[$index];
+
+            $subtotal += $qty * $price;
+        }
 
         $vatPercent = $request->vat_percent ?? 0;
 
@@ -107,6 +210,8 @@ class InvoiceController extends Controller
             'project_id' => $request->project_id,
 
             'invoice_number' => $request->invoice_number,
+
+            'invoice_type' => $request->invoice_type,
 
             'subtotal' => $subtotal,
 

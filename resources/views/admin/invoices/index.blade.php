@@ -64,7 +64,7 @@
 
     <a href="{{ route('invoices.index', ['type' => 'renewal']) }}"
        class="btn btn-info btn-sm">
-        Renewal
+        Bulanan
     </a>
 
 </div>
@@ -189,7 +189,7 @@
 
         <span class="badge bg-info">
 
-            Renewal
+            Bulanan
 
         </span>
 
