@@ -61,6 +61,8 @@
 
                         <th>Budget</th>
 
+                        <th>Biaya Bulanan</th>
+
                         <th>Deadline</th>
 
                         <th>Status</th>
@@ -128,6 +130,38 @@
                                     Rp {{ number_format($project->budget,0,',','.') }}
 
                                 </span>
+
+                            </td>
+
+                            <td>
+
+                                @if($project->monthly_billing_active && $project->monthly_fee)
+
+                                    <span class="font-weight-bold text-primary">
+
+                                        Rp {{ number_format($project->monthly_fee,0,',','.') }}/bulan
+
+                                    </span>
+
+                                    @if($project->monthly_billing_start)
+
+                                        <small class="d-block text-muted">
+
+                                            Mulai {{ $project->monthly_billing_start->format('d M Y') }}
+
+                                        </small>
+
+                                    @endif
+
+                                @else
+
+                                    <span class="badge bg-secondary">
+
+                                        Nonaktif
+
+                                    </span>
+
+                                @endif
 
                             </td>
 
@@ -271,7 +305,7 @@
 
                         <tr>
 
-                            <td colspan="8"
+                            <td colspan="9"
                                 class="text-center text-muted py-4">
 
                                 Belum ada data project

@@ -153,6 +153,68 @@
 
             </div>
 
+            <hr>
+
+            <h5 class="font-weight-bold">Tagihan Bulanan</h5>
+
+            <div class="form-check mb-3">
+
+                <input type="hidden"
+                       name="monthly_billing_active"
+                       value="0">
+
+                <input type="checkbox"
+                       name="monthly_billing_active"
+                       id="monthly_billing_active"
+                       class="form-check-input"
+                       value="1"
+                       @checked(old('monthly_billing_active'))>
+
+                <label class="form-check-label"
+                       for="monthly_billing_active">
+
+                    Aktifkan biaya bulanan untuk project ini
+
+                </label>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+
+                    <label>Biaya Bulanan</label>
+
+                    <input type="number"
+                           name="monthly_fee"
+                           class="form-control @error('monthly_fee') is-invalid @enderror"
+                           value="{{ old('monthly_fee', 100000) }}"
+                           min="0"
+                           step="1000">
+
+                    @error('monthly_fee')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+
+                </div>
+
+                <div class="col-md-6 mb-3">
+
+                    <label>Mulai Tagihan</label>
+
+                    <input type="date"
+                           name="monthly_billing_start"
+                           class="form-control @error('monthly_billing_start') is-invalid @enderror"
+                           value="{{ old('monthly_billing_start') }}">
+
+                    @error('monthly_billing_start')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+
+                </div>
+
+            </div>
+
         </div>
 
         <div class="card-footer d-flex justify-content-between">

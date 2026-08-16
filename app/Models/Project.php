@@ -16,12 +16,24 @@ class Project extends Model
 
         'budget',
 
+        'monthly_billing_active',
+
+        'monthly_fee',
+
+        'monthly_billing_start',
+
         'deadline',
 
         'status',
 
         'progress',
 
+    ];
+
+    protected $casts = [
+        'monthly_billing_active' => 'boolean',
+        'monthly_fee' => 'decimal:2',
+        'monthly_billing_start' => 'date',
     ];
 
     public function client()
