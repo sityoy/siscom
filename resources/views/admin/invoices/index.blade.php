@@ -64,7 +64,7 @@
 
     <a href="{{ route('invoices.index', ['type' => 'renewal']) }}"
        class="btn btn-info btn-sm">
-        Bulanan
+        Perpanjangan Paket
     </a>
 
 </div>
@@ -189,7 +189,7 @@
 
         <span class="badge bg-info">
 
-            Bulanan
+            Perpanjangan Paket
 
         </span>
 
@@ -391,6 +391,24 @@
 
     </div>
 
+    @if($invoice->late_fee_amount > 0)
+
+        <div class="small mb-2">
+
+            <span class="text-muted">
+                Denda ({{ $invoice->late_months }} bulan)
+            </span>
+
+            <br>
+
+            <span class="fw-semibold text-danger">
+                Rp {{ number_format($invoice->late_fee_amount,0,',','.') }}
+            </span>
+
+        </div>
+
+    @endif
+
     {{-- CASHBACK --}}
     <div class="small mb-2">
 
@@ -415,9 +433,9 @@
     {{-- TOTAL BAYAR --}}
    <div class="fw-bold text-success">
 
-        Invoice Total
+        Total Bayar
         <br>
-        Rp {{ number_format($invoice->grand_total,0,',','.') }}
+        Rp {{ number_format($invoice->total_due,0,',','.') }}
 
     </div>
 
@@ -454,6 +472,22 @@
                                     {{ \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') }}
 
                                 </div>
+
+                                @if($invoice->late_months > 0)
+
+                                    <small class="text-danger fw-semibold">
+                                        Terlambat {{ $invoice->late_months }} bulan
+                                    </small>
+
+                                @endif
+
+                                @if($invoice->late_fee_active)
+
+                                    <small class="d-block text-muted">
+                                        Denda Rp {{ number_format($invoice->late_fee_per_month,0,',','.') }}/30 hari
+                                    </small>
+
+                                @endif
 
                             </td>
 

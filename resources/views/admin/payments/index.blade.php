@@ -94,7 +94,7 @@
                                 $invoice->payments->sum('amount');
 
                             $remaining =
-                                $invoice->grand_total - $totalPaid;
+                                $invoice->total_due - $totalPaid;
 
                         @endphp
 

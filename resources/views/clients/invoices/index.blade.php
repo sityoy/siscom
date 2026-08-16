@@ -73,7 +73,15 @@
 
                             <td class="text-success font-weight-bold">
 
-                                Rp {{ number_format($invoice->grand_total,0,',','.') }}
+                                Rp {{ number_format($invoice->total_due,0,',','.') }}
+
+                                @if($invoice->late_fee_amount > 0)
+
+                                    <small class="d-block text-danger">
+                                        Termasuk denda Rp {{ number_format($invoice->late_fee_amount,0,',','.') }}
+                                    </small>
+
+                                @endif
 
                             </td>
 

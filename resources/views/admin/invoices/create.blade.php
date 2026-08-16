@@ -17,18 +17,6 @@
 
         <div class="card-body">
 
-            @if($invoiceDefaults['invoice_type'] === 'renewal')
-
-                <div class="alert alert-info">
-
-                    <strong>Invoice Bulanan</strong><br>
-                    Data client, project, nominal, dan periode sudah diisi otomatis.
-                    Silakan periksa kembali sebelum menyimpan.
-
-                </div>
-
-            @endif
-
             <div class="row">
 
                 <div class="col-md-6 mb-3">
@@ -73,6 +61,10 @@
 
                             <option value="{{ $project->id }}"
                                     data-client="{{ $project->client_id }}"
+                                    data-title="{{ $project->title }}"
+                                    data-budget="{{ $project->budget }}"
+                                    data-late-active="{{ $project->late_fee_active ? 1 : 0 }}"
+                                    data-late-fee="{{ $project->late_fee_per_month ?? 100000 }}"
                                     @selected(old('project_id', $invoiceDefaults['project_id']) == $project->id)>
                                     {{ $project->title }}
                             </option>
@@ -308,6 +300,50 @@
 
                 </div>
 
+                <div class="col-md-4 mt-3">
+
+                    <label>Denda Keterlambatan</label>
+
+                    <input type="hidden"
+                           name="late_fee_active"
+                           value="0">
+
+                    <div class="form-check mt-2">
+
+                        <input type="checkbox"
+                               name="late_fee_active"
+                               id="late-fee-active"
+                               class="form-check-input"
+                               value="1"
+                               @checked(old('late_fee_active', $invoiceDefaults['late_fee_active']))>
+
+                        <label class="form-check-label"
+                               for="late-fee-active">
+                            Aktifkan denda
+                        </label>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-4 mt-3">
+
+                    <label>Denda per 30 Hari</label>
+
+                    <input type="number"
+                           name="late_fee_per_month"
+                           id="late-fee-per-month"
+                           class="form-control @error('late_fee_per_month') is-invalid @enderror"
+                           value="{{ old('late_fee_per_month', $invoiceDefaults['late_fee_per_month']) }}"
+                           min="0"
+                           step="1000">
+
+                    @error('late_fee_per_month')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+
+                </div>
+
                 <div class="col-md-4">
 
                     <label>Biaya Layanan</label>
@@ -459,6 +495,29 @@ clientSelect.addEventListener('change', function(){
     });
 
     projectSelect.value = '';
+});
+
+projectSelect.addEventListener('change', function(){
+
+    const option = this.options[this.selectedIndex];
+
+    if (!option.value) return;
+
+    clientSelect.value = option.dataset.client;
+
+    const firstItem = document.querySelector('.invoice-item');
+
+    firstItem.querySelector('[name="description[]"]').value =
+        'Biaya Project - ' + option.dataset.title;
+
+    firstItem.querySelector('.price').value =
+        option.dataset.budget || 0;
+
+    document.getElementById('late-fee-active').checked =
+        option.dataset.lateActive === '1';
+
+    document.getElementById('late-fee-per-month').value =
+        option.dataset.lateFee || 100000;
 });
 
 document.addEventListener('DOMContentLoaded', function () {

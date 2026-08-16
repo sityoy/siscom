@@ -32,7 +32,10 @@ class PaymentController extends Controller
 
     public function create()
     {
-        $invoices = Invoice::all();
+        $invoices = Invoice::with([
+            'client',
+            'payments',
+        ])->get();
 
         return view(
             'admin.payments.create',
@@ -64,7 +67,7 @@ class PaymentController extends Controller
                     ->sum('amount');
 
             $remaining =
-                $invoice->grand_total
+                $invoice->calculateTotalDue($request->payment_date)
                 - $totalPaid;
 
             if($request->amount > $remaining){
@@ -136,13 +139,16 @@ class PaymentController extends Controller
             ->sum('amount');
 
         // GRAND TOTAL
-        $grandTotal = $invoice->grand_total;
+        $grandTotal = $invoice->calculateTotalDue(
+            $request->payment_date
+        );
 
         // UPDATE STATUS OTOMATIS
         if ($totalPaid >= $grandTotal) {
 
             $invoice->update([
-                'status' => 'paid'
+                'status' => 'paid',
+                'paid_at' => $request->payment_date,
             ]);
 
             $this->processRenewalInvoice($invoice);
@@ -151,7 +157,8 @@ class PaymentController extends Controller
 
             $invoice->update([
 
-                'status' => 'partial'
+                'status' => 'partial',
+                'paid_at' => null,
 
             ]);
 
@@ -159,7 +166,8 @@ class PaymentController extends Controller
 
             $invoice->update([
 
-                'status' => 'unpaid'
+                'status' => 'unpaid',
+                'paid_at' => null,
 
             ]);
         }
@@ -174,7 +182,10 @@ class PaymentController extends Controller
 
     public function edit(Payment $payment)
     {
-        $invoices = Invoice::all();
+        $invoices = Invoice::with([
+            'client',
+            'payments',
+        ])->get();
 
         return view(
             'admin.payments.edit',
@@ -214,7 +225,7 @@ class PaymentController extends Controller
                 ->sum('amount');
 
         $remaining =
-            $invoice->grand_total
+            $invoice->calculateTotalDue($request->payment_date)
             - $totalPaid;
 
         if($request->amount > $remaining){
@@ -265,13 +276,16 @@ class PaymentController extends Controller
             ->sum('amount');
 
         // GRAND TOTAL
-        $grandTotal = $invoice->grand_total;
+        $grandTotal = $invoice->calculateTotalDue(
+            $request->payment_date
+        );
 
         // UPDATE STATUS
         if ($totalPaid >= $grandTotal) {
 
             $invoice->update([
-                'status' => 'paid'
+                'status' => 'paid',
+                'paid_at' => $request->payment_date,
             ]);
 
             $this->processRenewalInvoice($invoice);
@@ -280,7 +294,8 @@ class PaymentController extends Controller
 
             $invoice->update([
 
-                'status' => 'partial'
+                'status' => 'partial',
+                'paid_at' => null,
 
             ]);
 
@@ -288,7 +303,8 @@ class PaymentController extends Controller
 
             $invoice->update([
 
-                'status' => 'unpaid'
+                'status' => 'unpaid',
+                'paid_at' => null,
 
             ]);
         }
@@ -307,27 +323,36 @@ class PaymentController extends Controller
 
         $payment->delete();
 
+        $invoice->update([
+            'paid_at' => null,
+        ]);
+
+        $invoice->refresh();
+
         // HITUNG ULANG
         $totalPaid = $invoice->payments()
             ->sum('amount');
 
         // UPDATE STATUS
-        if ($totalPaid >= $invoice->grand_total) {
+        if ($totalPaid >= $invoice->total_due) {
 
             $invoice->update([
-                'status' => 'paid'
+                'status' => 'paid',
+                'paid_at' => now(),
             ]);
 
         } elseif ($totalPaid > 0) {
 
             $invoice->update([
-                'status' => 'partial'
+                'status' => 'partial',
+                'paid_at' => null,
             ]);
 
         } else {
 
             $invoice->update([
-                'status' => 'unpaid'
+                'status' => 'unpaid',
+                'paid_at' => null,
             ]);
         }
 

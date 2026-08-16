@@ -12,6 +12,10 @@
         @csrf
         @method('PUT')
 
+        <input type="hidden"
+               name="invoice_type"
+               value="{{ $invoice->invoice_type }}">
+
         <div class="card-body">
 
             <div class="row">
@@ -54,6 +58,8 @@
 
                             <option value="{{ $project->id }}"
                                 data-client="{{ $project->client_id }}"
+                                data-late-active="{{ $project->late_fee_active ? 1 : 0 }}"
+                                data-late-fee="{{ $project->late_fee_per_month ?? 100000 }}"
                                 @selected($invoice->project_id == $project->id)>
 
                                 {{ $project->title }}
@@ -310,6 +316,50 @@
 
 </div>
 
+<div class="col-md-4 mt-3">
+
+    <label>Denda Keterlambatan</label>
+
+    <input type="hidden"
+           name="late_fee_active"
+           value="0">
+
+    <div class="form-check mt-2">
+
+        <input type="checkbox"
+               name="late_fee_active"
+               id="late-fee-active"
+               class="form-check-input"
+               value="1"
+               @checked(old('late_fee_active', $invoice->late_fee_active))>
+
+        <label class="form-check-label"
+               for="late-fee-active">
+            Aktifkan denda
+        </label>
+
+    </div>
+
+</div>
+
+<div class="col-md-4 mt-3">
+
+    <label>Denda per 30 Hari</label>
+
+    <input type="number"
+           name="late_fee_per_month"
+           id="late-fee-per-month"
+           class="form-control @error('late_fee_per_month') is-invalid @enderror"
+           value="{{ old('late_fee_per_month', $invoice->late_fee_per_month ?? 100000) }}"
+           min="0"
+           step="1000">
+
+    @error('late_fee_per_month')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+
+</div>
+
 <div class="col-md-4">
 
     <label>Cashback (%)</label>
@@ -371,6 +421,11 @@
 
 
     <div class="text-right">
+
+        <h6>
+            Denda (<span id="late-months">{{ $invoice->late_months }}</span> bulan):
+            Rp <span id="late-fee">{{ number_format($invoice->late_fee_amount,0,',','.') }}</span>
+        </h6>
 
         <h5>
 
@@ -451,6 +506,11 @@ const clientSelect =
 const projectSelect =
     document.querySelector('[name="project_id"]');
 
+const dueDateInput =
+    document.querySelector('[name="due_date"]');
+
+const paidAt = @json(optional($invoice->paid_at)->format('Y-m-d'));
+
 clientSelect.addEventListener('change', function(){
 
     let clientId = this.value;
@@ -464,6 +524,21 @@ clientSelect.addEventListener('change', function(){
 
     });
 
+});
+
+projectSelect.addEventListener('change', function(){
+
+    const option = this.options[this.selectedIndex];
+
+    if (!option.value) return;
+
+    clientSelect.value = option.dataset.client;
+
+    document.getElementById('late-fee-active').checked =
+        option.dataset.lateActive === '1';
+
+    document.getElementById('late-fee-per-month').value =
+        option.dataset.lateFee || 100000;
 });
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -517,6 +592,41 @@ document.addEventListener('DOMContentLoaded', function () {
 
         let grandTotal = subtotal + vat + serviceFee;
 
+        let lateFee = 0;
+
+        let lateMonths = 0;
+
+        const lateFeeActive =
+            document.getElementById('late-fee-active').checked;
+
+        const lateFeePerMonth = parseFloat(
+            document.getElementById('late-fee-per-month').value
+        ) || 0;
+
+        const status = document.querySelector('[name="status"]').value;
+
+        if (lateFeeActive && dueDateInput.value && status !== 'cancelled') {
+
+            const dueDate = new Date(dueDateInput.value + 'T00:00:00');
+
+            const calculationDate = status === 'paid' && paidAt
+                ? new Date(paidAt + 'T00:00:00')
+                : new Date();
+
+            calculationDate.setHours(0, 0, 0, 0);
+
+            if (calculationDate > dueDate) {
+
+                const daysLate = Math.ceil(
+                    (calculationDate - dueDate) / 86400000
+                );
+
+                lateMonths = Math.ceil(daysLate / 30);
+
+                lateFee = lateMonths * lateFeePerMonth;
+            }
+        }
+
         let cashback = parseFloat(
             document.getElementById('cashback').value
         ) || 0;
@@ -539,9 +649,15 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('grand-total')
             .innerText = grandTotal.toLocaleString('id-ID');
 
+        document.getElementById('late-months')
+            .innerText = lateMonths;
+
+        document.getElementById('late-fee')
+            .innerText = lateFee.toLocaleString('id-ID');
+
         document.getElementById('final-total')
             .innerText =
-            grandTotal.toLocaleString('id-ID');
+            (grandTotal + lateFee).toLocaleString('id-ID');
     }
 
     function updateSummary(item) {
@@ -566,17 +682,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!startDate) return;
 
-        let date = new Date(startDate);
+        let date = new Date(startDate + 'T00:00:00');
 
         if (durationType === 'Hari') {
 
-            date.setDate(date.getDate() + duration);
+            date.setDate(date.getDate() + duration - 1);
 
         }
 
         if (durationType === 'Bulan') {
 
+            const originalDay = date.getDate();
+
+            date.setDate(1);
+
             date.setMonth(date.getMonth() + duration);
+
+            const lastDay = new Date(
+                date.getFullYear(),
+                date.getMonth() + 1,
+                0
+            ).getDate();
+
+            date.setDate(Math.min(originalDay, lastDay));
+
+            date.setDate(date.getDate() - 1);
 
         }
 
@@ -584,14 +714,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
             date.setFullYear(date.getFullYear() + duration);
 
+            date.setDate(date.getDate() - 1);
+
         }
 
-        let endDate = date.toISOString().split('T')[0];
+        let endDate = [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, '0'),
+            String(date.getDate()).padStart(2, '0')
+        ].join('-');
 
         item.querySelector('.end-date').value = endDate;
     }
 
     document.addEventListener('input', calculateTotals);
+
+    document.addEventListener('change', calculateTotals);
 
     document.getElementById('add-item')
         .addEventListener('click', function () {

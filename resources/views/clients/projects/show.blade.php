@@ -136,6 +136,27 @@
 
                 </div>
 
+                <div class="mt-4">
+
+                    <small class="text-muted d-block">
+                        Denda Keterlambatan Pembayaran
+                    </small>
+
+                    @if($project->late_fee_active)
+
+                        <strong class="text-danger">
+                            Rp {{ number_format($project->late_fee_per_month,0,',','.') }}
+                            per 30 hari
+                        </strong>
+
+                    @else
+
+                        <strong class="text-muted">Tidak aktif</strong>
+
+                    @endif
+
+                </div>
+
             </div>
 
         </div>
@@ -230,7 +251,15 @@
 
                         <small class="text-success">
 
-                            Rp {{ number_format($invoice->grand_total,0,',','.') }}
+                            Rp {{ number_format($invoice->total_due,0,',','.') }}
+
+                            @if($invoice->late_fee_amount > 0)
+
+                                <span class="text-danger">
+                                    (Denda Rp {{ number_format($invoice->late_fee_amount,0,',','.') }})
+                                </span>
+
+                            @endif
 
                         </small>
 

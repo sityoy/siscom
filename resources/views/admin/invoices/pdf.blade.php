@@ -373,11 +373,38 @@
 
                     <tr>
 
+                        <td>Invoice Type</td>
+                        <td>:</td>
+                        <td>
+                            {{ $invoice->invoice_type === 'renewal'
+                                ? 'Perpanjangan Paket'
+                                : 'Project' }}
+                        </td>
+
+                    </tr>
+
+                    <tr>
+
                         <td>Due Date</td>
                         <td>:</td>
                         <td>{{ \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') }}</td>
 
                     </tr>
+
+                    @if($invoice->late_fee_active)
+
+                        <tr>
+
+                            <td>Late Fee</td>
+                            <td>:</td>
+                            <td>
+                                Rp {{ number_format($invoice->late_fee_per_month,0,',','.') }}
+                                / 30 hari
+                            </td>
+
+                        </tr>
+
+                    @endif
 
                     <tr>
 
@@ -388,7 +415,9 @@
 
                             <span class="badge {{ $invoice->status }}">
 
-                                {{ strtoupper($invoice->status) }}
+                                {{ $invoice->late_months > 0 && $invoice->status !== 'paid'
+                                    ? 'TERLAMBAT'
+                                    : strtoupper($invoice->status) }}
 
                             </span>
 
@@ -709,7 +738,7 @@
 
 
         $finalTotal =
-            $invoice->grand_total;
+            $invoice->total_due;
 
         // $finalTotal =
         //     $invoice->grand_total - $cashbackAmount;
@@ -765,6 +794,23 @@
             </td>
 
         </tr>
+
+        @if($invoice->late_fee_amount > 0)
+
+            <tr>
+
+                <td style="color:#dc2626; font-weight:bold;">
+                    Denda {{ $invoice->late_months }} Bulan
+                </td>
+
+                <td class="text-right"
+                    style="color:#dc2626; font-weight:bold;">
+                    Rp {{ number_format($invoice->late_fee_amount,0,',','.') }}
+                </td>
+
+            </tr>
+
+        @endif
 
         {{-- <tr class="grand-total">
 

@@ -43,11 +43,9 @@ class ProjectController extends Controller
 
             'budget' => 'nullable|numeric|min:0',
 
-            'monthly_billing_active' => 'nullable|boolean',
+            'late_fee_active' => 'nullable|boolean',
 
-            'monthly_fee' => 'nullable|required_if:monthly_billing_active,1|numeric|min:0',
-
-            'monthly_billing_start' => 'nullable|required_if:monthly_billing_active,1|date',
+            'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
 
             'deadline' => 'nullable|date',
 
@@ -55,7 +53,7 @@ class ProjectController extends Controller
 
         ]);
 
-        $monthlyBillingActive = $request->boolean('monthly_billing_active');
+        $lateFeeActive = $request->boolean('late_fee_active');
 
         $status = $request->status;
 
@@ -83,14 +81,10 @@ class ProjectController extends Controller
 
             'budget'      => $request->budget,
 
-            'monthly_billing_active' => $monthlyBillingActive,
+            'late_fee_active' => $lateFeeActive,
 
-            'monthly_fee' => $monthlyBillingActive
-                ? $request->monthly_fee
-                : null,
-
-            'monthly_billing_start' => $monthlyBillingActive
-                ? $request->monthly_billing_start
+            'late_fee_per_month' => $lateFeeActive
+                ? $request->late_fee_per_month
                 : null,
 
             'deadline'    => $request->deadline,
@@ -153,11 +147,9 @@ class ProjectController extends Controller
 
             'budget' => 'nullable|numeric|min:0',
 
-            'monthly_billing_active' => 'nullable|boolean',
+            'late_fee_active' => 'nullable|boolean',
 
-            'monthly_fee' => 'nullable|required_if:monthly_billing_active,1|numeric|min:0',
-
-            'monthly_billing_start' => 'nullable|required_if:monthly_billing_active,1|date',
+            'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
 
             'deadline' => 'nullable|date',
 
@@ -165,7 +157,7 @@ class ProjectController extends Controller
 
         ]);
 
-        $monthlyBillingActive = $request->boolean('monthly_billing_active');
+        $lateFeeActive = $request->boolean('late_fee_active');
 
         $status = $request->status;
 
@@ -195,14 +187,10 @@ class ProjectController extends Controller
 
             'budget'      => $request->budget,
 
-            'monthly_billing_active' => $monthlyBillingActive,
+            'late_fee_active' => $lateFeeActive,
 
-            'monthly_fee' => $monthlyBillingActive
-                ? $request->monthly_fee
-                : null,
-
-            'monthly_billing_start' => $monthlyBillingActive
-                ? $request->monthly_billing_start
+            'late_fee_per_month' => $lateFeeActive
+                ? $request->late_fee_per_month
                 : null,
 
             'deadline'    => $request->deadline,
@@ -212,6 +200,18 @@ class ProjectController extends Controller
             'progress'    => $request->progress ?? 0,
 
         ]);
+
+        $project->invoices()
+            ->whereIn('status', [
+                'unpaid',
+                'partial',
+            ])
+            ->update([
+                'late_fee_active' => $lateFeeActive,
+                'late_fee_per_month' => $lateFeeActive
+                    ? $request->late_fee_per_month
+                    : 0,
+            ]);
 
         Notification::create([
 

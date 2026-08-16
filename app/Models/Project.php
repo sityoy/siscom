@@ -16,11 +16,9 @@ class Project extends Model
 
         'budget',
 
-        'monthly_billing_active',
+        'late_fee_active',
 
-        'monthly_fee',
-
-        'monthly_billing_start',
+        'late_fee_per_month',
 
         'deadline',
 
@@ -31,9 +29,8 @@ class Project extends Model
     ];
 
     protected $casts = [
-        'monthly_billing_active' => 'boolean',
-        'monthly_fee' => 'decimal:2',
-        'monthly_billing_start' => 'date',
+        'late_fee_active' => 'boolean',
+        'late_fee_per_month' => 'decimal:2',
     ];
 
     public function client()

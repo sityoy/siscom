@@ -48,14 +48,18 @@
                         @foreach($invoices as $invoice)
 
                             <option value="{{ $invoice->id }}"
-                                    data-total="{{ $invoice->grand_total }}"
+                                    data-total="{{ $invoice->total_due }}"
                                     data-paid="{{ $invoice->payments->sum('amount') }}">
 
                                 {{ $invoice->invoice_number }}
 -
                                 {{ $invoice->client->name }}
                                 -
-                                Rp {{ number_format($invoice->grand_total,0,',','.') }}
+                                Rp {{ number_format($invoice->total_due,0,',','.') }}
+
+                                @if($invoice->late_fee_amount > 0)
+                                    (Denda Rp {{ number_format($invoice->late_fee_amount,0,',','.') }})
+                                @endif
                                 -
                                 {{ $invoice->client->name }}
 

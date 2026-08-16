@@ -136,6 +136,18 @@
 
                     </div>
 
+                    @if($project->late_fee_active)
+
+                        <div class="mt-3">
+                            <small class="text-danger">
+                                Denda keterlambatan:
+                                Rp {{ number_format($project->late_fee_per_month,0,',','.') }}
+                                per 30 hari
+                            </small>
+                        </div>
+
+                    @endif
+
                     {{-- FOOTER --}}
                     <div class="mt-4 d-flex
                                 justify-content-between

@@ -165,25 +165,25 @@
 
             <hr>
 
-            <h5 class="font-weight-bold">Tagihan Bulanan</h5>
+            <h5 class="font-weight-bold">Denda Keterlambatan</h5>
 
             <div class="form-check mb-3">
 
                 <input type="hidden"
-                       name="monthly_billing_active"
+                       name="late_fee_active"
                        value="0">
 
                 <input type="checkbox"
-                       name="monthly_billing_active"
-                       id="monthly_billing_active"
+                       name="late_fee_active"
+                       id="late_fee_active"
                        class="form-check-input"
                        value="1"
-                       @checked(old('monthly_billing_active', $project->monthly_billing_active))>
+                       @checked(old('late_fee_active', $project->late_fee_active))>
 
                 <label class="form-check-label"
-                       for="monthly_billing_active">
+                       for="late_fee_active">
 
-                    Aktifkan biaya bulanan untuk project ini
+                    Aktifkan denda keterlambatan pembayaran
 
                 </label>
 
@@ -193,33 +193,27 @@
 
                 <div class="col-md-6 mb-3">
 
-                    <label>Biaya Bulanan</label>
+                    <label>Denda per 30 Hari</label>
 
                     <input type="number"
-                           name="monthly_fee"
-                           class="form-control @error('monthly_fee') is-invalid @enderror"
-                           value="{{ old('monthly_fee', $project->monthly_fee ?? 100000) }}"
+                           name="late_fee_per_month"
+                           class="form-control @error('late_fee_per_month') is-invalid @enderror"
+                           value="{{ old('late_fee_per_month', $project->late_fee_per_month ?? 100000) }}"
                            min="0"
                            step="1000">
 
-                    @error('monthly_fee')
+                    @error('late_fee_per_month')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
 
                 </div>
 
-                <div class="col-md-6 mb-3">
+                <div class="col-md-6 mb-3 d-flex align-items-end">
 
-                    <label>Mulai Tagihan</label>
-
-                    <input type="date"
-                           name="monthly_billing_start"
-                           class="form-control @error('monthly_billing_start') is-invalid @enderror"
-                           value="{{ old('monthly_billing_start', optional($project->monthly_billing_start)->format('Y-m-d')) }}">
-
-                    @error('monthly_billing_start')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                    <small class="text-muted">
+                        Denda dihitung setiap 30 hari setelah jatuh tempo invoice
+                        dan dibulatkan ke atas.
+                    </small>
 
                 </div>
 

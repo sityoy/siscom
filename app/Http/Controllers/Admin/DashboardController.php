@@ -87,7 +87,8 @@ class DashboardController extends Controller
                 'unpaid',
                 'partial'
             ]
-        )->sum('grand_total');
+        )->get()
+        ->sum(fn ($invoice) => $invoice->total_due);
 
         $latestInvoices = Invoice::with('client')
             ->latest()
@@ -99,14 +100,16 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        $topClients = Client::withSum(
-            'invoices',
-            'grand_total'
-        )
+        $topClients = Client::with('invoices')
         ->withCount('projects')
-        ->orderByDesc('invoices_sum_grand_total')
-        ->limit(5)
-        ->get();
+        ->get()
+        ->each(function ($client) {
+            $client->invoices_sum_grand_total =
+                $client->invoices
+                    ->sum(fn ($invoice) => $invoice->total_due);
+        })
+        ->sortByDesc('invoices_sum_grand_total')
+        ->take(5);
 
         $openTickets = Ticket::where(
             'status',

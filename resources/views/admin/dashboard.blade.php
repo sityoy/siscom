@@ -286,7 +286,15 @@
                             <td>{{ $invoice->invoice_number }}</td>
                             <td>{{ $invoice->client->name ?? '-' }}</td>
                             <td>{{ ucfirst($invoice->status) }}</td>
-                            <td>Rp {{ number_format($invoice->grand_total,0,',','.') }}</td>
+                            <td>
+                                Rp {{ number_format($invoice->total_due,0,',','.') }}
+
+                                @if($invoice->late_fee_amount > 0)
+                                    <small class="d-block text-danger">
+                                        Denda Rp {{ number_format($invoice->late_fee_amount,0,',','.') }}
+                                    </small>
+                                @endif
+                            </td>
                         </tr>
 
                     @empty

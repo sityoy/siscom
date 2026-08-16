@@ -71,7 +71,7 @@
 
                         <th>Budget</th>
 
-                        <th>Biaya Bulanan</th>
+                        <th>Denda/Bulan</th>
 
                         <th>Deadline</th>
 
@@ -145,23 +145,17 @@
 
                             <td>
 
-                                @if($project->monthly_billing_active && $project->monthly_fee)
+                                @if($project->late_fee_active && $project->late_fee_per_month)
 
                                     <span class="font-weight-bold text-primary">
 
-                                        Rp {{ number_format($project->monthly_fee,0,',','.') }}/bulan
+                                        Rp {{ number_format($project->late_fee_per_month,0,',','.') }}
 
                                     </span>
 
-                                    @if($project->monthly_billing_start)
-
-                                        <small class="d-block text-muted">
-
-                                            Mulai {{ $project->monthly_billing_start->format('d M Y') }}
-
-                                        </small>
-
-                                    @endif
+                                    <small class="d-block text-muted">
+                                        Setiap 30 hari terlambat
+                                    </small>
 
                                 @else
 
@@ -270,19 +264,14 @@
 
                             <td class="text-center">
 
-                                @if($project->monthly_billing_active && $project->monthly_fee)
+                                <a href="{{ route('invoices.create', [
+                                    'project_id' => $project->id
+                                ]) }}"
+                                   class="btn btn-success btn-sm">
 
-                                    <a href="{{ route('invoices.create', [
-                                        'project_id' => $project->id,
-                                        'invoice_type' => 'renewal'
-                                    ]) }}"
-                                       class="btn btn-success btn-sm">
+                                    Buat Invoice
 
-                                        Invoice Bulanan
-
-                                    </a>
-
-                                @endif
+                                </a>
 
                                 <a href="{{ route('project.files', $project->id) }}"
                                    class="btn btn-info btn-sm">

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use Carbon\Carbon;
 use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\Project;
@@ -48,10 +47,6 @@ class InvoiceController extends Controller
 
         $projects = Project::all();
 
-        $invoiceType = $request->query('invoice_type') === 'renewal'
-            ? 'renewal'
-            : 'project';
-
         $selectedProject = null;
 
         if ($request->filled('project_id')) {
@@ -59,65 +54,26 @@ class InvoiceController extends Controller
                 ->find($request->integer('project_id'));
         }
 
-        if (
-            $invoiceType === 'renewal' &&
-            (!$selectedProject || !$selectedProject->monthly_billing_active)
-        ) {
-            return redirect()
-                ->route('projects.index')
-                ->with(
-                    'error',
-                    'Tagihan bulanan project belum aktif.'
-                );
-        }
-
-        $periodStart = null;
-        $periodEnd = null;
-
-        if ($invoiceType === 'renewal') {
-            $latestPeriodEnd = InvoiceItem::query()
-                ->whereHas('invoice', function ($query) use ($selectedProject) {
-                    $query->where('project_id', $selectedProject->id)
-                        ->where('invoice_type', 'renewal')
-                        ->where('status', '!=', 'cancelled');
-                })
-                ->max('end_date');
-
-            $periodStart = $latestPeriodEnd
-                ? Carbon::parse($latestPeriodEnd)->addDay()
-                : Carbon::parse($selectedProject->monthly_billing_start);
-
-            $periodEnd = $periodStart
-                ->copy()
-                ->addMonthNoOverflow()
-                ->subDay();
-        }
-
         $invoiceDefaults = [
             'client_id' => $selectedProject?->client_id,
             'project_id' => $selectedProject?->id,
-            'invoice_type' => $invoiceType,
+            'invoice_type' => 'project',
             'due_date' => now()->addDays(7)->format('Y-m-d'),
-            'description' => $invoiceType === 'renewal'
-                ? 'Biaya layanan bulanan ' .
-                    $periodStart->format('m/Y') .
-                    ' - ' . $selectedProject->title
+            'description' => $selectedProject
+                ? 'Biaya Project - ' . $selectedProject->title
                 : '',
-            'price' => $invoiceType === 'renewal'
-                ? $selectedProject->monthly_fee
-                : null,
+            'price' => $selectedProject?->budget,
             'duration' => 1,
-            'duration_type' => $invoiceType === 'renewal'
-                ? 'Bulan'
-                : 'Hari',
-            'start_date' => $periodStart?->format('Y-m-d'),
-            'end_date' => $periodEnd?->format('Y-m-d'),
-            'vat_percent' => $invoiceType === 'renewal' ? 0 : 11,
-            'service_fee' => $invoiceType === 'renewal' ? 0 : 10000,
-            'notes' => $invoiceType === 'renewal'
-                ? 'Tagihan layanan bulanan periode ' .
-                    $periodStart->format('d/m/Y') .
-                    ' - ' . $periodEnd->format('d/m/Y')
+            'duration_type' => 'Hari',
+            'start_date' => null,
+            'end_date' => null,
+            'vat_percent' => 11,
+            'service_fee' => 10000,
+            'late_fee_active' => (bool) ($selectedProject?->late_fee_active),
+            'late_fee_per_month' => $selectedProject?->late_fee_per_month
+                ?? 100000,
+            'notes' => $selectedProject
+                ? 'Invoice Project ' . $selectedProject->title
                 : '',
         ];
 
@@ -137,7 +93,7 @@ class InvoiceController extends Controller
 
             'client_id' => 'required|exists:clients,id',
 
-            'project_id' => 'nullable|required_if:invoice_type,renewal|exists:projects,id',
+            'project_id' => 'nullable|exists:projects,id',
 
             'invoice_type' => 'required|in:project,renewal',
 
@@ -153,6 +109,10 @@ class InvoiceController extends Controller
 
             'service_fee' => 'nullable|numeric|min:0',
 
+            'late_fee_active' => 'nullable|boolean',
+
+            'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
+
             'description' => 'required|array|min:1',
 
             'description.*' => 'required|string|max:255',
@@ -165,18 +125,6 @@ class InvoiceController extends Controller
 
             'price.*' => 'required|numeric|min:0',
         ]);
-
-        if ($request->invoice_type === 'renewal') {
-            $monthlyProject = Project::find($request->project_id);
-
-            if (!$monthlyProject?->monthly_billing_active) {
-                return back()
-                    ->withInput()
-                    ->withErrors([
-                        'project_id' => 'Tagihan bulanan project belum aktif.',
-                    ]);
-            }
-        }
 
         $subtotal = 0;
 
@@ -221,6 +169,12 @@ class InvoiceController extends Controller
 
             'service_fee' => $serviceFee,
 
+            'late_fee_active' => $request->boolean('late_fee_active'),
+
+            'late_fee_per_month' => $request->boolean('late_fee_active')
+                ? $request->late_fee_per_month
+                : 0,
+
             'cashback' => $cashback,
 
             'grand_total' => $grandTotal,
@@ -228,6 +182,10 @@ class InvoiceController extends Controller
             'due_date' => $request->due_date,
 
             'status' => $request->status,
+
+            'paid_at' => $request->status === 'paid'
+                ? now()
+                : null,
 
             'notes' => $request->notes,
 
@@ -432,6 +390,9 @@ $pdfUrl
                 'status' => 'required',
                 'vat_percent' => 'required|numeric|min:0|max:100',
                 'cashback' => 'nullable|numeric|min:0|max:20',
+                'invoice_type' => 'required|in:project,renewal',
+                'late_fee_active' => 'nullable|boolean',
+                'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
             ]);
 
             $subtotal = 0;
@@ -467,6 +428,8 @@ $pdfUrl
 
                 'invoice_number' => $request->invoice_number,
 
+                'invoice_type' => $request->invoice_type,
+
                 'subtotal' => $subtotal,
 
                 'vat_percent' => $vatPercent,
@@ -475,6 +438,12 @@ $pdfUrl
 
                 'service_fee' => $serviceFee,
 
+                'late_fee_active' => $request->boolean('late_fee_active'),
+
+                'late_fee_per_month' => $request->boolean('late_fee_active')
+                    ? $request->late_fee_per_month
+                    : 0,
+
                 'cashback' => $cashback,
 
                 'grand_total' => $grandTotal,
@@ -482,6 +451,10 @@ $pdfUrl
                 'due_date' => $request->due_date,
 
                 'status' => $request->status,
+
+                'paid_at' => $request->status === 'paid'
+                    ? ($invoice->paid_at ?? now())
+                    : null,
 
                 'notes' => $request->notes,
 
