@@ -1,0 +1,1695 @@
+From 1160f936a5d34185a7558a6ed1086db5ab6ead0e Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Sun, 16 Aug 2026 11:44:55 -0300
+Subject: [PATCH] Replace monthly billing with project late fees
+
+---
+ .../Controllers/Admin/DashboardController.php |  19 ++-
+ .../Controllers/Admin/InvoiceController.php   | 115 ++++++--------
+ .../Controllers/Admin/PaymentController.php   |  57 +++++--
+ .../Controllers/Admin/ProjectController.php   |  48 +++---
+ app/Models/Invoice.php                        |  69 +++++++++
+ app/Models/Project.php                        |  11 +-
+ ...with_late_fee_on_projects_and_invoices.php | 107 +++++++++++++
+ resources/views/admin/dashboard.blade.php     |  10 +-
+ .../views/admin/invoices/create.blade.php     |  83 ++++++++--
+ resources/views/admin/invoices/edit.blade.php | 146 +++++++++++++++++-
+ .../views/admin/invoices/index.blade.php      |  42 ++++-
+ resources/views/admin/invoices/pdf.blade.php  |  50 +++++-
+ .../views/admin/payments/create.blade.php     |   8 +-
+ .../views/admin/payments/index.blade.php      |   2 +-
+ .../views/admin/projects/create.blade.php     |  40 ++---
+ resources/views/admin/projects/edit.blade.php |  40 ++---
+ .../views/admin/projects/index.blade.php      |  35 ++---
+ .../views/clients/invoices/index.blade.php    |  10 +-
+ .../views/clients/projects/index.blade.php    |  12 ++
+ .../views/clients/projects/show.blade.php     |  31 +++-
+ 20 files changed, 712 insertions(+), 223 deletions(-)
+ create mode 100644 database/migrations/2026_08_16_000002_replace_monthly_billing_with_late_fee_on_projects_and_invoices.php
+
+diff --git a/app/Http/Controllers/Admin/DashboardController.php b/app/Http/Controllers/Admin/DashboardController.php
+index f73bdb0..648b9cf 100644
+--- a/app/Http/Controllers/Admin/DashboardController.php
++++ b/app/Http/Controllers/Admin/DashboardController.php
+@@ -87,7 +87,8 @@ public function index()
+                 'unpaid',
+                 'partial'
+             ]
+-        )->sum('grand_total');
++        )->get()
++        ->sum(fn ($invoice) => $invoice->total_due);
+ 
+         $latestInvoices = Invoice::with('client')
+             ->latest()
+@@ -99,14 +100,16 @@ public function index()
+             ->take(5)
+             ->get();
+ 
+-        $topClients = Client::withSum(
+-            'invoices',
+-            'grand_total'
+-        )
++        $topClients = Client::with('invoices')
+         ->withCount('projects')
+-        ->orderByDesc('invoices_sum_grand_total')
+-        ->limit(5)
+-        ->get();
++        ->get()
++        ->each(function ($client) {
++            $client->invoices_sum_grand_total =
++                $client->invoices
++                    ->sum(fn ($invoice) => $invoice->total_due);
++        })
++        ->sortByDesc('invoices_sum_grand_total')
++        ->take(5);
+ 
+         $openTickets = Ticket::where(
+             'status',
+diff --git a/app/Http/Controllers/Admin/InvoiceController.php b/app/Http/Controllers/Admin/InvoiceController.php
+index d8240ef..b335bea 100644
+--- a/app/Http/Controllers/Admin/InvoiceController.php
++++ b/app/Http/Controllers/Admin/InvoiceController.php
+@@ -2,7 +2,6 @@
+ 
+ namespace App\Http\Controllers\Admin;
+ 
+-use Carbon\Carbon;
+ use App\Models\Client;
+ use App\Models\Invoice;
+ use App\Models\Project;
+@@ -48,10 +47,6 @@ public function create(Request $request)
+ 
+         $projects = Project::all();
+ 
+-        $invoiceType = $request->query('invoice_type') === 'renewal'
+-            ? 'renewal'
+-            : 'project';
+-
+         $selectedProject = null;
+ 
+         if ($request->filled('project_id')) {
+@@ -59,65 +54,26 @@ public function create(Request $request)
+                 ->find($request->integer('project_id'));
+         }
+ 
+-        if (
+-            $invoiceType === 'renewal' &&
+-            (!$selectedProject || !$selectedProject->monthly_billing_active)
+-        ) {
+-            return redirect()
+-                ->route('projects.index')
+-                ->with(
+-                    'error',
+-                    'Tagihan bulanan project belum aktif.'
+-                );
+-        }
+-
+-        $periodStart = null;
+-        $periodEnd = null;
+-
+-        if ($invoiceType === 'renewal') {
+-            $latestPeriodEnd = InvoiceItem::query()
+-                ->whereHas('invoice', function ($query) use ($selectedProject) {
+-                    $query->where('project_id', $selectedProject->id)
+-                        ->where('invoice_type', 'renewal')
+-                        ->where('status', '!=', 'cancelled');
+-                })
+-                ->max('end_date');
+-
+-            $periodStart = $latestPeriodEnd
+-                ? Carbon::parse($latestPeriodEnd)->addDay()
+-                : Carbon::parse($selectedProject->monthly_billing_start);
+-
+-            $periodEnd = $periodStart
+-                ->copy()
+-                ->addMonthNoOverflow()
+-                ->subDay();
+-        }
+-
+         $invoiceDefaults = [
+             'client_id' => $selectedProject?->client_id,
+             'project_id' => $selectedProject?->id,
+-            'invoice_type' => $invoiceType,
++            'invoice_type' => 'project',
+             'due_date' => now()->addDays(7)->format('Y-m-d'),
+-            'description' => $invoiceType === 'renewal'
+-                ? 'Biaya layanan bulanan ' .
+-                    $periodStart->format('m/Y') .
+-                    ' - ' . $selectedProject->title
++            'description' => $selectedProject
++                ? 'Biaya Project - ' . $selectedProject->title
+                 : '',
+-            'price' => $invoiceType === 'renewal'
+-                ? $selectedProject->monthly_fee
+-                : null,
++            'price' => $selectedProject?->budget,
+             'duration' => 1,
+-            'duration_type' => $invoiceType === 'renewal'
+-                ? 'Bulan'
+-                : 'Hari',
+-            'start_date' => $periodStart?->format('Y-m-d'),
+-            'end_date' => $periodEnd?->format('Y-m-d'),
+-            'vat_percent' => $invoiceType === 'renewal' ? 0 : 11,
+-            'service_fee' => $invoiceType === 'renewal' ? 0 : 10000,
+-            'notes' => $invoiceType === 'renewal'
+-                ? 'Tagihan layanan bulanan periode ' .
+-                    $periodStart->format('d/m/Y') .
+-                    ' - ' . $periodEnd->format('d/m/Y')
++            'duration_type' => 'Hari',
++            'start_date' => null,
++            'end_date' => null,
++            'vat_percent' => 11,
++            'service_fee' => 10000,
++            'late_fee_active' => (bool) ($selectedProject?->late_fee_active),
++            'late_fee_per_month' => $selectedProject?->late_fee_per_month
++                ?? 100000,
++            'notes' => $selectedProject
++                ? 'Invoice Project ' . $selectedProject->title
+                 : '',
+         ];
+ 
+@@ -137,7 +93,7 @@ public function store(Request $request)
+ 
+             'client_id' => 'required|exists:clients,id',
+ 
+-            'project_id' => 'nullable|required_if:invoice_type,renewal|exists:projects,id',
++            'project_id' => 'nullable|exists:projects,id',
+ 
+             'invoice_type' => 'required|in:project,renewal',
+ 
+@@ -153,6 +109,10 @@ public function store(Request $request)
+ 
+             'service_fee' => 'nullable|numeric|min:0',
+ 
++            'late_fee_active' => 'nullable|boolean',
++
++            'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
++
+             'description' => 'required|array|min:1',
+ 
+             'description.*' => 'required|string|max:255',
+@@ -166,18 +126,6 @@ public function store(Request $request)
+             'price.*' => 'required|numeric|min:0',
+         ]);
+ 
+-        if ($request->invoice_type === 'renewal') {
+-            $monthlyProject = Project::find($request->project_id);
+-
+-            if (!$monthlyProject?->monthly_billing_active) {
+-                return back()
+-                    ->withInput()
+-                    ->withErrors([
+-                        'project_id' => 'Tagihan bulanan project belum aktif.',
+-                    ]);
+-            }
+-        }
+-
+         $subtotal = 0;
+ 
+         foreach ($request->price as $index => $price) {
+@@ -221,6 +169,12 @@ public function store(Request $request)
+ 
+             'service_fee' => $serviceFee,
+ 
++            'late_fee_active' => $request->boolean('late_fee_active'),
++
++            'late_fee_per_month' => $request->boolean('late_fee_active')
++                ? $request->late_fee_per_month
++                : 0,
++
+             'cashback' => $cashback,
+ 
+             'grand_total' => $grandTotal,
+@@ -229,6 +183,10 @@ public function store(Request $request)
+ 
+             'status' => $request->status,
+ 
++            'paid_at' => $request->status === 'paid'
++                ? now()
++                : null,
++
+             'notes' => $request->notes,
+ 
+         ]);
+@@ -432,6 +390,9 @@ public function update(Request $request, Invoice $invoice)
+                 'status' => 'required',
+                 'vat_percent' => 'required|numeric|min:0|max:100',
+                 'cashback' => 'nullable|numeric|min:0|max:20',
++                'invoice_type' => 'required|in:project,renewal',
++                'late_fee_active' => 'nullable|boolean',
++                'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
+             ]);
+ 
+             $subtotal = 0;
+@@ -467,6 +428,8 @@ public function update(Request $request, Invoice $invoice)
+ 
+                 'invoice_number' => $request->invoice_number,
+ 
++                'invoice_type' => $request->invoice_type,
++
+                 'subtotal' => $subtotal,
+ 
+                 'vat_percent' => $vatPercent,
+@@ -475,6 +438,12 @@ public function update(Request $request, Invoice $invoice)
+ 
+                 'service_fee' => $serviceFee,
+ 
++                'late_fee_active' => $request->boolean('late_fee_active'),
++
++                'late_fee_per_month' => $request->boolean('late_fee_active')
++                    ? $request->late_fee_per_month
++                    : 0,
++
+                 'cashback' => $cashback,
+ 
+                 'grand_total' => $grandTotal,
+@@ -483,6 +452,10 @@ public function update(Request $request, Invoice $invoice)
+ 
+                 'status' => $request->status,
+ 
++                'paid_at' => $request->status === 'paid'
++                    ? ($invoice->paid_at ?? now())
++                    : null,
++
+                 'notes' => $request->notes,
+ 
+             ]);
+diff --git a/app/Http/Controllers/Admin/PaymentController.php b/app/Http/Controllers/Admin/PaymentController.php
+index 4e04f60..39585fe 100644
+--- a/app/Http/Controllers/Admin/PaymentController.php
++++ b/app/Http/Controllers/Admin/PaymentController.php
+@@ -32,7 +32,10 @@ public function index()
+ 
+     public function create()
+     {
+-        $invoices = Invoice::all();
++        $invoices = Invoice::with([
++            'client',
++            'payments',
++        ])->get();
+ 
+         return view(
+             'admin.payments.create',
+@@ -64,7 +67,7 @@ public function store(Request $request)
+                     ->sum('amount');
+ 
+             $remaining =
+-                $invoice->grand_total
++                $invoice->calculateTotalDue($request->payment_date)
+                 - $totalPaid;
+ 
+             if($request->amount > $remaining){
+@@ -136,13 +139,16 @@ public function store(Request $request)
+             ->sum('amount');
+ 
+         // GRAND TOTAL
+-        $grandTotal = $invoice->grand_total;
++        $grandTotal = $invoice->calculateTotalDue(
++            $request->payment_date
++        );
+ 
+         // UPDATE STATUS OTOMATIS
+         if ($totalPaid >= $grandTotal) {
+ 
+             $invoice->update([
+-                'status' => 'paid'
++                'status' => 'paid',
++                'paid_at' => $request->payment_date,
+             ]);
+ 
+             $this->processRenewalInvoice($invoice);
+@@ -151,7 +157,8 @@ public function store(Request $request)
+ 
+             $invoice->update([
+ 
+-                'status' => 'partial'
++                'status' => 'partial',
++                'paid_at' => null,
+ 
+             ]);
+ 
+@@ -159,7 +166,8 @@ public function store(Request $request)
+ 
+             $invoice->update([
+ 
+-                'status' => 'unpaid'
++                'status' => 'unpaid',
++                'paid_at' => null,
+ 
+             ]);
+         }
+@@ -174,7 +182,10 @@ public function store(Request $request)
+ 
+     public function edit(Payment $payment)
+     {
+-        $invoices = Invoice::all();
++        $invoices = Invoice::with([
++            'client',
++            'payments',
++        ])->get();
+ 
+         return view(
+             'admin.payments.edit',
+@@ -214,7 +225,7 @@ public function update(
+                 ->sum('amount');
+ 
+         $remaining =
+-            $invoice->grand_total
++            $invoice->calculateTotalDue($request->payment_date)
+             - $totalPaid;
+ 
+         if($request->amount > $remaining){
+@@ -265,13 +276,16 @@ public function update(
+             ->sum('amount');
+ 
+         // GRAND TOTAL
+-        $grandTotal = $invoice->grand_total;
++        $grandTotal = $invoice->calculateTotalDue(
++            $request->payment_date
++        );
+ 
+         // UPDATE STATUS
+         if ($totalPaid >= $grandTotal) {
+ 
+             $invoice->update([
+-                'status' => 'paid'
++                'status' => 'paid',
++                'paid_at' => $request->payment_date,
+             ]);
+ 
+             $this->processRenewalInvoice($invoice);
+@@ -280,7 +294,8 @@ public function update(
+ 
+             $invoice->update([
+ 
+-                'status' => 'partial'
++                'status' => 'partial',
++                'paid_at' => null,
+ 
+             ]);
+ 
+@@ -288,7 +303,8 @@ public function update(
+ 
+             $invoice->update([
+ 
+-                'status' => 'unpaid'
++                'status' => 'unpaid',
++                'paid_at' => null,
+ 
+             ]);
+         }
+@@ -307,27 +323,36 @@ public function destroy(Payment $payment)
+ 
+         $payment->delete();
+ 
++        $invoice->update([
++            'paid_at' => null,
++        ]);
++
++        $invoice->refresh();
++
+         // HITUNG ULANG
+         $totalPaid = $invoice->payments()
+             ->sum('amount');
+ 
+         // UPDATE STATUS
+-        if ($totalPaid >= $invoice->grand_total) {
++        if ($totalPaid >= $invoice->total_due) {
+ 
+             $invoice->update([
+-                'status' => 'paid'
++                'status' => 'paid',
++                'paid_at' => now(),
+             ]);
+ 
+         } elseif ($totalPaid > 0) {
+ 
+             $invoice->update([
+-                'status' => 'partial'
++                'status' => 'partial',
++                'paid_at' => null,
+             ]);
+ 
+         } else {
+ 
+             $invoice->update([
+-                'status' => 'unpaid'
++                'status' => 'unpaid',
++                'paid_at' => null,
+             ]);
+         }
+ 
+diff --git a/app/Http/Controllers/Admin/ProjectController.php b/app/Http/Controllers/Admin/ProjectController.php
+index ba9aee9..482e63a 100644
+--- a/app/Http/Controllers/Admin/ProjectController.php
++++ b/app/Http/Controllers/Admin/ProjectController.php
+@@ -43,11 +43,9 @@ public function store(Request $request)
+ 
+             'budget' => 'nullable|numeric|min:0',
+ 
+-            'monthly_billing_active' => 'nullable|boolean',
++            'late_fee_active' => 'nullable|boolean',
+ 
+-            'monthly_fee' => 'nullable|required_if:monthly_billing_active,1|numeric|min:0',
+-
+-            'monthly_billing_start' => 'nullable|required_if:monthly_billing_active,1|date',
++            'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
+ 
+             'deadline' => 'nullable|date',
+ 
+@@ -55,7 +53,7 @@ public function store(Request $request)
+ 
+         ]);
+ 
+-        $monthlyBillingActive = $request->boolean('monthly_billing_active');
++        $lateFeeActive = $request->boolean('late_fee_active');
+ 
+         $status = $request->status;
+ 
+@@ -83,14 +81,10 @@ public function store(Request $request)
+ 
+             'budget'      => $request->budget,
+ 
+-            'monthly_billing_active' => $monthlyBillingActive,
+-
+-            'monthly_fee' => $monthlyBillingActive
+-                ? $request->monthly_fee
+-                : null,
++            'late_fee_active' => $lateFeeActive,
+ 
+-            'monthly_billing_start' => $monthlyBillingActive
+-                ? $request->monthly_billing_start
++            'late_fee_per_month' => $lateFeeActive
++                ? $request->late_fee_per_month
+                 : null,
+ 
+             'deadline'    => $request->deadline,
+@@ -153,11 +147,9 @@ public function update(
+ 
+             'budget' => 'nullable|numeric|min:0',
+ 
+-            'monthly_billing_active' => 'nullable|boolean',
+-
+-            'monthly_fee' => 'nullable|required_if:monthly_billing_active,1|numeric|min:0',
++            'late_fee_active' => 'nullable|boolean',
+ 
+-            'monthly_billing_start' => 'nullable|required_if:monthly_billing_active,1|date',
++            'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
+ 
+             'deadline' => 'nullable|date',
+ 
+@@ -165,7 +157,7 @@ public function update(
+ 
+         ]);
+ 
+-        $monthlyBillingActive = $request->boolean('monthly_billing_active');
++        $lateFeeActive = $request->boolean('late_fee_active');
+ 
+         $status = $request->status;
+ 
+@@ -195,14 +187,10 @@ public function update(
+ 
+             'budget'      => $request->budget,
+ 
+-            'monthly_billing_active' => $monthlyBillingActive,
++            'late_fee_active' => $lateFeeActive,
+ 
+-            'monthly_fee' => $monthlyBillingActive
+-                ? $request->monthly_fee
+-                : null,
+-
+-            'monthly_billing_start' => $monthlyBillingActive
+-                ? $request->monthly_billing_start
++            'late_fee_per_month' => $lateFeeActive
++                ? $request->late_fee_per_month
+                 : null,
+ 
+             'deadline'    => $request->deadline,
+@@ -213,6 +201,18 @@ public function update(
+ 
+         ]);
+ 
++        $project->invoices()
++            ->whereIn('status', [
++                'unpaid',
++                'partial',
++            ])
++            ->update([
++                'late_fee_active' => $lateFeeActive,
++                'late_fee_per_month' => $lateFeeActive
++                    ? $request->late_fee_per_month
++                    : 0,
++            ]);
++
+         Notification::create([
+ 
+             'client_id' => $project->client_id,
+diff --git a/app/Models/Invoice.php b/app/Models/Invoice.php
+index fd54d82..3e5fa1d 100644
+--- a/app/Models/Invoice.php
++++ b/app/Models/Invoice.php
+@@ -2,6 +2,7 @@
+ 
+ namespace App\Models;
+ 
++use Carbon\Carbon;
+ use Illuminate\Database\Eloquent\Model;
+ 
+ class Invoice extends Model
+@@ -22,6 +23,10 @@ class Invoice extends Model
+ 
+         'service_fee',
+ 
++        'late_fee_active',
++
++        'late_fee_per_month',
++
+         'grand_total',
+ 
+         'due_date',
+@@ -33,8 +38,72 @@ class Invoice extends Model
+         'cashback',
+ 
+         'invoice_type',
++
++        'paid_at',
+     ];
+ 
++    protected $casts = [
++        'due_date' => 'date',
++        'paid_at' => 'datetime',
++        'late_fee_active' => 'boolean',
++        'late_fee_per_month' => 'decimal:2',
++        'grand_total' => 'decimal:2',
++    ];
++
++    public function calculateLateMonths($asOf = null): int
++    {
++        if (
++            !$this->late_fee_active ||
++            !$this->due_date ||
++            $this->status === 'cancelled'
++        ) {
++            return 0;
++        }
++
++        $calculationDate = $asOf
++            ? Carbon::parse($asOf)->startOfDay()
++            : ($this->status === 'paid' && $this->paid_at
++                ? $this->paid_at->copy()->startOfDay()
++                : Carbon::today());
++
++        $dueDate = $this->due_date->copy()->startOfDay();
++
++        if ($calculationDate->lte($dueDate)) {
++            return 0;
++        }
++
++        $daysLate = $dueDate->diffInDays($calculationDate);
++
++        return (int) ceil($daysLate / 30);
++    }
++
++    public function calculateLateFee($asOf = null): float
++    {
++        return $this->calculateLateMonths($asOf)
++            * (float) ($this->late_fee_per_month ?? 0);
++    }
++
++    public function calculateTotalDue($asOf = null): float
++    {
++        return (float) $this->grand_total
++            + $this->calculateLateFee($asOf);
++    }
++
++    public function getLateMonthsAttribute(): int
++    {
++        return $this->calculateLateMonths();
++    }
++
++    public function getLateFeeAmountAttribute(): float
++    {
++        return $this->calculateLateFee();
++    }
++
++    public function getTotalDueAttribute(): float
++    {
++        return $this->calculateTotalDue();
++    }
++
+     public function client()
+     {
+         return $this->belongsTo(Client::class);
+diff --git a/app/Models/Project.php b/app/Models/Project.php
+index f68fd5d..0c8cc93 100644
+--- a/app/Models/Project.php
++++ b/app/Models/Project.php
+@@ -16,11 +16,9 @@ class Project extends Model
+ 
+         'budget',
+ 
+-        'monthly_billing_active',
++        'late_fee_active',
+ 
+-        'monthly_fee',
+-
+-        'monthly_billing_start',
++        'late_fee_per_month',
+ 
+         'deadline',
+ 
+@@ -31,9 +29,8 @@ class Project extends Model
+     ];
+ 
+     protected $casts = [
+-        'monthly_billing_active' => 'boolean',
+-        'monthly_fee' => 'decimal:2',
+-        'monthly_billing_start' => 'date',
++        'late_fee_active' => 'boolean',
++        'late_fee_per_month' => 'decimal:2',
+     ];
+ 
+     public function client()
+diff --git a/database/migrations/2026_08_16_000002_replace_monthly_billing_with_late_fee_on_projects_and_invoices.php b/database/migrations/2026_08_16_000002_replace_monthly_billing_with_late_fee_on_projects_and_invoices.php
+new file mode 100644
+index 0000000..fa30a6d
+--- /dev/null
++++ b/database/migrations/2026_08_16_000002_replace_monthly_billing_with_late_fee_on_projects_and_invoices.php
+@@ -0,0 +1,107 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::table('projects', function (Blueprint $table) {
++            $table->renameColumn(
++                'monthly_billing_active',
++                'late_fee_active'
++            );
++        });
++
++        Schema::table('projects', function (Blueprint $table) {
++            $table->renameColumn(
++                'monthly_fee',
++                'late_fee_per_month'
++            );
++        });
++
++        Schema::table('projects', function (Blueprint $table) {
++            $table->dropColumn('monthly_billing_start');
++        });
++
++        Schema::table('invoices', function (Blueprint $table) {
++            $table->boolean('late_fee_active')
++                ->default(false)
++                ->after('service_fee');
++            $table->decimal('late_fee_per_month', 15, 2)
++                ->default(0)
++                ->after('late_fee_active');
++            $table->timestamp('paid_at')
++                ->nullable()
++                ->after('due_date');
++        });
++
++        DB::table('projects')
++            ->whereNull('late_fee_per_month')
++            ->update(['late_fee_per_month' => 100000]);
++
++        DB::table('projects')
++            ->update(['late_fee_active' => true]);
++
++        DB::table('projects')
++            ->select([
++                'id',
++                'late_fee_active',
++                'late_fee_per_month',
++            ])
++            ->orderBy('id')
++            ->each(function ($project) {
++                DB::table('invoices')
++                    ->where('project_id', $project->id)
++                    ->update([
++                        'late_fee_active' => $project->late_fee_active,
++                        'late_fee_per_month' =>
++                            $project->late_fee_per_month ?? 0,
++                    ]);
++            });
++
++        DB::table('invoices')
++            ->where('invoice_type', 'renewal')
++            ->whereNotNull('project_id')
++            ->update(['invoice_type' => 'project']);
++
++        DB::table('invoices')
++            ->where('status', 'paid')
++            ->whereNull('paid_at')
++            ->update(['paid_at' => DB::raw('updated_at')]);
++    }
++
++    public function down(): void
++    {
++        Schema::table('invoices', function (Blueprint $table) {
++            $table->dropColumn([
++                'late_fee_active',
++                'late_fee_per_month',
++                'paid_at',
++            ]);
++        });
++
++        Schema::table('projects', function (Blueprint $table) {
++            $table->date('monthly_billing_start')
++                ->nullable()
++                ->after('late_fee_per_month');
++        });
++
++        Schema::table('projects', function (Blueprint $table) {
++            $table->renameColumn(
++                'late_fee_per_month',
++                'monthly_fee'
++            );
++        });
++
++        Schema::table('projects', function (Blueprint $table) {
++            $table->renameColumn(
++                'late_fee_active',
++                'monthly_billing_active'
++            );
++        });
++    }
++};
+diff --git a/resources/views/admin/dashboard.blade.php b/resources/views/admin/dashboard.blade.php
+index 92d1701..f15ee74 100644
+--- a/resources/views/admin/dashboard.blade.php
++++ b/resources/views/admin/dashboard.blade.php
+@@ -286,7 +286,15 @@ class="float-end text-white">
+                             <td>{{ $invoice->invoice_number }}</td>
+                             <td>{{ $invoice->client->name ?? '-' }}</td>
+                             <td>{{ ucfirst($invoice->status) }}</td>
+-                            <td>Rp {{ number_format($invoice->grand_total,0,',','.') }}</td>
++                            <td>
++                                Rp {{ number_format($invoice->total_due,0,',','.') }}
++
++                                @if($invoice->late_fee_amount > 0)
++                                    <small class="d-block text-danger">
++                                        Denda Rp {{ number_format($invoice->late_fee_amount,0,',','.') }}
++                                    </small>
++                                @endif
++                            </td>
+                         </tr>
+ 
+                     @empty
+diff --git a/resources/views/admin/invoices/create.blade.php b/resources/views/admin/invoices/create.blade.php
+index f7d42fa..6c80ae1 100644
+--- a/resources/views/admin/invoices/create.blade.php
++++ b/resources/views/admin/invoices/create.blade.php
+@@ -17,18 +17,6 @@
+ 
+         <div class="card-body">
+ 
+-            @if($invoiceDefaults['invoice_type'] === 'renewal')
+-
+-                <div class="alert alert-info">
+-
+-                    <strong>Invoice Bulanan</strong><br>
+-                    Data client, project, nominal, dan periode sudah diisi otomatis.
+-                    Silakan periksa kembali sebelum menyimpan.
+-
+-                </div>
+-
+-            @endif
+-
+             <div class="row">
+ 
+                 <div class="col-md-6 mb-3">
+@@ -73,6 +61,10 @@ class="form-control">
+ 
+                             <option value="{{ $project->id }}"
+                                     data-client="{{ $project->client_id }}"
++                                    data-title="{{ $project->title }}"
++                                    data-budget="{{ $project->budget }}"
++                                    data-late-active="{{ $project->late_fee_active ? 1 : 0 }}"
++                                    data-late-fee="{{ $project->late_fee_per_month ?? 100000 }}"
+                                     @selected(old('project_id', $invoiceDefaults['project_id']) == $project->id)>
+                                     {{ $project->title }}
+                             </option>
+@@ -308,6 +300,50 @@ class="form-control"
+ 
+                 </div>
+ 
++                <div class="col-md-4 mt-3">
++
++                    <label>Denda Keterlambatan</label>
++
++                    <input type="hidden"
++                           name="late_fee_active"
++                           value="0">
++
++                    <div class="form-check mt-2">
++
++                        <input type="checkbox"
++                               name="late_fee_active"
++                               id="late-fee-active"
++                               class="form-check-input"
++                               value="1"
++                               @checked(old('late_fee_active', $invoiceDefaults['late_fee_active']))>
++
++                        <label class="form-check-label"
++                               for="late-fee-active">
++                            Aktifkan denda
++                        </label>
++
++                    </div>
++
++                </div>
++
++                <div class="col-md-4 mt-3">
++
++                    <label>Denda per 30 Hari</label>
++
++                    <input type="number"
++                           name="late_fee_per_month"
++                           id="late-fee-per-month"
++                           class="form-control @error('late_fee_per_month') is-invalid @enderror"
++                           value="{{ old('late_fee_per_month', $invoiceDefaults['late_fee_per_month']) }}"
++                           min="0"
++                           step="1000">
++
++                    @error('late_fee_per_month')
++                        <div class="invalid-feedback">{{ $message }}</div>
++                    @enderror
++
++                </div>
++
+                 <div class="col-md-4">
+ 
+                     <label>Biaya Layanan</label>
+@@ -461,6 +497,29 @@ class="form-control"
+     projectSelect.value = '';
+ });
+ 
++projectSelect.addEventListener('change', function(){
++
++    const option = this.options[this.selectedIndex];
++
++    if (!option.value) return;
++
++    clientSelect.value = option.dataset.client;
++
++    const firstItem = document.querySelector('.invoice-item');
++
++    firstItem.querySelector('[name="description[]"]').value =
++        'Biaya Project - ' + option.dataset.title;
++
++    firstItem.querySelector('.price').value =
++        option.dataset.budget || 0;
++
++    document.getElementById('late-fee-active').checked =
++        option.dataset.lateActive === '1';
++
++    document.getElementById('late-fee-per-month').value =
++        option.dataset.lateFee || 100000;
++});
++
+ document.addEventListener('DOMContentLoaded', function () {
+ 
+     function calculateTotals() {
+diff --git a/resources/views/admin/invoices/edit.blade.php b/resources/views/admin/invoices/edit.blade.php
+index c2a43b9..8049a2b 100644
+--- a/resources/views/admin/invoices/edit.blade.php
++++ b/resources/views/admin/invoices/edit.blade.php
+@@ -12,6 +12,10 @@
+         @csrf
+         @method('PUT')
+ 
++        <input type="hidden"
++               name="invoice_type"
++               value="{{ $invoice->invoice_type }}">
++
+         <div class="card-body">
+ 
+             <div class="row">
+@@ -54,6 +58,8 @@ class="form-control">
+ 
+                             <option value="{{ $project->id }}"
+                                 data-client="{{ $project->client_id }}"
++                                data-late-active="{{ $project->late_fee_active ? 1 : 0 }}"
++                                data-late-fee="{{ $project->late_fee_per_month ?? 100000 }}"
+                                 @selected($invoice->project_id == $project->id)>
+ 
+                                 {{ $project->title }}
+@@ -310,6 +316,50 @@ class="form-control"
+ 
+ </div>
+ 
++<div class="col-md-4 mt-3">
++
++    <label>Denda Keterlambatan</label>
++
++    <input type="hidden"
++           name="late_fee_active"
++           value="0">
++
++    <div class="form-check mt-2">
++
++        <input type="checkbox"
++               name="late_fee_active"
++               id="late-fee-active"
++               class="form-check-input"
++               value="1"
++               @checked(old('late_fee_active', $invoice->late_fee_active))>
++
++        <label class="form-check-label"
++               for="late-fee-active">
++            Aktifkan denda
++        </label>
++
++    </div>
++
++</div>
++
++<div class="col-md-4 mt-3">
++
++    <label>Denda per 30 Hari</label>
++
++    <input type="number"
++           name="late_fee_per_month"
++           id="late-fee-per-month"
++           class="form-control @error('late_fee_per_month') is-invalid @enderror"
++           value="{{ old('late_fee_per_month', $invoice->late_fee_per_month ?? 100000) }}"
++           min="0"
++           step="1000">
++
++    @error('late_fee_per_month')
++        <div class="invalid-feedback">{{ $message }}</div>
++    @enderror
++
++</div>
++
+ <div class="col-md-4">
+ 
+     <label>Cashback (%)</label>
+@@ -372,6 +422,11 @@ class="form-control">
+ 
+     <div class="text-right">
+ 
++        <h6>
++            Denda (<span id="late-months">{{ $invoice->late_months }}</span> bulan):
++            Rp <span id="late-fee">{{ number_format($invoice->late_fee_amount,0,',','.') }}</span>
++        </h6>
++
+         <h5>
+ 
+             Grand Total:
+@@ -451,6 +506,11 @@ class="form-control"
+ const projectSelect =
+     document.querySelector('[name="project_id"]');
+ 
++const dueDateInput =
++    document.querySelector('[name="due_date"]');
++
++const paidAt = @json(optional($invoice->paid_at)->format('Y-m-d'));
++
+ clientSelect.addEventListener('change', function(){
+ 
+     let clientId = this.value;
+@@ -466,6 +526,21 @@ class="form-control"
+ 
+ });
+ 
++projectSelect.addEventListener('change', function(){
++
++    const option = this.options[this.selectedIndex];
++
++    if (!option.value) return;
++
++    clientSelect.value = option.dataset.client;
++
++    document.getElementById('late-fee-active').checked =
++        option.dataset.lateActive === '1';
++
++    document.getElementById('late-fee-per-month').value =
++        option.dataset.lateFee || 100000;
++});
++
+ document.addEventListener('DOMContentLoaded', function () {
+ 
+     document.getElementById('cashback')
+@@ -517,6 +592,41 @@ function calculateTotals() {
+ 
+         let grandTotal = subtotal + vat + serviceFee;
+ 
++        let lateFee = 0;
++
++        let lateMonths = 0;
++
++        const lateFeeActive =
++            document.getElementById('late-fee-active').checked;
++
++        const lateFeePerMonth = parseFloat(
++            document.getElementById('late-fee-per-month').value
++        ) || 0;
++
++        const status = document.querySelector('[name="status"]').value;
++
++        if (lateFeeActive && dueDateInput.value && status !== 'cancelled') {
++
++            const dueDate = new Date(dueDateInput.value + 'T00:00:00');
++
++            const calculationDate = status === 'paid' && paidAt
++                ? new Date(paidAt + 'T00:00:00')
++                : new Date();
++
++            calculationDate.setHours(0, 0, 0, 0);
++
++            if (calculationDate > dueDate) {
++
++                const daysLate = Math.ceil(
++                    (calculationDate - dueDate) / 86400000
++                );
++
++                lateMonths = Math.ceil(daysLate / 30);
++
++                lateFee = lateMonths * lateFeePerMonth;
++            }
++        }
++
+         let cashback = parseFloat(
+             document.getElementById('cashback').value
+         ) || 0;
+@@ -539,9 +649,15 @@ function calculateTotals() {
+         document.getElementById('grand-total')
+             .innerText = grandTotal.toLocaleString('id-ID');
+ 
++        document.getElementById('late-months')
++            .innerText = lateMonths;
++
++        document.getElementById('late-fee')
++            .innerText = lateFee.toLocaleString('id-ID');
++
+         document.getElementById('final-total')
+             .innerText =
+-            grandTotal.toLocaleString('id-ID');
++            (grandTotal + lateFee).toLocaleString('id-ID');
+     }
+ 
+     function updateSummary(item) {
+@@ -566,33 +682,55 @@ function updateEndDate(item) {
+ 
+         if (!startDate) return;
+ 
+-        let date = new Date(startDate);
++        let date = new Date(startDate + 'T00:00:00');
+ 
+         if (durationType === 'Hari') {
+ 
+-            date.setDate(date.getDate() + duration);
++            date.setDate(date.getDate() + duration - 1);
+ 
+         }
+ 
+         if (durationType === 'Bulan') {
+ 
++            const originalDay = date.getDate();
++
++            date.setDate(1);
++
+             date.setMonth(date.getMonth() + duration);
+ 
++            const lastDay = new Date(
++                date.getFullYear(),
++                date.getMonth() + 1,
++                0
++            ).getDate();
++
++            date.setDate(Math.min(originalDay, lastDay));
++
++            date.setDate(date.getDate() - 1);
++
+         }
+ 
+         if (durationType === 'Tahun') {
+ 
+             date.setFullYear(date.getFullYear() + duration);
+ 
++            date.setDate(date.getDate() - 1);
++
+         }
+ 
+-        let endDate = date.toISOString().split('T')[0];
++        let endDate = [
++            date.getFullYear(),
++            String(date.getMonth() + 1).padStart(2, '0'),
++            String(date.getDate()).padStart(2, '0')
++        ].join('-');
+ 
+         item.querySelector('.end-date').value = endDate;
+     }
+ 
+     document.addEventListener('input', calculateTotals);
+ 
++    document.addEventListener('change', calculateTotals);
++
+     document.getElementById('add-item')
+         .addEventListener('click', function () {
+ 
+diff --git a/resources/views/admin/invoices/index.blade.php b/resources/views/admin/invoices/index.blade.php
+index ebe4563..3d7590f 100644
+--- a/resources/views/admin/invoices/index.blade.php
++++ b/resources/views/admin/invoices/index.blade.php
+@@ -64,7 +64,7 @@ class="btn btn-primary btn-sm">
+ 
+     <a href="{{ route('invoices.index', ['type' => 'renewal']) }}"
+        class="btn btn-info btn-sm">
+-        Bulanan
++        Perpanjangan Paket
+     </a>
+ 
+ </div>
+@@ -189,7 +189,7 @@ class="btn btn-info btn-sm">
+ 
+         <span class="badge bg-info">
+ 
+-            Bulanan
++            Perpanjangan Paket
+ 
+         </span>
+ 
+@@ -391,6 +391,24 @@ class="btn btn-info btn-sm">
+ 
+     </div>
+ 
++    @if($invoice->late_fee_amount > 0)
++
++        <div class="small mb-2">
++
++            <span class="text-muted">
++                Denda ({{ $invoice->late_months }} bulan)
++            </span>
++
++            <br>
++
++            <span class="fw-semibold text-danger">
++                Rp {{ number_format($invoice->late_fee_amount,0,',','.') }}
++            </span>
++
++        </div>
++
++    @endif
++
+     {{-- CASHBACK --}}
+     <div class="small mb-2">
+ 
+@@ -415,9 +433,9 @@ class="btn btn-info btn-sm">
+     {{-- TOTAL BAYAR --}}
+    <div class="fw-bold text-success">
+ 
+-        Invoice Total
++        Total Bayar
+         <br>
+-        Rp {{ number_format($invoice->grand_total,0,',','.') }}
++        Rp {{ number_format($invoice->total_due,0,',','.') }}
+ 
+     </div>
+ 
+@@ -455,6 +473,22 @@ class="btn btn-info btn-sm">
+ 
+                                 </div>
+ 
++                                @if($invoice->late_months > 0)
++
++                                    <small class="text-danger fw-semibold">
++                                        Terlambat {{ $invoice->late_months }} bulan
++                                    </small>
++
++                                @endif
++
++                                @if($invoice->late_fee_active)
++
++                                    <small class="d-block text-muted">
++                                        Denda Rp {{ number_format($invoice->late_fee_per_month,0,',','.') }}/30 hari
++                                    </small>
++
++                                @endif
++
+                             </td>
+ 
+                             {{-- AKSI --}}
+diff --git a/resources/views/admin/invoices/pdf.blade.php b/resources/views/admin/invoices/pdf.blade.php
+index 29b6087..a93a8c9 100644
+--- a/resources/views/admin/invoices/pdf.blade.php
++++ b/resources/views/admin/invoices/pdf.blade.php
+@@ -371,6 +371,18 @@ class="logo">
+ 
+                     </tr>
+ 
++                    <tr>
++
++                        <td>Invoice Type</td>
++                        <td>:</td>
++                        <td>
++                            {{ $invoice->invoice_type === 'renewal'
++                                ? 'Perpanjangan Paket'
++                                : 'Project' }}
++                        </td>
++
++                    </tr>
++
+                     <tr>
+ 
+                         <td>Due Date</td>
+@@ -379,6 +391,21 @@ class="logo">
+ 
+                     </tr>
+ 
++                    @if($invoice->late_fee_active)
++
++                        <tr>
++
++                            <td>Late Fee</td>
++                            <td>:</td>
++                            <td>
++                                Rp {{ number_format($invoice->late_fee_per_month,0,',','.') }}
++                                / 30 hari
++                            </td>
++
++                        </tr>
++
++                    @endif
++
+                     <tr>
+ 
+                         <td>Status</td>
+@@ -388,7 +415,9 @@ class="logo">
+ 
+                             <span class="badge {{ $invoice->status }}">
+ 
+-                                {{ strtoupper($invoice->status) }}
++                                {{ $invoice->late_months > 0 && $invoice->status !== 'paid'
++                                    ? 'TERLAMBAT'
++                                    : strtoupper($invoice->status) }}
+ 
+                             </span>
+ 
+@@ -709,7 +738,7 @@ class="logo">
+ 
+ 
+         $finalTotal =
+-            $invoice->grand_total;
++            $invoice->total_due;
+ 
+         // $finalTotal =
+         //     $invoice->grand_total - $cashbackAmount;
+@@ -766,6 +795,23 @@ class="logo">
+ 
+         </tr>
+ 
++        @if($invoice->late_fee_amount > 0)
++
++            <tr>
++
++                <td style="color:#dc2626; font-weight:bold;">
++                    Denda {{ $invoice->late_months }} Bulan
++                </td>
++
++                <td class="text-right"
++                    style="color:#dc2626; font-weight:bold;">
++                    Rp {{ number_format($invoice->late_fee_amount,0,',','.') }}
++                </td>
++
++            </tr>
++
++        @endif
++
+         {{-- <tr class="grand-total">
+ 
+             <td>
+diff --git a/resources/views/admin/payments/create.blade.php b/resources/views/admin/payments/create.blade.php
+index a448c40..d23259a 100644
+--- a/resources/views/admin/payments/create.blade.php
++++ b/resources/views/admin/payments/create.blade.php
+@@ -48,14 +48,18 @@ class="form-control"
+                         @foreach($invoices as $invoice)
+ 
+                             <option value="{{ $invoice->id }}"
+-                                    data-total="{{ $invoice->grand_total }}"
++                                    data-total="{{ $invoice->total_due }}"
+                                     data-paid="{{ $invoice->payments->sum('amount') }}">
+ 
+                                 {{ $invoice->invoice_number }}
+ -
+                                 {{ $invoice->client->name }}
+                                 -
+-                                Rp {{ number_format($invoice->grand_total,0,',','.') }}
++                                Rp {{ number_format($invoice->total_due,0,',','.') }}
++
++                                @if($invoice->late_fee_amount > 0)
++                                    (Denda Rp {{ number_format($invoice->late_fee_amount,0,',','.') }})
++                                @endif
+                                 -
+                                 {{ $invoice->client->name }}
+ 
+diff --git a/resources/views/admin/payments/index.blade.php b/resources/views/admin/payments/index.blade.php
+index 9ee3ad5..768c0bd 100644
+--- a/resources/views/admin/payments/index.blade.php
++++ b/resources/views/admin/payments/index.blade.php
+@@ -94,7 +94,7 @@ class="btn btn-primary">
+                                 $invoice->payments->sum('amount');
+ 
+                             $remaining =
+-                                $invoice->grand_total - $totalPaid;
++                                $invoice->total_due - $totalPaid;
+ 
+                         @endphp
+ 
+diff --git a/resources/views/admin/projects/create.blade.php b/resources/views/admin/projects/create.blade.php
+index ce413d3..f9b7ef2 100644
+--- a/resources/views/admin/projects/create.blade.php
++++ b/resources/views/admin/projects/create.blade.php
+@@ -155,25 +155,25 @@ class="form-control">
+ 
+             <hr>
+ 
+-            <h5 class="font-weight-bold">Tagihan Bulanan</h5>
++            <h5 class="font-weight-bold">Denda Keterlambatan</h5>
+ 
+             <div class="form-check mb-3">
+ 
+                 <input type="hidden"
+-                       name="monthly_billing_active"
++                       name="late_fee_active"
+                        value="0">
+ 
+                 <input type="checkbox"
+-                       name="monthly_billing_active"
+-                       id="monthly_billing_active"
++                       name="late_fee_active"
++                       id="late_fee_active"
+                        class="form-check-input"
+                        value="1"
+-                       @checked(old('monthly_billing_active'))>
++                       @checked(old('late_fee_active', true))>
+ 
+                 <label class="form-check-label"
+-                       for="monthly_billing_active">
++                       for="late_fee_active">
+ 
+-                    Aktifkan biaya bulanan untuk project ini
++                    Aktifkan denda keterlambatan pembayaran
+ 
+                 </label>
+ 
+@@ -183,33 +183,27 @@ class="form-check-input"
+ 
+                 <div class="col-md-6 mb-3">
+ 
+-                    <label>Biaya Bulanan</label>
++                    <label>Denda per 30 Hari</label>
+ 
+                     <input type="number"
+-                           name="monthly_fee"
+-                           class="form-control @error('monthly_fee') is-invalid @enderror"
+-                           value="{{ old('monthly_fee', 100000) }}"
++                           name="late_fee_per_month"
++                           class="form-control @error('late_fee_per_month') is-invalid @enderror"
++                           value="{{ old('late_fee_per_month', 100000) }}"
+                            min="0"
+                            step="1000">
+ 
+-                    @error('monthly_fee')
++                    @error('late_fee_per_month')
+                         <div class="invalid-feedback">{{ $message }}</div>
+                     @enderror
+ 
+                 </div>
+ 
+-                <div class="col-md-6 mb-3">
+-
+-                    <label>Mulai Tagihan</label>
+-
+-                    <input type="date"
+-                           name="monthly_billing_start"
+-                           class="form-control @error('monthly_billing_start') is-invalid @enderror"
+-                           value="{{ old('monthly_billing_start') }}">
++                <div class="col-md-6 mb-3 d-flex align-items-end">
+ 
+-                    @error('monthly_billing_start')
+-                        <div class="invalid-feedback">{{ $message }}</div>
+-                    @enderror
++                    <small class="text-muted">
++                        Denda dihitung setiap 30 hari setelah jatuh tempo invoice
++                        dan dibulatkan ke atas.
++                    </small>
+ 
+                 </div>
+ 
+diff --git a/resources/views/admin/projects/edit.blade.php b/resources/views/admin/projects/edit.blade.php
+index 0347b0f..a7a9f4c 100644
+--- a/resources/views/admin/projects/edit.blade.php
++++ b/resources/views/admin/projects/edit.blade.php
+@@ -165,25 +165,25 @@ class="form-control"
+ 
+             <hr>
+ 
+-            <h5 class="font-weight-bold">Tagihan Bulanan</h5>
++            <h5 class="font-weight-bold">Denda Keterlambatan</h5>
+ 
+             <div class="form-check mb-3">
+ 
+                 <input type="hidden"
+-                       name="monthly_billing_active"
++                       name="late_fee_active"
+                        value="0">
+ 
+                 <input type="checkbox"
+-                       name="monthly_billing_active"
+-                       id="monthly_billing_active"
++                       name="late_fee_active"
++                       id="late_fee_active"
+                        class="form-check-input"
+                        value="1"
+-                       @checked(old('monthly_billing_active', $project->monthly_billing_active))>
++                       @checked(old('late_fee_active', $project->late_fee_active))>
+ 
+                 <label class="form-check-label"
+-                       for="monthly_billing_active">
++                       for="late_fee_active">
+ 
+-                    Aktifkan biaya bulanan untuk project ini
++                    Aktifkan denda keterlambatan pembayaran
+ 
+                 </label>
+ 
+@@ -193,33 +193,27 @@ class="form-check-input"
+ 
+                 <div class="col-md-6 mb-3">
+ 
+-                    <label>Biaya Bulanan</label>
++                    <label>Denda per 30 Hari</label>
+ 
+                     <input type="number"
+-                           name="monthly_fee"
+-                           class="form-control @error('monthly_fee') is-invalid @enderror"
+-                           value="{{ old('monthly_fee', $project->monthly_fee ?? 100000) }}"
++                           name="late_fee_per_month"
++                           class="form-control @error('late_fee_per_month') is-invalid @enderror"
++                           value="{{ old('late_fee_per_month', $project->late_fee_per_month ?? 100000) }}"
+                            min="0"
+                            step="1000">
+ 
+-                    @error('monthly_fee')
++                    @error('late_fee_per_month')
+                         <div class="invalid-feedback">{{ $message }}</div>
+                     @enderror
+ 
+                 </div>
+ 
+-                <div class="col-md-6 mb-3">
+-
+-                    <label>Mulai Tagihan</label>
+-
+-                    <input type="date"
+-                           name="monthly_billing_start"
+-                           class="form-control @error('monthly_billing_start') is-invalid @enderror"
+-                           value="{{ old('monthly_billing_start', optional($project->monthly_billing_start)->format('Y-m-d')) }}">
++                <div class="col-md-6 mb-3 d-flex align-items-end">
+ 
+-                    @error('monthly_billing_start')
+-                        <div class="invalid-feedback">{{ $message }}</div>
+-                    @enderror
++                    <small class="text-muted">
++                        Denda dihitung setiap 30 hari setelah jatuh tempo invoice
++                        dan dibulatkan ke atas.
++                    </small>
+ 
+                 </div>
+ 
+diff --git a/resources/views/admin/projects/index.blade.php b/resources/views/admin/projects/index.blade.php
+index a99f7d3..b8b0660 100644
+--- a/resources/views/admin/projects/index.blade.php
++++ b/resources/views/admin/projects/index.blade.php
+@@ -71,7 +71,7 @@ class="btn btn-primary">
+ 
+                         <th>Budget</th>
+ 
+-                        <th>Biaya Bulanan</th>
++                        <th>Denda/Bulan</th>
+ 
+                         <th>Deadline</th>
+ 
+@@ -145,23 +145,17 @@ class="btn btn-primary">
+ 
+                             <td>
+ 
+-                                @if($project->monthly_billing_active && $project->monthly_fee)
++                                @if($project->late_fee_active && $project->late_fee_per_month)
+ 
+                                     <span class="font-weight-bold text-primary">
+ 
+-                                        Rp {{ number_format($project->monthly_fee,0,',','.') }}/bulan
++                                        Rp {{ number_format($project->late_fee_per_month,0,',','.') }}
+ 
+                                     </span>
+ 
+-                                    @if($project->monthly_billing_start)
+-
+-                                        <small class="d-block text-muted">
+-
+-                                            Mulai {{ $project->monthly_billing_start->format('d M Y') }}
+-
+-                                        </small>
+-
+-                                    @endif
++                                    <small class="d-block text-muted">
++                                        Setiap 30 hari terlambat
++                                    </small>
+ 
+                                 @else
+ 
+@@ -270,19 +264,14 @@ class="btn btn-primary">
+ 
+                             <td class="text-center">
+ 
+-                                @if($project->monthly_billing_active && $project->monthly_fee)
++                                <a href="{{ route('invoices.create', [
++                                    'project_id' => $project->id
++                                ]) }}"
++                                   class="btn btn-success btn-sm">
+ 
+-                                    <a href="{{ route('invoices.create', [
+-                                        'project_id' => $project->id,
+-                                        'invoice_type' => 'renewal'
+-                                    ]) }}"
+-                                       class="btn btn-success btn-sm">
++                                    Buat Invoice
+ 
+-                                        Invoice Bulanan
+-
+-                                    </a>
+-
+-                                @endif
++                                </a>
+ 
+                                 <a href="{{ route('project.files', $project->id) }}"
+                                    class="btn btn-info btn-sm">
+diff --git a/resources/views/clients/invoices/index.blade.php b/resources/views/clients/invoices/index.blade.php
+index 6f121e5..66b3bac 100644
+--- a/resources/views/clients/invoices/index.blade.php
++++ b/resources/views/clients/invoices/index.blade.php
+@@ -73,7 +73,15 @@
+ 
+                             <td class="text-success font-weight-bold">
+ 
+-                                Rp {{ number_format($invoice->grand_total,0,',','.') }}
++                                Rp {{ number_format($invoice->total_due,0,',','.') }}
++
++                                @if($invoice->late_fee_amount > 0)
++
++                                    <small class="d-block text-danger">
++                                        Termasuk denda Rp {{ number_format($invoice->late_fee_amount,0,',','.') }}
++                                    </small>
++
++                                @endif
+ 
+                             </td>
+ 
+diff --git a/resources/views/clients/projects/index.blade.php b/resources/views/clients/projects/index.blade.php
+index 75a9c16..637e031 100644
+--- a/resources/views/clients/projects/index.blade.php
++++ b/resources/views/clients/projects/index.blade.php
+@@ -136,6 +136,18 @@
+ 
+                     </div>
+ 
++                    @if($project->late_fee_active)
++
++                        <div class="mt-3">
++                            <small class="text-danger">
++                                Denda keterlambatan:
++                                Rp {{ number_format($project->late_fee_per_month,0,',','.') }}
++                                per 30 hari
++                            </small>
++                        </div>
++
++                    @endif
++
+                     {{-- FOOTER --}}
+                     <div class="mt-4 d-flex
+                                 justify-content-between
+diff --git a/resources/views/clients/projects/show.blade.php b/resources/views/clients/projects/show.blade.php
+index 735cf88..36eb54d 100644
+--- a/resources/views/clients/projects/show.blade.php
++++ b/resources/views/clients/projects/show.blade.php
+@@ -136,6 +136,27 @@
+ 
+                 </div>
+ 
++                <div class="mt-4">
++
++                    <small class="text-muted d-block">
++                        Denda Keterlambatan Pembayaran
++                    </small>
++
++                    @if($project->late_fee_active)
++
++                        <strong class="text-danger">
++                            Rp {{ number_format($project->late_fee_per_month,0,',','.') }}
++                            per 30 hari
++                        </strong>
++
++                    @else
++
++                        <strong class="text-muted">Tidak aktif</strong>
++
++                    @endif
++
++                </div>
++
+             </div>
+ 
+         </div>
+@@ -230,7 +251,15 @@ class="btn btn-primary btn-sm">
+ 
+                         <small class="text-success">
+ 
+-                            Rp {{ number_format($invoice->grand_total,0,',','.') }}
++                            Rp {{ number_format($invoice->total_due,0,',','.') }}
++
++                            @if($invoice->late_fee_amount > 0)
++
++                                <span class="text-danger">
++                                    (Denda Rp {{ number_format($invoice->late_fee_amount,0,',','.') }})
++                                </span>
++
++                            @endif
+ 
+                         </small>
+ 
+-- 
+2.51.1
+
