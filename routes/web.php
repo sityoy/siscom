@@ -13,6 +13,11 @@ use App\Http\Controllers\Admin\CompanySettingController;
 
 Route::redirect('/', '/login');
 
+Route::get(
+    '/invoice/{invoice}/whatsapp-pdf',
+    [App\Http\Controllers\Admin\InvoiceController::class, 'whatsappPdf']
+)->middleware('signed')->name('invoice.whatsapp.pdf');
+
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');

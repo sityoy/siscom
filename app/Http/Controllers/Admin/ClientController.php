@@ -53,7 +53,24 @@ public function index(Request $request)
         $request->validate([
 
         'user_id' => 'required|exists:users,id',
-        'phone' => 'nullable|string|max:20',
+        'phone' => [
+            'nullable',
+            'string',
+            'regex:/^62[0-9]{8,15}$/',
+        ],
+        'phone_2' => [
+            'nullable',
+            'string',
+            'regex:/^62[0-9]{8,15}$/',
+            'different:phone',
+        ],
+        'phone_3' => [
+            'nullable',
+            'string',
+            'regex:/^62[0-9]{8,15}$/',
+            'different:phone',
+            'different:phone_2',
+        ],
 
         'package_name' => 'nullable|string|max:100',
 
@@ -82,6 +99,10 @@ public function index(Request $request)
             'company' => $request->company,
 
             'phone' => $request->phone,
+
+            'phone_2' => $request->phone_2,
+
+            'phone_3' => $request->phone_3,
 
             'address' => $request->address,
 
@@ -128,7 +149,24 @@ public function index(Request $request)
         $request->validate([
 
             'user_id' => 'required|exists:users,id',
-            'phone' => 'nullable|string|max:20',
+            'phone' => [
+                'nullable',
+                'string',
+                'regex:/^62[0-9]{8,15}$/',
+            ],
+            'phone_2' => [
+                'nullable',
+                'string',
+                'regex:/^62[0-9]{8,15}$/',
+                'different:phone',
+            ],
+            'phone_3' => [
+                'nullable',
+                'string',
+                'regex:/^62[0-9]{8,15}$/',
+                'different:phone',
+                'different:phone_2',
+            ],
 
         ]);
 
@@ -147,6 +185,10 @@ public function index(Request $request)
             'company' => $request->company,
 
             'phone' => $request->phone,
+
+            'phone_2' => $request->phone_2,
+
+            'phone_3' => $request->phone_3,
 
             'address' => $request->address,
 

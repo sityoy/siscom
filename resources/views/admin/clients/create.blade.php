@@ -96,19 +96,66 @@
 
                 </div>
 
-                {{-- WHATSAPP --}}
-                <div class="col-md-6 mb-3">
+            </div>
 
-                    <label>No WhatsApp</label>
+            <div class="row">
+
+                <div class="col-md-4 mb-3">
+
+                    <label>WhatsApp 1 (Utama)</label>
 
                     <input type="text"
                            name="phone"
-                           class="form-control"
-                           placeholder="62xxxxxxxxxx" maxlength="13">
+                           class="form-control @error('phone') is-invalid @enderror"
+                           value="{{ old('phone') }}"
+                           placeholder="62xxxxxxxxxx"
+                           maxlength="20">
+
+                    @error('phone')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+
+                </div>
+
+                <div class="col-md-4 mb-3">
+
+                    <label>WhatsApp 2</label>
+
+                    <input type="text"
+                           name="phone_2"
+                           class="form-control @error('phone_2') is-invalid @enderror"
+                           value="{{ old('phone_2') }}"
+                           placeholder="62xxxxxxxxxx"
+                           maxlength="20">
+
+                    @error('phone_2')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+
+                </div>
+
+                <div class="col-md-4 mb-3">
+
+                    <label>WhatsApp 3</label>
+
+                    <input type="text"
+                           name="phone_3"
+                           class="form-control @error('phone_3') is-invalid @enderror"
+                           value="{{ old('phone_3') }}"
+                           placeholder="62xxxxxxxxxx"
+                           maxlength="20">
+
+                    @error('phone_3')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
 
                 </div>
 
             </div>
+
+            <small class="form-text text-muted mb-3">
+                Gunakan format 62. Pengiriman otomatis dilakukan berurutan dengan jeda 5–10 menit.
+            </small>
 
             {{-- ALAMAT --}}
             <div class="mb-3">

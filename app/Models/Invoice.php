@@ -125,4 +125,11 @@ class Invoice extends Model
             InvoiceItem::class
         );
     }
+
+    public function whatsappReminders()
+    {
+        return $this->hasMany(
+            InvoiceWhatsAppReminder::class
+        );
+    }
 }

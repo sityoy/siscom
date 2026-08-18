@@ -262,15 +262,19 @@
 
                             <td>
 
-                                @if($client->phone)
+                                @if(count($client->whatsapp_numbers))
 
-                                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $client->phone) }}"
-                                       target="_blank"
-                                       class="btn btn-success btn-sm">
+                                    @foreach($client->whatsapp_numbers as $index => $phone)
 
-                                        WhatsApp
+                                        <a href="https://wa.me/{{ $phone }}"
+                                           target="_blank"
+                                           class="btn btn-success btn-sm mb-1">
 
-                                    </a>
+                                            WA {{ $index + 1 }}
+
+                                        </a>
+
+                                    @endforeach
 
                                 @else
 

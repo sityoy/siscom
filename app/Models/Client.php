@@ -17,6 +17,8 @@ class Client extends Model
         'company',
         'email',
         'phone',
+        'phone_2',
+        'phone_3',
         'address',
 
         'package_name',
@@ -67,6 +69,20 @@ class Client extends Model
         {
             return $this->hasMany(Ticket::class);
         }
+
+    public function getWhatsappNumbersAttribute(): array
+    {
+        return collect([
+            $this->phone,
+            $this->phone_2,
+            $this->phone_3,
+        ])->filter()
+            ->map(fn ($phone) => preg_replace('/[^0-9]/', '', $phone))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
 
     public function getSubscriptionStatusAttribute()
     {

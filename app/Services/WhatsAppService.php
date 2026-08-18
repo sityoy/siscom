@@ -3,8 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 class WhatsAppService
 {
@@ -15,12 +14,15 @@ class WhatsAppService
         $phone,
         $message
     ) {
+        self::ensureConfigured();
 
         return Http::withoutVerifying()
 
+            ->timeout(30)
+
             ->withHeaders([
 
-                'Authorization' => env('FONNTE_TOKEN')
+                'Authorization' => config('services.fonnte.token')
 
             ])->post(
 
@@ -45,12 +47,15 @@ class WhatsAppService
         $message,
         $fileUrl
     ) {
+        self::ensureConfigured();
 
         return Http::withoutVerifying()
 
+            ->timeout(30)
+
             ->withHeaders([
 
-                'Authorization' => env('FONNTE_TOKEN')
+                'Authorization' => config('services.fonnte.token')
 
             ])->post(
 
@@ -67,5 +72,14 @@ class WhatsAppService
                 ]
 
             );
+    }
+
+    private static function ensureConfigured(): void
+    {
+        if (blank(config('services.fonnte.token'))) {
+            throw new RuntimeException(
+                'FONNTE_TOKEN belum diatur pada file .env.'
+            );
+        }
     }
 }

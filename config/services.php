@@ -35,4 +35,21 @@ return [
         ],
     ],
 
+    'fonnte' => [
+        'token' => env('FONNTE_TOKEN'),
+        'reminder_time' => env('WHATSAPP_REMINDER_TIME', '09:00'),
+        'reminder_timezone' => env(
+            'WHATSAPP_REMINDER_TIMEZONE',
+            'Asia/Jakarta'
+        ),
+        'minimum_delay_minutes' => env(
+            'WHATSAPP_MINIMUM_DELAY_MINUTES',
+            5
+        ),
+        'maximum_delay_minutes' => env(
+            'WHATSAPP_MAXIMUM_DELAY_MINUTES',
+            10
+        ),
+    ],
+
 ];
