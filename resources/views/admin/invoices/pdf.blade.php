@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
 
@@ -377,7 +377,7 @@
                         <td>:</td>
                         <td>
                             {{ $invoice->invoice_type === 'renewal'
-                                ? 'Perpanjangan Paket'
+                                ? 'Package Renewal'
                                 : 'Project' }}
                         </td>
 
@@ -399,7 +399,7 @@
                             <td>:</td>
                             <td>
                                 Rp {{ number_format($invoice->late_fee_per_month,0,',','.') }}
-                                / 30 hari
+                                / 30 days
                             </td>
 
                         </tr>
@@ -416,7 +416,7 @@
                             <span class="badge {{ $invoice->status }}">
 
                                 {{ $invoice->late_months > 0 && $invoice->status !== 'paid'
-                                    ? 'TERLAMBAT'
+                                    ? 'OVERDUE'
                                     : strtoupper($invoice->status) }}
 
                             </span>
@@ -552,7 +552,12 @@
                         @if($item->duration)
 
                             {{ $item->duration }}
-                            {{ $item->duration_type }}
+                            {{ match ($item->duration_type) {
+                                'Hari' => 'Day(s)',
+                                'Bulan' => 'Month(s)',
+                                'Tahun' => 'Year(s)',
+                                default => $item->duration_type,
+                            } }}
 
                         @else
 
@@ -570,7 +575,7 @@
 
                             <br>
 
-                            s/d
+                            to
 
                             <br>
 
@@ -621,7 +626,7 @@
 
                 <p style="line-height:1.6; margin:0 0 14px 0;">
 
-                    {{ $invoice->notes ?? 'Terima kasih atas kepercayaan Anda menggunakan layanan SIS.COM.' }}
+                    {{ $invoice->notes ?? 'Thank you for trusting SIS.COM with your technology needs.' }}
 
                 </p>
 
@@ -657,7 +662,7 @@
 
                                 <br>
 
-                                A/N LENA SEPTIANA
+                                ACCOUNT HOLDER: LENA SEPTIANA
 
                             </div>
 
@@ -685,7 +690,7 @@
 
                                 <br>
 
-                                A/N TIO IRFAN ANTONI
+                                ACCOUNT HOLDER: TIO IRFAN ANTONI
 
                             </div>
 
@@ -713,7 +718,7 @@
 
                                 <br>
 
-                                A/N LENA SEPTIANA
+                                ACCOUNT HOLDER: LENA SEPTIANA
 
                             </div>
 
@@ -800,7 +805,8 @@
             <tr>
 
                 <td style="color:#dc2626; font-weight:bold;">
-                    Denda {{ $invoice->late_months }} Bulan
+                    Late Fee ({{ $invoice->late_months }}
+                    {{ (int) $invoice->late_months === 1 ? 'Month' : 'Months' }})
                 </td>
 
                 <td class="text-right"
