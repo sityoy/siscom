@@ -111,14 +111,30 @@ class ProcurementDocument extends Model
         $date = $this->document_date ?? now();
         $code = self::TYPE_CODES[$this->type] ?? 'DOC';
         $month = self::romanMonth((int) $date->format('n'));
+        $year = $date->format('Y');
+
+        $lastSequence = static::query()
+            ->whereKeyNot($this->getKey())
+            ->where('type', $this->type)
+            ->whereYear('document_date', $year)
+            ->pluck('document_number')
+            ->map(function (string $number) use ($code, $year): ?int {
+                $pattern = '/^(\d+)\/'.preg_quote($code, '/').'\/SIS\/[IVXLCDM]+\/'.$year.'$/';
+
+                return preg_match($pattern, $number, $matches)
+                    ? (int) $matches[1]
+                    : null;
+            })
+            ->filter(fn (?int $sequence) => $sequence !== null)
+            ->max() ?? 0;
 
         $this->forceFill([
             'document_number' => sprintf(
                 '%03d/%s/SIS/%s/%s',
-                $this->id,
+                $lastSequence + 1,
                 $code,
                 $month,
-                $date->format('Y'),
+                $year,
             ),
         ])->saveQuietly();
     }

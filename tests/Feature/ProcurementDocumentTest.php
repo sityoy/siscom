@@ -7,6 +7,7 @@ use App\Models\ProcurementDocument;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -86,6 +87,44 @@ class ProcurementDocumentTest extends TestCase
         $document = ProcurementDocument::firstOrFail();
         $this->assertSame('Drs. Kepala Sekolah', $document->school_signer_name);
         $this->assertSame('Kepala Sekolah', $document->school_signer_title);
+    }
+
+    public function test_document_numbers_restart_after_the_spj_package_is_deleted(): void
+    {
+        Carbon::setTestNow('2026-10-27 10:00:00');
+        [$admin, $project] = $this->createAdminAndProject();
+
+        $this->actingAs($admin)
+            ->post(route('procurement-documents.generate', $project))
+            ->assertRedirect();
+
+        $this->assertSame(
+            '001/SPH/SIS/X/2026',
+            ProcurementDocument::where('type', 'quotation')->value('document_number'),
+        );
+        $this->assertSame(
+            '001/BAST/SIS/X/2026',
+            ProcurementDocument::where('type', 'handover')->value('document_number'),
+        );
+
+        $this->actingAs($admin)
+            ->delete(route('procurement-documents.package.destroy', $project))
+            ->assertRedirect();
+
+        $this->actingAs($admin)
+            ->post(route('procurement-documents.generate', $project))
+            ->assertRedirect();
+
+        $this->assertSame(
+            '001/SPH/SIS/X/2026',
+            ProcurementDocument::where('type', 'quotation')->value('document_number'),
+        );
+        $this->assertSame(
+            '001/BAST/SIS/X/2026',
+            ProcurementDocument::where('type', 'handover')->value('document_number'),
+        );
+
+        Carbon::setTestNow();
     }
 
     public function test_super_admin_can_delete_an_entire_project_spj_package(): void
