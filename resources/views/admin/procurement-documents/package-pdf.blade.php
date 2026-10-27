@@ -6,14 +6,23 @@
     <style>
         @page { margin: 18mm; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #172033; line-height: 1.5; }
-        .cover { text-align: center; padding-top: 65px; }
+        .cover { text-align: center; padding-top: 32px; }
         .cover h1 { color: #0a3b96; font-size: 27px; margin-bottom: 6px; }
         .cover h2 { font-size: 17px; margin: 6px 0 30px; }
         .cover-box { border: 2px solid #0a3b96; padding: 22px; margin: 35px auto; width: 75%; }
         .page-break { page-break-before: always; }
         .header { width: 100%; border-bottom: 3px solid #0a3b96; padding-bottom: 8px; margin-bottom: 18px; }
         .header td { vertical-align: middle; }
-        .logo { width: 100px; max-height: 62px; }
+        .letterhead { width: 100%; border-collapse: collapse; border-bottom: 3px solid #17498f; margin-bottom: 18px; }
+        .letterhead td { vertical-align: middle; padding: 0 0 8px; }
+        .letterhead-logo { text-align: left; border-right: 1px solid #9ca3af; padding-right: 9px !important; }
+        .letterhead-logo img { width: 135px; max-width: 100%; max-height: 76px; object-fit: contain; }
+        .letterhead-info { padding-left: 11px !important; text-align: left; color: #25324a; font-size: 8px; line-height: 1.3; }
+        .letterhead-name { color: #17498f; font-size: 20px; font-weight: bold; line-height: 1.05; margin-bottom: 4px; }
+        .letterhead-tagline { color: #0783df; font-size: 12px; font-weight: bold; letter-spacing: .2px; margin-bottom: 3px; }
+        .letterhead-services { font-size: 8px; margin-bottom: 2px; }
+        .letterhead-contact { margin-top: 2px; }
+        .letterhead-separator { color: #9ca3af; padding: 0 5px; }
         .company { text-align: right; }
         .company h1 { margin: 0; color: #0a3b96; font-size: 21px; }
         .company p { margin: 1px 0; font-size: 8px; }
@@ -43,8 +52,9 @@
     $logoPath = $configuredLogo && file_exists($configuredLogo) ? $configuredLogo : $defaultLogo;
 @endphp
 
+@include('admin.procurement-documents._company-letterhead')
+
 <div class="cover">
-    @if(file_exists($logoPath))<img src="{{ $logoPath }}" style="width:180px; max-height:110px;">@endif
     <h1>PAKET DOKUMEN PENDUKUNG SPJ</h1>
     <h2>{{ $project->title }}</h2>
     <div class="cover-box">
@@ -85,27 +95,19 @@
 @foreach($project->procurementDocuments as $document)
     @php($schoolIssued = in_array($document->type, ['purchase_order', 'work_order'], true))
     <div class="page-break"></div>
-    <table class="header">
-        @if($schoolIssued)
+    @if($schoolIssued)
+        <table class="header">
             <tr>
                 <td class="company" style="text-align:center;">
                     <h1>{{ $project->client->name }}</h1>
                     <p>{{ $project->client->address }}</p>
-                    <p>Draf dokumen sekolah — wajib diperiksa dan disahkan oleh pihak sekolah</p>
+                    <p>Dokumen sekolah — wajib diperiksa dan disahkan oleh pihak sekolah</p>
                 </td>
             </tr>
-        @else
-            <tr>
-                <td width="34%">@if(file_exists($logoPath))<img src="{{ $logoPath }}" class="logo">@endif</td>
-                <td width="66%" class="company">
-                    <h1>{{ $company?->company_name ?: 'SIS.COM' }}</h1>
-                    <p>{{ $company?->legal_name }}</p>
-                    <p>Software House & IT Solutions</p>
-                    <p>{{ $company?->company_email }}{{ $company?->company_phone ? ' | '.$company->company_phone : '' }}</p>
-                </td>
-            </tr>
-        @endif
-    </table>
+        </table>
+    @else
+        @include('admin.procurement-documents._company-letterhead')
+    @endif
     @include('admin.procurement-documents._pdf-body', ['document' => $document])
 @endforeach
 

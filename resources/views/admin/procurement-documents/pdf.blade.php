@@ -8,7 +8,16 @@
         body { font-family: DejaVu Sans, sans-serif; font-size: 10.5px; color: #172033; line-height: 1.55; }
         .header { width: 100%; border-bottom: 3px solid #0a3b96; padding-bottom: 10px; margin-bottom: 22px; }
         .header td { vertical-align: middle; }
-        .logo { width: 115px; max-height: 70px; }
+        .letterhead { width: 100%; border-collapse: collapse; border-bottom: 3px solid #17498f; margin-bottom: 22px; }
+        .letterhead td { vertical-align: middle; padding: 0 0 9px; }
+        .letterhead-logo { text-align: left; border-right: 1px solid #9ca3af; padding-right: 10px !important; }
+        .letterhead-logo img { width: 145px; max-width: 100%; max-height: 82px; object-fit: contain; }
+        .letterhead-info { padding-left: 12px !important; text-align: left; color: #25324a; font-size: 9px; line-height: 1.35; }
+        .letterhead-name { color: #17498f; font-size: 22px; font-weight: bold; line-height: 1.05; margin-bottom: 5px; }
+        .letterhead-tagline { color: #0783df; font-size: 13px; font-weight: bold; letter-spacing: .2px; margin-bottom: 4px; }
+        .letterhead-services { font-size: 9px; margin-bottom: 2px; }
+        .letterhead-contact { margin-top: 2px; }
+        .letterhead-separator { color: #9ca3af; padding: 0 6px; }
         .company { text-align: right; }
         .company h1 { margin: 0; color: #0a3b96; font-size: 24px; }
         .company p { margin: 2px 0; font-size: 9px; }
@@ -40,35 +49,25 @@
     $schoolIssued = in_array($document->type, ['purchase_order', 'work_order'], true);
 @endphp
 
-<table class="header">
-    @if($schoolIssued)
+@if($schoolIssued)
+    <table class="header">
         <tr>
             <td class="company" style="text-align:center;">
                 <h1>{{ $document->project->client->name }}</h1>
                 @if($document->project->client->address)<p>{{ $document->project->client->address }}</p>@endif
-                <p>Draf dokumen sekolah — wajib diperiksa dan disahkan oleh pihak sekolah</p>
+                <p>Dokumen sekolah — wajib diperiksa dan disahkan oleh pihak sekolah</p>
             </td>
         </tr>
-    @else
-        <tr>
-            <td width="34%">@if(file_exists($logoPath))<img src="{{ $logoPath }}" class="logo">@endif</td>
-            <td width="66%" class="company">
-                <h1>{{ $company?->company_name ?: 'SIS.COM' }}</h1>
-                @if($company?->legal_name)<p><strong>{{ $company->legal_name }}</strong></p>@endif
-                <p>Software House & IT Solutions</p>
-                @if($company?->company_address)<p>{{ $company->company_address }}</p>@endif
-                <p>{{ $company?->company_email }}{{ $company?->company_phone ? ' | '.$company->company_phone : '' }}</p>
-                @if($company?->nib || $company?->npwp)<p>NIB: {{ $company?->nib ?: '-' }} | NPWP: {{ $company?->npwp ?: '-' }}</p>@endif
-            </td>
-        </tr>
-    @endif
-</table>
+    </table>
+@else
+    @include('admin.procurement-documents._company-letterhead')
+@endif
 
 @include('admin.procurement-documents._pdf-body')
 
 <div class="footer">
     @if($schoolIssued)
-        Draf administratif yang dibuat melalui SIS.COM; berlaku setelah diperiksa dan disahkan oleh pihak sekolah.
+        Dokumen administratif yang dibuat melalui SIS.COM; berlaku setelah diperiksa dan disahkan oleh pihak sekolah.
     @else
         {{ $company?->website ?: 'SIS.COM' }} — Dokumen dibuat melalui Sistem Administrasi Rekanan SIS.COM
     @endif
