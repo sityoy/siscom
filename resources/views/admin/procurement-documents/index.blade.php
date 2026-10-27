@@ -83,19 +83,31 @@
             </div>
         </form>
 
-        @if(request('project_id'))
+        @if($selectedProject)
             <div class="mb-3 d-flex flex-wrap">
-                <form method="POST" action="{{ route('procurement-documents.generate', request('project_id')) }}" class="mr-2 mb-2"
+                <form method="POST" action="{{ route('procurement-documents.generate', $selectedProject) }}" class="mr-2 mb-2"
                       onsubmit="return confirm('Buat seluruh draf dokumen yang belum tersedia untuk project ini?')">
                     @csrf
                     <button class="btn btn-outline-primary">
                         <i class="fas fa-magic mr-1"></i> Buat Draf Paket Otomatis
                     </button>
                 </form>
-                <a href="{{ route('procurement-documents.package', request('project_id')) }}"
-                   class="btn btn-outline-danger mb-2" target="_blank">
+                <a href="{{ route('procurement-documents.package', $selectedProject) }}"
+                   class="btn btn-outline-danger mr-2 mb-2" target="_blank">
                     <i class="fas fa-file-pdf mr-1"></i> Cetak Dokumen Pendukung SPJ
                 </a>
+                @if($selectedProject->procurement_documents_count > 0)
+                    <form method="POST"
+                          action="{{ route('procurement-documents.package.destroy', $selectedProject) }}"
+                          class="mb-2"
+                          onsubmit="return confirm('Yakin hapus seluruh {{ $selectedProject->procurement_documents_count }} dokumen paket SPJ project ini? File bertanda tangan yang sudah diunggah juga akan dihapus. Tindakan ini tidak dapat dibatalkan.')">
+                        @csrf
+                        @method('DELETE')
+                        <button class="btn btn-outline-danger">
+                            <i class="fas fa-trash-alt mr-1"></i> Hapus Paket SPJ
+                        </button>
+                    </form>
+                @endif
             </div>
         @endif
 
@@ -144,6 +156,14 @@
                             <td class="text-center text-nowrap">
                                 <a href="{{ route('procurement-documents.show', $document) }}" class="btn btn-info btn-sm">Detail</a>
                                 <a href="{{ route('procurement-documents.pdf', $document) }}" class="btn btn-danger btn-sm" target="_blank">PDF</a>
+                                <form method="POST" action="{{ route('procurement-documents.destroy', $document) }}" class="d-inline"
+                                      onsubmit="return confirm('Yakin hapus dokumen {{ $document->document_number }}? File bertanda tangan yang terkait juga akan dihapus.')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn btn-outline-danger btn-sm" title="Hapus dokumen">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     @empty

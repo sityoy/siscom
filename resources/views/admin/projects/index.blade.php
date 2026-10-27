@@ -297,6 +297,15 @@
                                         @csrf
                                         <button class="btn btn-outline-primary btn-sm">Buat Paket SPJ</button>
                                     </form>
+                                @else
+                                    <form method="POST"
+                                          action="{{ route('procurement-documents.package.destroy', $project) }}"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Yakin hapus seluruh {{ $project->procurement_documents_count }} dokumen paket SPJ project ini? File bertanda tangan yang sudah diunggah juga akan dihapus. Tindakan ini tidak dapat dibatalkan.')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="btn btn-outline-danger btn-sm">Hapus Paket SPJ</button>
+                                    </form>
                                 @endif
 
 

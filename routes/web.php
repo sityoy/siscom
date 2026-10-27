@@ -332,6 +332,11 @@ Route::prefix('admin')
             [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'generateProjectPackage']
         )->name('procurement-documents.generate');
 
+        Route::delete(
+            '/procurement-documents/project/{project}/package',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'destroyProjectPackage']
+        )->name('procurement-documents.package.destroy');
+
         Route::get(
             '/procurement-documents/{procurementDocument}',
             [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'show']

@@ -32,7 +32,13 @@ class ProcurementDocumentController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $projects = Project::with('client')->latest()->get();
+        $projects = Project::with('client')
+            ->withCount('procurementDocuments')
+            ->latest()
+            ->get();
+        $selectedProject = $request->filled('project_id')
+            ? $projects->firstWhere('id', $request->integer('project_id'))
+            : null;
 
         $summary = [
             'total' => ProcurementDocument::count(),
@@ -44,6 +50,7 @@ class ProcurementDocumentController extends Controller
         return view('admin.procurement-documents.index', compact(
             'documents',
             'projects',
+            'selectedProject',
             'summary',
         ));
     }
@@ -196,6 +203,35 @@ class ProcurementDocumentController extends Controller
             );
     }
 
+    public function destroyProjectPackage(Project $project)
+    {
+        $documents = $project->procurementDocuments()->get();
+
+        if ($documents->isEmpty()) {
+            return back()->with('success', 'Paket SPJ project ini sudah kosong.');
+        }
+
+        $signedFilePaths = $documents
+            ->pluck('signed_file_path')
+            ->filter()
+            ->values()
+            ->all();
+        $deletedCount = $documents->count();
+
+        DB::transaction(function () use ($project) {
+            $project->procurementDocuments()->delete();
+        });
+
+        if ($signedFilePaths !== []) {
+            Storage::disk('public')->delete($signedFilePaths);
+        }
+
+        return back()->with(
+            'success',
+            $deletedCount.' dokumen dalam paket SPJ berhasil dihapus.',
+        );
+    }
+
     public function uploadSigned(Request $request, ProcurementDocument $procurementDocument)
     {
         $request->validate([
@@ -234,6 +270,8 @@ class ProcurementDocumentController extends Controller
 
     public function destroy(ProcurementDocument $procurementDocument)
     {
+        $projectId = $procurementDocument->project_id;
+
         if ($procurementDocument->signed_file_path) {
             Storage::disk('public')->delete($procurementDocument->signed_file_path);
         }
@@ -241,7 +279,7 @@ class ProcurementDocumentController extends Controller
         $procurementDocument->delete();
 
         return redirect()
-            ->route('procurement-documents.index')
+            ->route('procurement-documents.index', ['project_id' => $projectId])
             ->with('success', 'Dokumen rekanan berhasil dihapus.');
     }
 

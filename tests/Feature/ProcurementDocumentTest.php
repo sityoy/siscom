@@ -7,6 +7,7 @@ use App\Models\ProcurementDocument;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -63,6 +64,43 @@ class ProcurementDocumentTest extends TestCase
             ->assertOk()
             ->assertSee('002/SPH/SIS/X/2026')
             ->assertDontSee('001/BAST/SIS/X/2026');
+    }
+
+    public function test_super_admin_can_delete_an_entire_project_spj_package(): void
+    {
+        Storage::fake('public');
+        [$admin, $project] = $this->createAdminAndProject();
+        $signedPath = 'procurement-documents/signed/signed-bast.pdf';
+        Storage::disk('public')->put($signedPath, 'signed document');
+
+        ProcurementDocument::create([
+            'project_id' => $project->id,
+            'created_by' => $admin->id,
+            'type' => 'handover',
+            'document_number' => '001/BAST/SIS/X/2026',
+            'document_date' => '2026-10-27',
+            'status' => 'signed',
+            'amount' => 5000000,
+            'signed_file_path' => $signedPath,
+        ]);
+
+        ProcurementDocument::create([
+            'project_id' => $project->id,
+            'created_by' => $admin->id,
+            'type' => 'quotation',
+            'document_number' => '002/SPH/SIS/X/2026',
+            'document_date' => '2026-10-27',
+            'status' => 'draft',
+            'amount' => 5000000,
+        ]);
+
+        $response = $this->actingAs($admin)->delete(
+            route('procurement-documents.package.destroy', $project),
+        );
+
+        $response->assertRedirect();
+        $this->assertDatabaseMissing('procurement_documents', ['project_id' => $project->id]);
+        Storage::disk('public')->assertMissing($signedPath);
     }
 
     private function createAdminAndProject(bool $withClientUser = false): array
