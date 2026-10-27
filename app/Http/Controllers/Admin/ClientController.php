@@ -82,6 +82,10 @@ public function index(Request $request)
 
         'grace_period_days' => 'nullable|integer|min:0',
 
+        'authorized_official_name' => 'nullable|string|max:255',
+
+        'authorized_official_title' => 'nullable|string|max:255',
+
         ]);
 
         $user = User::findOrFail(
@@ -105,6 +109,10 @@ public function index(Request $request)
             'phone_3' => $request->phone_3,
 
             'address' => $request->address,
+
+            'authorized_official_name' => $request->authorized_official_name,
+
+            'authorized_official_title' => $request->authorized_official_title,
 
             'package_name' => $request->package_name,
 
@@ -168,6 +176,10 @@ public function index(Request $request)
                 'different:phone_2',
             ],
 
+            'authorized_official_name' => 'nullable|string|max:255',
+
+            'authorized_official_title' => 'nullable|string|max:255',
+
         ]);
 
         $user = User::findOrFail(
@@ -191,6 +203,10 @@ public function index(Request $request)
             'phone_3' => $request->phone_3,
 
             'address' => $request->address,
+
+            'authorized_official_name' => $request->authorized_official_name,
+
+            'authorized_official_title' => $request->authorized_official_title,
 
             'package_name' => $request->package_name,
 

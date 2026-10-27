@@ -20,6 +20,8 @@ class Client extends Model
         'phone_2',
         'phone_3',
         'address',
+        'authorized_official_name',
+        'authorized_official_title',
 
         'package_name',
         'package_price',

@@ -66,6 +66,28 @@ class ProcurementDocumentTest extends TestCase
             ->assertDontSee('001/BAST/SIS/X/2026');
     }
 
+    public function test_school_signer_is_filled_from_the_project_client(): void
+    {
+        [$admin, $project] = $this->createAdminAndProject();
+        $project->client->update([
+            'authorized_official_name' => 'Drs. Kepala Sekolah',
+            'authorized_official_title' => 'Kepala Sekolah',
+        ]);
+
+        $this->actingAs($admin)->post(route('procurement-documents.store'), [
+            'project_id' => $project->id,
+            'type' => 'quotation',
+            'document_date' => '2026-10-27',
+            'status' => 'draft',
+            'amount' => 5000000,
+            'transaction_method' => 'non_siplah',
+        ])->assertRedirect();
+
+        $document = ProcurementDocument::firstOrFail();
+        $this->assertSame('Drs. Kepala Sekolah', $document->school_signer_name);
+        $this->assertSame('Kepala Sekolah', $document->school_signer_title);
+    }
+
     public function test_super_admin_can_delete_an_entire_project_spj_package(): void
     {
         Storage::fake('public');

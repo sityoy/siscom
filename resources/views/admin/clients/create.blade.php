@@ -165,8 +165,41 @@
                 <textarea name="address"
                           class="form-control"
                           rows="4"
-                          placeholder="Masukkan alamat client"></textarea>
+                          placeholder="Masukkan alamat client">{{ old('address') }}</textarea>
 
+            </div>
+
+            <h5 class="mb-3">Pejabat Berwenang Sekolah</h5>
+
+            <div class="alert alert-light border">
+                Data ini akan otomatis digunakan sebagai penandatangan pihak sekolah pada dokumen SPJ.
+                Nama dan jabatan masih dapat disesuaikan pada masing-masing dokumen.
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label>Nama Pejabat Berwenang</label>
+                    <input type="text"
+                           name="authorized_official_name"
+                           class="form-control @error('authorized_official_name') is-invalid @enderror"
+                           value="{{ old('authorized_official_name') }}"
+                           placeholder="Contoh: Drs. Nama Kepala Sekolah">
+                    @error('authorized_official_name')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label>Jabatan</label>
+                    <input type="text"
+                           name="authorized_official_title"
+                           class="form-control @error('authorized_official_title') is-invalid @enderror"
+                           value="{{ old('authorized_official_title') }}"
+                           placeholder="Contoh: Kepala Sekolah">
+                    @error('authorized_official_title')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
             </div>
 <hr>
 

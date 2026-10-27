@@ -14,8 +14,9 @@
 
 <div class="alert alert-info">
     <i class="fas fa-info-circle mr-1"></i>
-    Dokumen berstatus <strong>Draft</strong> hanya terlihat oleh admin. Ubah menjadi
-    <strong>Menunggu Tanda Tangan</strong> jika sudah siap ditampilkan kepada sekolah.
+    Paket otomatis dibuat sebagai <strong>Draft</strong> agar nomor, tanggal, nilai, pajak, dan
+    penandatangan dapat diperiksa terlebih dahulu. Draft hanya terlihat oleh admin. Ubah menjadi
+    <strong>Menunggu Tanda Tangan</strong> setelah dokumen sudah benar dan siap ditampilkan kepada sekolah.
 </div>
 
 <div class="row">
@@ -26,6 +27,8 @@
             @foreach($projects as $project)
                 <option value="{{ $project->id }}"
                         data-budget="{{ $project->budget }}"
+                        data-school-signer-name="{{ $project->client->authorized_official_name }}"
+                        data-school-signer-title="{{ $project->client->authorized_official_title }}"
                         @selected((string) $selectedProjectId === (string) $project->id)>
                     {{ $project->client->name }} — {{ $project->title }}
                 </option>
@@ -110,12 +113,12 @@
 <div class="row">
     <div class="col-md-3 mb-3">
         <label>Nama dari Sekolah</label>
-        <input type="text" name="school_signer_name" class="form-control"
+        <input type="text" name="school_signer_name" id="school_signer_name" class="form-control"
                value="{{ old('school_signer_name', $document->school_signer_name) }}">
     </div>
     <div class="col-md-3 mb-3">
         <label>Jabatan di Sekolah</label>
-        <input type="text" name="school_signer_title" class="form-control"
+        <input type="text" name="school_signer_title" id="school_signer_title" class="form-control"
                value="{{ old('school_signer_title', $document->school_signer_title) }}"
                placeholder="Kepala Sekolah/Bendahara">
     </div>
@@ -200,6 +203,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const project = document.getElementById('project_id');
     const invoice = document.getElementById('invoice_id');
     const amount = document.getElementById('amount');
+    const schoolSignerName = document.getElementById('school_signer_name');
+    const schoolSignerTitle = document.getElementById('school_signer_title');
+
+    function fillSchoolSigner(force) {
+        const option = project.options[project.selectedIndex];
+        if (!option) return;
+
+        if (force || !schoolSignerName.value) {
+            schoolSignerName.value = option.dataset.schoolSignerName || '';
+        }
+        if (force || !schoolSignerTitle.value) {
+            schoolSignerTitle.value = option.dataset.schoolSignerTitle || '';
+        }
+    }
 
     function filterInvoices() {
         const selectedProject = project.value;
@@ -215,10 +232,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if ((!amount.value || Number(amount.value) === 0) && option.dataset.budget) {
             amount.value = option.dataset.budget;
         }
+        fillSchoolSigner(true);
         filterInvoices();
     });
 
     filterInvoices();
+    fillSchoolSigner(false);
 });
 </script>
 @endpush

@@ -67,6 +67,8 @@ class ProcurementDocumentController extends Controller
                 'project_id' => $selectedProject?->id,
                 'document_date' => now()->toDateString(),
                 'amount' => $selectedProject?->budget ?? 0,
+                'school_signer_name' => $selectedProject?->client?->authorized_official_name,
+                'school_signer_title' => $selectedProject?->client?->authorized_official_title,
                 'provider_signer_name' => CompanySetting::first()?->director_name,
                 'provider_signer_title' => CompanySetting::first()?->director_title,
                 'status' => 'draft',
@@ -81,6 +83,7 @@ class ProcurementDocumentController extends Controller
     {
         $data = $this->validatedData($request);
         $this->ensureInvoiceBelongsToProject($data);
+        $data = $this->applyDefaultSigners($data);
 
         $data['created_by'] = $request->user()->id;
         $data['document_number'] = $data['document_number']
@@ -118,6 +121,7 @@ class ProcurementDocumentController extends Controller
         $previousStatus = $procurementDocument->status;
         $data = $this->validatedData($request, $procurementDocument);
         $this->ensureInvoiceBelongsToProject($data);
+        $data = $this->applyDefaultSigners($data);
 
         if (empty($data['document_number'])) {
             unset($data['document_number']);
@@ -161,6 +165,7 @@ class ProcurementDocumentController extends Controller
     public function generateProjectPackage(Request $request, Project $project)
     {
         $company = CompanySetting::first();
+        $project->loadMissing('client');
         $invoice = $project->invoices()->latest()->first();
         $created = 0;
 
@@ -182,6 +187,8 @@ class ProcurementDocumentController extends Controller
                     'status' => 'draft',
                     'subject' => $project->title,
                     'amount' => $invoice?->total_due ?? $project->budget,
+                    'school_signer_name' => $project->client?->authorized_official_name,
+                    'school_signer_title' => $project->client?->authorized_official_title,
                     'provider_signer_name' => $company?->director_name,
                     'provider_signer_title' => $company?->director_title,
                     'transaction_method' => 'non_siplah',
@@ -335,6 +342,23 @@ class ProcurementDocumentController extends Controller
                 'invoice_id' => 'Invoice tidak terhubung dengan project yang dipilih.',
             ]);
         }
+    }
+
+    private function applyDefaultSigners(array $data): array
+    {
+        $project = Project::with('client')->findOrFail($data['project_id']);
+        $company = CompanySetting::first();
+
+        $data['school_signer_name'] = ($data['school_signer_name'] ?? null)
+            ?: $project->client?->authorized_official_name;
+        $data['school_signer_title'] = ($data['school_signer_title'] ?? null)
+            ?: $project->client?->authorized_official_title;
+        $data['provider_signer_name'] = ($data['provider_signer_name'] ?? null)
+            ?: $company?->director_name;
+        $data['provider_signer_title'] = ($data['provider_signer_title'] ?? null)
+            ?: $company?->director_title;
+
+        return $data;
     }
 
     private function notifyClientWhenReady(ProcurementDocument $document): void
