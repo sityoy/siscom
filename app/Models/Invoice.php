@@ -15,6 +15,8 @@ class Invoice extends Model
 
         'invoice_number',
 
+        'invoice_date',
+
         'subtotal',
 
         'vat_percent',
@@ -43,6 +45,7 @@ class Invoice extends Model
     ];
 
     protected $casts = [
+        'invoice_date' => 'date',
         'due_date' => 'date',
         'paid_at' => 'datetime',
         'late_fee_active' => 'boolean',

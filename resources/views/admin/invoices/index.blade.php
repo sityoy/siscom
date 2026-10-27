@@ -159,7 +159,7 @@
 
                                 <small class="text-muted">
 
-                                    {{ $invoice->created_at->format('d M Y') }}
+                                    {{ ($invoice->invoice_date ?? $invoice->created_at)->format('d M Y') }}
 
                                 </small>
 

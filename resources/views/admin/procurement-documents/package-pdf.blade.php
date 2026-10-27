@@ -116,7 +116,7 @@
     <h2 class="text-center">RINGKASAN INVOICE</h2>
     <table class="meta-table">
         <tr><td width="28%">Nomor Invoice</td><td width="3%">:</td><td>{{ $invoice->invoice_number }}</td></tr>
-        <tr><td>Tanggal</td><td>:</td><td>{{ $invoice->created_at->locale('id')->translatedFormat('d F Y') }}</td></tr>
+        <tr><td>Tanggal</td><td>:</td><td>{{ ($invoice->invoice_date ?? $invoice->created_at)->locale('id')->translatedFormat('d F Y') }}</td></tr>
         <tr><td>Jatuh Tempo</td><td>:</td><td>{{ $invoice->due_date?->locale('id')->translatedFormat('d F Y') ?? '-' }}</td></tr>
         <tr><td>Status</td><td>:</td><td>{{ strtoupper($invoice->status) }}</td></tr>
     </table>

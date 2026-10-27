@@ -59,6 +59,7 @@ class InvoiceController extends Controller
             'client_id' => $selectedProject?->client_id,
             'project_id' => $selectedProject?->id,
             'invoice_type' => 'project',
+            'invoice_date' => now()->format('Y-m-d'),
             'due_date' => now()->addDays(7)->format('Y-m-d'),
             'description' => $selectedProject
                 ? 'Biaya Project - ' . $selectedProject->title
@@ -99,6 +100,8 @@ class InvoiceController extends Controller
             'invoice_type' => 'required|in:project,renewal',
 
             'invoice_number' => 'required',
+
+            'invoice_date' => 'required|date',
 
             'due_date' => 'required|date',
 
@@ -159,6 +162,8 @@ class InvoiceController extends Controller
             'project_id' => $request->project_id,
 
             'invoice_number' => $request->invoice_number,
+
+            'invoice_date' => $request->invoice_date,
 
             'invoice_type' => $request->invoice_type,
 
@@ -300,6 +305,7 @@ class InvoiceController extends Controller
                 'client_id' => 'required|exists:clients,id',
                 'project_id' => 'nullable|exists:projects,id',
                 'invoice_number' => 'required',
+                'invoice_date' => 'required|date',
                 'due_date' => 'required|date',
                 'status' => 'required',
                 'vat_percent' => 'required|numeric|min:0|max:100',
@@ -341,6 +347,8 @@ class InvoiceController extends Controller
                 'project_id' => $request->project_id,
 
                 'invoice_number' => $request->invoice_number,
+
+                'invoice_date' => $request->invoice_date,
 
                 'invoice_type' => $request->invoice_type,
 

@@ -99,7 +99,7 @@
         <td width="42%">
             <table class="invoice-meta">
                 <tr><td>Invoice Number</td><td>: {{ $invoice->invoice_number }}</td></tr>
-                <tr><td>Invoice Date</td><td>: {{ $invoice->created_at->format('d M Y') }}</td></tr>
+                <tr><td>Invoice Date</td><td>: {{ ($invoice->invoice_date ?? $invoice->created_at)->format('d M Y') }}</td></tr>
                 <tr><td>Invoice Type</td><td>: {{ $invoice->invoice_type === 'renewal' ? 'Package Renewal' : 'Project' }}</td></tr>
                 <tr><td>Due Date</td><td>: {{ $invoice->due_date?->format('d M Y') ?? '-' }}</td></tr>
                 @if($invoice->late_fee_active)
@@ -212,7 +212,7 @@
             {{ $invoice->client->name }}
         </td>
         <td>
-            {{ $city }}, {{ $invoice->created_at->format('d F Y') }}<br><strong>{{ $directorTitle }}</strong>
+            {{ $city }}, {{ ($invoice->invoice_date ?? $invoice->created_at)->format('d F Y') }}<br><strong>{{ $directorTitle }}</strong>
             <div class="signature-space"></div>
             <span class="signer-name">{{ $directorName ?: '(...................................)' }}</span>
             {{ $companyName }}

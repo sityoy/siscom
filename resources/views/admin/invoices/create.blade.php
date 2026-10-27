@@ -95,10 +95,26 @@
 
                     <label>Tanggal Invoice</label>
 
-                    <input type="date"
-                           class="form-control"
-                           value="{{ date('Y-m-d') }}"
-                           readonly>
+                    <div class="input-group">
+                        <input type="date"
+                               name="invoice_date"
+                               id="invoice-date"
+                               class="form-control @error('invoice_date') is-invalid @enderror"
+                               value="{{ old('invoice_date', $invoiceDefaults['invoice_date']) }}"
+                               required>
+
+                        <div class="input-group-append">
+                            <button type="button"
+                                    class="btn btn-outline-primary"
+                                    id="invoice-date-today">
+                                Today
+                            </button>
+                        </div>
+                    </div>
+
+                    @error('invoice_date')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
 
                 </div>
 
@@ -521,6 +537,11 @@ projectSelect.addEventListener('change', function(){
 });
 
 document.addEventListener('DOMContentLoaded', function () {
+
+    document.getElementById('invoice-date-today')
+        .addEventListener('click', function () {
+            document.getElementById('invoice-date').value = @json(now()->format('Y-m-d'));
+        });
 
     function calculateTotals() {
 
