@@ -1,977 +1,214 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="utf-8">
-
-    <title>Invoice PDF</title>
-
+    <title>Invoice {{ $invoice->invoice_number }}</title>
     <style>
-
-        @page {
-            margin: 7mm;
-        }
-
-        body {
-
-            font-family: DejaVu Sans, sans-serif;
-            font-size: 10px;
-            color: #1e293b;
-
-        }
-
-        * {
-
-            box-sizing: border-box;
-
-        }
-
-        .wrapper {
-
-            border: 1px solid #dbe2ea;
-            border-radius: 1px;
-            padding: 8px;
-
-        }
-
-        table {
-
-            width: 100%;
-            border-collapse: collapse;
-
-        }
-
-        .header td {
-
-            border: none;
-            vertical-align: top;
-
-        }
-
-        .logo {
-
-            width: 135px;
-
-        }
-
-        .company-info {
-
-            text-align: right;
-
-        }
-
-        .company-info h1 {
-
-            margin: 0;
-            color: #0f172a;
-            font-size: 34px;
-
-        }
-
-        .company-info p {
-
-            margin: 4px 0;
-            font-size: 12px;
-
-        }
-
-        .top-line {
-
-            height: 4px;
-            background: #0a3b96;
-            margin: 14px 0 20px;
-            border-radius: 30px;
-
-        }
-
-        .invoice-title {
-
-            font-size: 32px;
-            font-weight: bold;
-            color: #0a3b96;
-            letter-spacing: 1px;
-
-        }
-
-        .invoice-info td {
-
-            border: none;
-            padding: 3px 0;
-            font-size: 11px;
-
-        }
-
-        .section-card {
-
-            margin-top: 14px;
-            margin-bottom: 18px;
-
-        }
-
-        .section-card td {
-
-            border: none;
-            vertical-align: top;
-
-        }
-
-        .box {
-
-            border: 1px solid #dbe2ea;
-            border-radius: 10px;
-            padding: 10px;
-            min-height: 70px;
-
-        }
-
-        .section-title {
-
-            color: #0a3b96;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 8px;
-
-        }
-
-        .main-table th {
-
-            background: #0a3b96;
-            color: white;
-            padding: 7px;
-            border: 1px solid #dbe2ea;
-            font-size: 10px;
-
-        }
-
-        .main-table td {
-
-            border: 1px solid #dbe2ea;
-            padding: 6px;
-            vertical-align: top;
-            font-size: 10px;
-
-        }
-
-        .text-center {
-
-            text-align: center;
-
-        }
-
-        .text-right {
-
-            text-align: right;
-
-        }
-
-        .summary {
-
-            margin-top: 12px;
-
-        }
-
-        .summary td {
-
-            border: 1px solid #dbe2ea;
-            padding: 9px;
-
-        }
-
-        .grand-total {
-
-            background: #edf4ff;
-            color: #0a3b96;
-            font-weight: bold;
-            font-size: 14px;
-
-        }
-
-        .notes-box {
-
-            border: 1px solid #dbe2ea;
-            border-radius: 10px;
-            padding: 10px;
-            min-height: 80px;
-
-        }
-
-        .payment-box {
-
-            margin-top: 10px;
-            border: 1px solid #0a3b96;
-            border-radius: 12px;
-            padding: 10px;
-
-        }
-
-        .payment-title {
-
-            text-align: center;
-            font-size: 14px;
-            color: #0a3b96;
-            font-weight: bold;
-            margin-bottom: 12px;
-
-        }
-
-        .bank-table td {
-
-            border: none;
-            width: 50%;
-            padding: 6px;
-
-        }
-
-       .bank-card {
-
-            border: 1px solid #dbe2ea;
-            border-radius: 10px;
-            padding: 10px;
-            min-height: 60px;
-
-        }
-
-        .bank-name {
-
-            color: #0a3b96;
-            font-weight: bold;
-            margin-bottom: 10px;
-            font-size: 13px;
-
-        }
-
-        .footer {
-
-            margin-top: 12px;
-            text-align: center;
-
-        }
-
-        .footer h3 {
-
-            color: #0a3b96;
-            margin-bottom: 6px;
-
-        }
-
-        .footer-line {
-
-            height: 3px;
-            background: #0a3b96;
-            border-radius: 30px;
-            margin-top: 8px;
-
-        }
-
-        .badge {
-
-            padding: 4px 10px;
-            border-radius: 20px;
-            color: white;
-            font-size: 8px;
-            font-weight: bold;
-
-        }
-
-        .paid {
-
-            background: green;
-
-        }
-
-        .unpaid {
-
-            background: red;
-
-        }
-
-        .partial {
-
-            background: orange;
-
-        }
-
-        .cancelled {
-
-            background: gray;
-
-        }
-
+        @page { margin: 12mm; }
+        * { box-sizing: border-box; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #1e293b; line-height: 1.4; }
+        table { width: 100%; border-collapse: collapse; }
+        .letterhead { width: 100%; border-collapse: collapse; border-bottom: 3px solid #17498f; margin-bottom: 17px; }
+        .letterhead td { border: none; vertical-align: middle; padding: 0 0 8px; }
+        .letterhead-logo { text-align: left; border-right: 1px solid #9ca3af !important; padding-right: 9px !important; }
+        .letterhead-logo img { width: 135px; max-width: 100%; max-height: 76px; object-fit: contain; }
+        .letterhead-info { padding-left: 11px !important; text-align: left; color: #25324a; font-size: 8px; line-height: 1.3; }
+        .letterhead-name { color: #17498f; font-size: 20px; font-weight: bold; line-height: 1.05; margin-bottom: 4px; }
+        .letterhead-tagline { color: #0783df; font-size: 12px; font-weight: bold; letter-spacing: .2px; margin-bottom: 3px; }
+        .letterhead-services { font-size: 8px; margin-bottom: 2px; }
+        .letterhead-contact { margin-top: 2px; }
+        .letterhead-separator { color: #9ca3af; padding: 0 5px; }
+        .invoice-heading td { vertical-align: top; border: none; }
+        .invoice-title { color: #17498f; font-size: 29px; font-weight: bold; letter-spacing: 1px; }
+        .invoice-meta td { padding: 2px 0; border: none; font-size: 9px; }
+        .invoice-meta td:first-child { color: #64748b; width: 42%; }
+        .badge { display: inline-block; padding: 3px 8px; color: #fff; border-radius: 10px; font-size: 8px; font-weight: bold; }
+        .paid { background: #15803d; }
+        .unpaid, .overdue { background: #dc2626; }
+        .partial { background: #d97706; }
+        .cancelled { background: #64748b; }
+        .info-grid { margin: 14px 0; }
+        .info-grid td { width: 50%; border: none; vertical-align: top; }
+        .info-grid td:first-child { padding-right: 6px; }
+        .info-grid td:last-child { padding-left: 6px; }
+        .box { border: 1px solid #dbe2ea; padding: 9px; min-height: 62px; }
+        .section-title { color: #17498f; font-size: 10px; font-weight: bold; margin-bottom: 5px; }
+        .items th { background: #17498f; color: #fff; padding: 6px 5px; border: 1px solid #dbe2ea; font-size: 8px; }
+        .items td { padding: 6px 5px; border: 1px solid #dbe2ea; vertical-align: top; font-size: 8px; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .summary-payment { margin-top: 13px; }
+        .summary-payment > tbody > tr > td { border: none; vertical-align: top; }
+        .payment-column { width: 58%; padding-right: 8px; }
+        .summary-column { width: 42%; padding-left: 8px; }
+        .notes { border: 1px solid #dbe2ea; padding: 8px; margin-bottom: 8px; min-height: 35px; }
+        .banks { table-layout: fixed; }
+        .banks td { border: none; vertical-align: top; padding-right: 5px; }
+        .banks td:last-child { padding-right: 0; }
+        .bank-card { border: 1px solid #dbe2ea; padding: 7px; min-height: 62px; font-size: 7px; }
+        .bank-name { color: #17498f; font-size: 8px; font-weight: bold; margin-bottom: 7px; }
+        .summary td { border: 1px solid #dbe2ea; padding: 6px; font-size: 8px; }
+        .summary .late-fee { color: #dc2626; font-weight: bold; }
+        .summary .total td { background: #17498f; color: #fff; font-size: 11px; font-weight: bold; }
+        .signatures { margin-top: 22px; page-break-inside: avoid; }
+        .signatures td { width: 50%; border: none; vertical-align: top; text-align: center; padding: 0 18px; }
+        .signature-space { height: 52px; }
+        .signer-name { display: block; font-weight: bold; text-decoration: underline; }
+        .footer { margin-top: 18px; padding-top: 6px; border-top: 2px solid #17498f; text-align: center; color: #64748b; font-size: 7px; }
     </style>
-
 </head>
-
 <body>
-
-<div class="wrapper">
-
-    {{-- HEADER --}}
-    <table class="header">
-
-        <tr>
-
-            <td width="50%">
-
-                <img src="{{ public_path('logo/siscombg2.png') }}"
-                     class="logo">
-
-            </td>
-
-            <td width="50%" class="company-info">
-
-                <h1><a href="https://sis.com">SIS.COM</a></h1>
-
-                <p>Software House & IT Solutions</p>
-
-                <p>Email: sityoyitsolutions@gmail.com</p>
-
-                <p>Indonesia</p>
-
-            </td>
-
-        </tr>
-
-    </table>
-
-    <div class="top-line"></div>
-
-    {{-- TITLE --}}
-    <table>
-
-        <tr>
-
-            <td width="55%">
-
-                <div class="invoice-title">
-
-                    INVOICE
-
-                </div>
-
-            </td>
-
-            <td width="45%">
-
-                <table class="invoice-info">
-
-                    <tr>
-
-                        <td>Invoice Number</td>
-                        <td>:</td>
-                        <td>{{ $invoice->invoice_number }}</td>
-
-                    </tr>
-
-                    <tr>
-
-                        <td>Invoice Date</td>
-                        <td>:</td>
-                        <td>{{ $invoice->created_at->format('d M Y') }}</td>
-
-                    </tr>
-
-                    <tr>
-
-                        <td>Invoice Type</td>
-                        <td>:</td>
-                        <td>
-                            {{ $invoice->invoice_type === 'renewal'
-                                ? 'Package Renewal'
-                                : 'Project' }}
-                        </td>
-
-                    </tr>
-
-                    <tr>
-
-                        <td>Due Date</td>
-                        <td>:</td>
-                        <td>{{ \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') }}</td>
-
-                    </tr>
-
-                    @if($invoice->late_fee_active)
-
-                        <tr>
-
-                            <td>Late Fee</td>
-                            <td>:</td>
-                            <td>
-                                Rp {{ number_format($invoice->late_fee_per_month,0,',','.') }}
-                                / 30 days
-                            </td>
-
-                        </tr>
-
-                    @endif
-
-                    <tr>
-
-                        <td>Status</td>
-                        <td>:</td>
-
-                        <td>
-
-                            <span class="badge {{ $invoice->status }}">
-
-                                {{ $invoice->late_months > 0 && $invoice->status !== 'paid'
-                                    ? 'OVERDUE'
-                                    : strtoupper($invoice->status) }}
-
-                            </span>
-
-                        </td>
-
-                    </tr>
-
-                </table>
-
-            </td>
-
-        </tr>
-
-    </table>
-
-    {{-- CLIENT --}}
-    <table class="section-card">
-
-        <tr>
-
-            <td width="50%" style="padding-right:8px;">
-
-                <div class="box">
-
-                    <div class="section-title">
-
-                        BILL TO
-
-                    </div>
-
-                    <strong style="font-size:14px;">
-
-                        {{ $invoice->client->name }}
-
-                    </strong>
-
-                    {{-- <p style="margin:6px 0;">
-
-                        {{ $invoice->client->email }}
-
-                    </p>
-
-                    <p style="margin:0;">
-
-                        {{ $invoice->client->phone ?? '-' }}
-
-                    </p> --}}
-
-                </div>
-
-            </td>
-
-            <td width="50%" style="padding-left:8px;">
-
-                <div class="box">
-
-                    <div class="section-title">
-
-                        PROJECT
-
-                    </div>
-
-                    <strong style="font-size:14px;">
-
-                        {{ $invoice->project?->title ?? '-' }}
-
-                    </strong>
-
-                </div>
-
-            </td>
-
-        </tr>
-
-    </table>
-
-    {{-- TABLE --}}
-    <table class="main-table">
-
-        <thead>
-
-            <tr>
-
-                <th width="5%">No</th>
-                <th width="28%">Description</th>
-                <th width="8%">Qty</th>
-                <th width="15%">Price</th>
-                <th width="12%">Duration</th>
-                <th width="15%">Period</th>
-                <th width="17%">Total</th>
-
-            </tr>
-
-        </thead>
-
-        <tbody>
-
-            @foreach($invoice->items as $item)
-
-                <tr>
-
-                    <td class="text-center">
-
-                        {{ $loop->iteration }}
-
-                    </td>
-
-                    <td>
-
-                        <strong style="color:#0a3b96;">
-
-                            {{ $item->description }}
-
-                        </strong>
-
-                    </td>
-
-                    <td class="text-center">
-
-                        {{ $item->qty }}
-
-                    </td>
-
-                    <td class="text-right">
-
-                        Rp {{ number_format($item->price,0,',','.') }}
-
-                    </td>
-
-                    <td class="text-center">
-
-                        @if($item->duration)
-
-                            {{ $item->duration }}
-                            {{ match ($item->duration_type) {
-                                'Hari' => 'Day(s)',
-                                'Bulan' => 'Month(s)',
-                                'Tahun' => 'Year(s)',
-                                default => $item->duration_type,
-                            } }}
-
-                        @else
-
-                            -
-
-                        @endif
-
-                    </td>
-
-                    <td class="text-center">
-
-                        @if($item->start_date)
-
-                            {{ \Carbon\Carbon::parse($item->start_date)->format('d M Y') }}
-
-                            <br>
-
-                            to
-
-                            <br>
-
-                            {{ \Carbon\Carbon::parse($item->end_date)->format('d M Y') }}
-
-                        @else
-
-                            -
-
-                        @endif
-
-                    </td>
-
-                    <td class="text-right">
-
-                        <strong style="color:#0a3b96;">
-
-                            Rp {{ number_format($item->total,0,',','.') }}
-
-                        </strong>
-
-                    </td>
-
-                </tr>
-
-            @endforeach
-
-        </tbody>
-
-    </table>
-
-    {{-- SUMMARY + PAYMENT --}}
-<table style="margin-top:14px; width:100%;">
-
+@php
+    $configuredLogo = $company?->logo ? storage_path('app/public/'.$company->logo) : null;
+    $defaultLogo = public_path('logo/siscombg2.png');
+    $logoPath = $configuredLogo && file_exists($configuredLogo) ? $configuredLogo : $defaultLogo;
+    $banks = collect([
+        ['name' => 'BANK JAKARTA', 'number' => $company?->bank_jakarta, 'holder' => $company?->bank_jakarta_name],
+        ['name' => 'BANK MANDIRI', 'number' => $company?->bank_mandiri, 'holder' => $company?->bank_mandiri_name],
+        ['name' => 'BANK BCA', 'number' => $company?->bank_bca, 'holder' => $company?->bank_bca_name],
+    ])->filter(fn (array $bank) => filled($bank['number']))->values();
+    $schoolSignerName = $invoice->client->authorized_official_name;
+    $schoolSignerTitle = $invoice->client->authorized_official_title ?: 'Principal';
+    $directorName = $company?->director_name;
+    $directorTitle = $company?->director_title ?: 'Director';
+    $companyName = $company?->legal_name ?: ($company?->company_name ?: 'SIS.COM');
+    $city = $company?->city ?: 'Tangerang';
+    $isOverdue = $invoice->late_months > 0 && $invoice->status !== 'paid';
+    $displayStatus = $isOverdue ? 'OVERDUE' : strtoupper($invoice->status);
+@endphp
+
+@include('admin.procurement-documents._company-letterhead')
+
+<table class="invoice-heading">
     <tr>
-
-        {{-- LEFT --}}
-        <td width="58%"
-            style="vertical-align:top; padding-right:10px; border:none;">
-
-            <div class="notes-box">
-
-                <div class="section-title">
-
-                    NOTES
-
-                </div>
-
-                <p style="line-height:1.6; margin:0 0 14px 0;">
-
-                    {{ $invoice->notes ?? 'Thank you for trusting SIS.COM with your technology needs.' }}
-
-                </p>
-
-                <div class="section-title">
-
-                    PAYMENT INFORMATION
-
-                </div>
-
-                <table style="width:100%; margin-top:8px;">
-
-                    <tr>
-
-                        <td width="33%"
-                            style="padding-right:6px; border:none; vertical-align:top;">
-
-                            <div style="
-                                border:1px solid #dbe2ea;
-                                border-radius:8px;
-                                padding:8px;
-                                min-height:70px;
-                            ">
-
-                                <strong style="color:#0a3b96; font-size:10px;">
-
-                                    BANK JAKARTA
-
-                                </strong>
-
-                                <br><br>
-
-                                43-2231-0520-1
-
-                                <br>
-
-                                ACCOUNT HOLDER: LENA SEPTIANA
-
-                            </div>
-
-                        </td>
-
-                        {{-- <td width="33%"
-                            style="padding-right:6px; border:none; vertical-align:top;">
-
-                            <div style="
-                                border:1px solid #dbe2ea;
-                                border-radius:8px;
-                                padding:8px;
-                                min-height:70px;
-                            ">
-
-                                <strong style="color:#0a3b96; font-size:8px;">
-
-                                    BANK MANDIRI
-
-                                </strong>
-
-                                <br><br>
-
-                                11800-1378-1322
-
-                                <br>
-
-                                ACCOUNT HOLDER: TIO IRFAN ANTONI
-
-                            </div>
-
-                        </td> --}}
-
-                        <td width="33%"
-                            style="border:none; vertical-align:top;">
-
-                            <div style="
-                                border:1px solid #dbe2ea;
-                                border-radius:8px;
-                                padding:8px;
-                                min-height:70px;
-                            ">
-
-                                <strong style="color:#0a3b96; font-size:10px;">
-
-                                    BANK BCA
-
-                                </strong>
-
-                                <br><br>
-
-                                5370-2568-63
-
-                                <br>
-
-                                ACCOUNT HOLDER: LENA SEPTIANA
-
-                            </div>
-
-                        </td>
-
-                    </tr>
-
-                </table>
-
-            </div>
-
+        <td width="58%"><div class="invoice-title">INVOICE</div></td>
+        <td width="42%">
+            <table class="invoice-meta">
+                <tr><td>Invoice Number</td><td>: {{ $invoice->invoice_number }}</td></tr>
+                <tr><td>Invoice Date</td><td>: {{ $invoice->created_at->format('d M Y') }}</td></tr>
+                <tr><td>Invoice Type</td><td>: {{ $invoice->invoice_type === 'renewal' ? 'Package Renewal' : 'Project' }}</td></tr>
+                <tr><td>Due Date</td><td>: {{ $invoice->due_date?->format('d M Y') ?? '-' }}</td></tr>
+                @if($invoice->late_fee_active)
+                    <tr><td>Late Fee</td><td>: Rp {{ number_format($invoice->late_fee_per_month, 0, ',', '.') }} / 30 days</td></tr>
+                @endif
+                <tr><td>Status</td><td>: <span class="badge {{ $isOverdue ? 'overdue' : $invoice->status }}">{{ $displayStatus }}</span></td></tr>
+            </table>
         </td>
-
-        {{-- RIGHT --}}
-<td width="42%"
-    style="vertical-align:top; border:none;">
-
-    @php
-
-        $cashbackAmount =
-            ($invoice->grand_total * $invoice->cashback) / 100;
-
-
-        $finalTotal =
-            $invoice->total_due;
-
-        // $finalTotal =
-        //     $invoice->grand_total - $cashbackAmount;
-
-    @endphp
-
-    <table class="summary">
-
-        <tr>
-
-            <td>
-
-                Subtotal
-
-            </td>
-
-            <td class="text-right">
-
-                Rp {{ number_format($invoice->subtotal,0,',','.') }}
-
-            </td>
-
-        </tr>
-
-        <tr>
-
-            <td>
-
-                VAT {{ number_format($invoice->vat_percent,0) }}%
-
-            </td>
-
-            <td class="text-right">
-
-                Rp {{ number_format($invoice->vat,0,',','.') }}
-
-            </td>
-
-        </tr>
-
-        <tr>
-
-            <td>
-
-                Service Fee
-
-            </td>
-
-            <td class="text-right">
-
-                Rp {{ number_format($invoice->service_fee,0,',','.') }}
-
-            </td>
-
-        </tr>
-
-        @if($invoice->late_fee_amount > 0)
-
-            <tr>
-
-                <td style="color:#dc2626; font-weight:bold;">
-                    Late Fee ({{ $invoice->late_months }}
-                    {{ (int) $invoice->late_months === 1 ? 'Month' : 'Months' }})
-                </td>
-
-                <td class="text-right"
-                    style="color:#dc2626; font-weight:bold;">
-                    Rp {{ number_format($invoice->late_fee_amount,0,',','.') }}
-                </td>
-
-            </tr>
-
-        @endif
-
-        {{-- <tr class="grand-total">
-
-            <td>
-
-                GRAND TOTAL
-
-            </td>
-
-            <td class="text-right">
-
-                Rp {{ number_format($invoice->grand_total,0,',','.') }}
-
-            </td>
-
-        </tr> --}}
-
-        {{-- <tr>
-
-            <td style="color:green; font-weight:bold;">
-
-                Cashback Reward {{ $invoice->cashback }}%
-
-            </td>
-
-            <td class="text-right"
-                style="color:green; font-weight:bold;">
-
-                Rp {{ number_format($cashbackAmount,0,',','.') }}
-
-            </td>
-
-        </tr> --}}
-
-        <tr style="
-            background:#0a3b96;
-            color:white;
-            font-weight:bold;
-            font-size:14px;
-        ">
-
-            <td>
-
-                TOTAL
-
-            </td>
-
-            <td class="text-right">
-
-                Rp {{ number_format($finalTotal,0,',','.') }}
-
-            </td>
-
-        </tr>
-
-    </table>
-</div>
-</td>
-
-    {{-- TANDA TANGAN --}}
-
-<table style="
-    width:100%;
-    margin-top:15px;
-    border:none;
-">
-
-    <tr>
-
-        <td width="33%"
-            style="border:none;">
-
-            <strong>Acknowledged By,</strong>
-
-            <br><br>
-
-            Foundation
-
-            <br><br><br><br>
-
-            ______________________
-
-        </td>
-
-        <td width="33%"
-            style="
-                border:none;
-                text-align:center;
-            ">
-
-            <strong>Acknowledged By,</strong>
-
-            <br><br>
-
-            Principal
-
-            <br><br><br><br>
-
-            ______________________
-
-        </td>
-
-        <td width="33%"
-            style="
-                border:none;
-                text-align:right;
-            ">
-
-            Tangerang,
-            {{ $invoice->created_at->format('d F Y') }}
-
-            <br><br>
-
-            Authorized Signature,
-
-            <br>
-{{--
-            <img
-                src="{{ public_path('logo/ttdsisok.png') }}"
-                style="
-                    width:70px;
-                    margin-top:8px;
-                "> --}}
-
-            <br><br><br>
-
-            <strong>
-                Sityoy IT Solutions
-            </strong>
-
-        </td>
-
     </tr>
-
 </table>
 
-    {{-- FOOTER --}}
-    <div class="footer">
-<div style="
-    color:#0a3b96;
-    font-size:12px;
-    font-weight:bold;
-">
+<table class="info-grid">
+    <tr>
+        <td>
+            <div class="box">
+                <div class="section-title">BILL TO</div>
+                <strong>{{ $invoice->client->name }}</strong><br>
+                @if($invoice->client->address){{ $invoice->client->address }}<br>@endif
+                @if($invoice->client->email){{ $invoice->client->email }}@endif
+            </div>
+        </td>
+        <td>
+            <div class="box">
+                <div class="section-title">PROJECT</div>
+                <strong>{{ $invoice->project?->title ?? 'Package Renewal' }}</strong>
+                @if($invoice->project?->description)<br>{{ $invoice->project->description }}@endif
+            </div>
+        </td>
+    </tr>
+</table>
 
-    Thank you for your business!
+<table class="items">
+    <thead>
+        <tr>
+            <th width="5%">No.</th><th width="29%">Description</th><th width="7%">Qty</th>
+            <th width="16%">Price</th><th width="12%">Duration</th><th width="15%">Period</th><th width="16%">Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($invoice->items as $item)
+            <tr>
+                <td class="text-center">{{ $loop->iteration }}</td>
+                <td><strong>{{ $item->description }}</strong></td>
+                <td class="text-center">{{ $item->qty }}</td>
+                <td class="text-right">Rp {{ number_format($item->price, 0, ',', '.') }}</td>
+                <td class="text-center">
+                    @if($item->duration)
+                        {{ $item->duration }}
+                        {{ match ($item->duration_type) {
+                            'Hari' => 'Day(s)', 'Bulan' => 'Month(s)', 'Tahun' => 'Year(s)', default => $item->duration_type,
+                        } }}
+                    @else - @endif
+                </td>
+                <td class="text-center">
+                    @if($item->start_date)
+                        {{ \Carbon\Carbon::parse($item->start_date)->format('d M Y') }}<br>to<br>
+                        {{ $item->end_date ? \Carbon\Carbon::parse($item->end_date)->format('d M Y') : '-' }}
+                    @else - @endif
+                </td>
+                <td class="text-right"><strong>Rp {{ number_format($item->total, 0, ',', '.') }}</strong></td>
+            </tr>
+        @endforeach
+    </tbody>
+</table>
 
+<table class="summary-payment">
+    <tr>
+        <td class="payment-column">
+            <div class="notes">
+                <div class="section-title">NOTES</div>
+                {{ $invoice->notes ?: 'Thank you for trusting '.$companyName.' with your technology needs.' }}
+            </div>
+            <div class="section-title">PAYMENT INFORMATION</div>
+            @if($banks->isNotEmpty())
+                <table class="banks"><tr>
+                    @foreach($banks as $bank)
+                        <td width="{{ 100 / $banks->count() }}%">
+                            <div class="bank-card">
+                                <div class="bank-name">{{ $bank['name'] }}</div>
+                                <strong>{{ $bank['number'] }}</strong><br>
+                                ACCOUNT HOLDER:<br>{{ $bank['holder'] ?: '-' }}
+                            </div>
+                        </td>
+                    @endforeach
+                </tr></table>
+            @else
+                <div class="notes">Payment account has not been configured in Company Settings.</div>
+            @endif
+        </td>
+        <td class="summary-column">
+            <table class="summary">
+                <tr><td>Subtotal</td><td class="text-right">Rp {{ number_format($invoice->subtotal, 0, ',', '.') }}</td></tr>
+                <tr><td>VAT {{ number_format($invoice->vat_percent, 0) }}%</td><td class="text-right">Rp {{ number_format($invoice->vat, 0, ',', '.') }}</td></tr>
+                <tr><td>Service Fee</td><td class="text-right">Rp {{ number_format($invoice->service_fee, 0, ',', '.') }}</td></tr>
+                @if($invoice->late_fee_amount > 0)
+                    <tr class="late-fee"><td>Late Fee ({{ $invoice->late_months }} {{ (int) $invoice->late_months === 1 ? 'Month' : 'Months' }})</td><td class="text-right">Rp {{ number_format($invoice->late_fee_amount, 0, ',', '.') }}</td></tr>
+                @endif
+                <tr class="total"><td>TOTAL</td><td class="text-right">Rp {{ number_format($invoice->total_due, 0, ',', '.') }}</td></tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<table class="signatures">
+    <tr>
+        <td>
+            Approved by,<br><strong>{{ $schoolSignerTitle }}</strong>
+            <div class="signature-space"></div>
+            <span class="signer-name">{{ $schoolSignerName ?: '(...................................)' }}</span>
+            {{ $invoice->client->name }}
+        </td>
+        <td>
+            {{ $city }}, {{ $invoice->created_at->format('d F Y') }}<br><strong>{{ $directorTitle }}</strong>
+            <div class="signature-space"></div>
+            <span class="signer-name">{{ $directorName ?: '(...................................)' }}</span>
+            {{ $companyName }}
+        </td>
+    </tr>
+</table>
+
+<div class="footer">
+    Thank you for your business!<br>
+    {{ $company?->website ?: 'SIS.COM' }} — {{ $companyName }}
 </div>
-
-        <a href="https://sis.com"> SIS.COM </a> - Software House & IT Solutions
-
-        <div class="footer-line"></div>
-
-    </div>
-
-</div>
-
 </body>
 </html>

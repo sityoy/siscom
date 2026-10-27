@@ -24,12 +24,16 @@ class InvoiceMail extends Mailable
 
     public function build()
     {
+        $this->invoice->loadMissing(['client.user', 'project', 'items']);
+        $company = CompanySetting::first();
+
         $pdf = Pdf::loadView(
 
             'admin.invoices.pdf',
 
             [
-                'invoice' => $this->invoice
+                'invoice' => $this->invoice,
+                'company' => $company,
             ]
 
         );
@@ -48,9 +52,6 @@ class InvoiceMail extends Mailable
                 '.pdf'
 
             );
-
-            $setting =
-            CompanySetting::first();
     }
 
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Client;
 use App\Models\Invoice;
 use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\CompanySetting;
 
 class InvoiceController extends Controller
 {
@@ -52,11 +53,14 @@ class InvoiceController extends Controller
 
         }
 
+        $invoice->loadMissing(['client.user', 'project', 'items']);
+        $company = CompanySetting::first();
+
         $pdf = Pdf::loadView(
 
             'admin.invoices.pdf',
 
-            compact('invoice')
+            compact('invoice', 'company')
 
         );
 

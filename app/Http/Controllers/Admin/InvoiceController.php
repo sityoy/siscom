@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Notification;
+use App\Models\CompanySetting;
 
 class InvoiceController extends Controller
 {
@@ -431,9 +432,12 @@ class InvoiceController extends Controller
 
     public function pdf(Invoice $invoice)
     {
+        $invoice->loadMissing(['client.user', 'project', 'items']);
+        $company = CompanySetting::first();
+
         $pdf = Pdf::loadView(
             'admin.invoices.pdf',
-            compact('invoice')
+            compact('invoice', 'company')
 
         );
 
@@ -450,9 +454,12 @@ class InvoiceController extends Controller
     public function viewPdf(
         Invoice $invoice
     ){
+        $invoice->loadMissing(['client.user', 'project', 'items']);
+        $company = CompanySetting::first();
+
         $pdf = Pdf::loadView(
             'admin.invoices.pdf',
-            compact('invoice')
+            compact('invoice', 'company')
         );
 
         return $pdf->stream();
