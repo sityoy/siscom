@@ -48,12 +48,65 @@
 
             <div class="mb-3">
 
+                <label>Nama Legal/Badan Usaha</label>
+
+                <input type="text"
+                       name="legal_name"
+                       class="form-control"
+                       value="{{ old('legal_name', $setting->legal_name) }}"
+                       placeholder="Contoh: PT Sityoy IT Solutions">
+
+            </div>
+
+            <div class="mb-3">
+
                 <label>No WhatsApp</label>
 
                 <input type="text"
                        name="company_phone"
                        class="form-control"
                        value="{{ $setting->company_phone }}">
+
+            </div>
+
+            <hr>
+
+            <h5>Legalitas dan Penandatangan Rekanan</h5>
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+                    <label>NIB</label>
+                    <input type="text" name="nib" class="form-control"
+                           value="{{ old('nib', $setting->nib) }}">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label>NPWP</label>
+                    <input type="text" name="npwp" class="form-control"
+                           value="{{ old('npwp', $setting->npwp) }}">
+                </div>
+
+                <div class="col-md-5 mb-3">
+                    <label>Nama Penandatangan</label>
+                    <input type="text" name="director_name" class="form-control"
+                           value="{{ old('director_name', $setting->director_name) }}"
+                           placeholder="Nama direktur/pimpinan">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label>Jabatan</label>
+                    <input type="text" name="director_title" class="form-control"
+                           value="{{ old('director_title', $setting->director_title) }}"
+                           placeholder="Direktur/Pimpinan">
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label>Kota Penandatanganan</label>
+                    <input type="text" name="city" class="form-control"
+                           value="{{ old('city', $setting->city) }}"
+                           placeholder="Tangerang">
+                </div>
 
             </div>
 

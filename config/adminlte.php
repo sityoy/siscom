@@ -363,6 +363,13 @@ return [
     ],
 
     [
+        'text' => 'Dokumen Rekanan & SPJ',
+        'url'  => 'admin/procurement-documents',
+        'icon' => 'fas fa-file-signature',
+        'can'   => 'super_admin',
+    ],
+
+    [
         'text' => 'Payments',
         'url'  => 'admin/payments',
         'icon' => 'fas fa-wallet',
@@ -451,6 +458,13 @@ return [
         'url'  => 'client/invoices',
         'icon' => 'fas fa-file-invoice',
 
+        'can' => 'client',
+    ],
+
+    [
+        'text' => 'Dokumen Rekanan',
+        'url'  => 'client/procurement-documents',
+        'icon' => 'fas fa-file-contract',
         'can' => 'client',
     ],
 

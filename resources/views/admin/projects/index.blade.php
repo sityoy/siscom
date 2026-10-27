@@ -276,9 +276,28 @@
                                 <a href="{{ route('project.files', $project->id) }}"
                                    class="btn btn-info btn-sm">
 
-                                    Files {{ $project->files()->count() }}
+                                    Files {{ $project->files_count }}
 
                                 </a>
+
+                                <a href="{{ route('procurement-documents.index', [
+                                    'project_id' => $project->id
+                                ]) }}"
+                                   class="btn btn-primary btn-sm">
+
+                                    SPJ {{ $project->procurement_documents_count }}
+
+                                </a>
+
+                                @if($project->procurement_documents_count === 0)
+                                    <form method="POST"
+                                          action="{{ route('procurement-documents.generate', $project) }}"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Buat paket draf dokumen rekanan untuk project ini?')">
+                                        @csrf
+                                        <button class="btn btn-outline-primary btn-sm">Buat Paket SPJ</button>
+                                    </form>
+                                @endif
 
 
 

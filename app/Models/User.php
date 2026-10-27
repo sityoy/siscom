@@ -59,4 +59,9 @@ class User extends Authenticatable
             \App\Models\Notification::class
         );
     }
+
+    public function procurementDocuments()
+    {
+        return $this->hasMany(ProcurementDocument::class, 'created_by');
+    }
 }

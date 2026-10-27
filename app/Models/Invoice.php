@@ -132,4 +132,9 @@ class Invoice extends Model
             InvoiceWhatsAppReminder::class
         );
     }
+
+    public function procurementDocuments()
+    {
+        return $this->hasMany(ProcurementDocument::class);
+    }
 }

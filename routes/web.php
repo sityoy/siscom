@@ -167,6 +167,26 @@ Route::prefix('client')
             [App\Http\Controllers\Client\PaymentController::class, 'index']
         )->name('client.payments');
 
+        Route::get(
+            '/procurement-documents',
+            [App\Http\Controllers\Client\ProcurementDocumentController::class, 'index']
+        )->name('client.procurement-documents.index');
+
+        Route::get(
+            '/procurement-documents/{procurementDocument}/pdf',
+            [App\Http\Controllers\Client\ProcurementDocumentController::class, 'pdf']
+        )->name('client.procurement-documents.pdf');
+
+        Route::get(
+            '/procurement-documents/{procurementDocument}/signed',
+            [App\Http\Controllers\Client\ProcurementDocumentController::class, 'downloadSigned']
+        )->name('client.procurement-documents.signed');
+
+        Route::post(
+            '/procurement-documents/{procurementDocument}/signed',
+            [App\Http\Controllers\Client\ProcurementDocumentController::class, 'uploadSigned']
+        )->name('client.procurement-documents.signed.upload');
+
         // Profile
         Route::get(
             '/profile',
@@ -286,6 +306,66 @@ Route::prefix('admin')
         )->name(
             'admin.notifications.destroy'
         );
+
+        Route::get(
+            '/procurement-documents',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'index']
+        )->name('procurement-documents.index');
+
+        Route::get(
+            '/procurement-documents/create',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'create']
+        )->name('procurement-documents.create');
+
+        Route::post(
+            '/procurement-documents',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'store']
+        )->name('procurement-documents.store');
+
+        Route::get(
+            '/procurement-documents/project/{project}/package',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'projectPackage']
+        )->name('procurement-documents.package');
+
+        Route::post(
+            '/procurement-documents/project/{project}/generate',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'generateProjectPackage']
+        )->name('procurement-documents.generate');
+
+        Route::get(
+            '/procurement-documents/{procurementDocument}',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'show']
+        )->name('procurement-documents.show');
+
+        Route::get(
+            '/procurement-documents/{procurementDocument}/edit',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'edit']
+        )->name('procurement-documents.edit');
+
+        Route::put(
+            '/procurement-documents/{procurementDocument}',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'update']
+        )->name('procurement-documents.update');
+
+        Route::delete(
+            '/procurement-documents/{procurementDocument}',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'destroy']
+        )->name('procurement-documents.destroy');
+
+        Route::get(
+            '/procurement-documents/{procurementDocument}/pdf',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'pdf']
+        )->name('procurement-documents.pdf');
+
+        Route::post(
+            '/procurement-documents/{procurementDocument}/signed',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'uploadSigned']
+        )->name('procurement-documents.signed.upload');
+
+        Route::get(
+            '/procurement-documents/{procurementDocument}/signed',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'downloadSigned']
+        )->name('procurement-documents.signed.download');
 
 
     });

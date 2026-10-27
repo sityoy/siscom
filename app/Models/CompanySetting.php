@@ -10,11 +10,19 @@ class CompanySetting extends Model
 
         'company_name',
 
+        'legal_name',
+
         'company_email',
 
         'company_phone',
 
         'company_address',
+
+        'nib',
+        'npwp',
+        'director_name',
+        'director_title',
+        'city',
 
         'bank_jakarta',
         'bank_jakarta_name',

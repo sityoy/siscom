@@ -53,11 +53,19 @@ class CompanySettingController extends Controller
 
             'company_name' => 'required|max:255',
 
+            'legal_name' => 'nullable|max:255',
+
             'company_email' => 'nullable|email',
 
             'company_phone' => 'nullable|max:30',
 
             'company_address' => 'nullable',
+
+            'nib' => 'nullable|max:50',
+            'npwp' => 'nullable|max:50',
+            'director_name' => 'nullable|max:255',
+            'director_title' => 'nullable|max:255',
+            'city' => 'nullable|max:100',
 
             'logo' =>'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
 
@@ -92,9 +100,16 @@ class CompanySettingController extends Controller
         $setting->update([
 
             'company_name' => $request->company_name,
+            'legal_name' => $request->legal_name,
             'company_email' => $request->company_email,
             'company_phone' => $request->company_phone,
             'company_address' => $request->company_address,
+
+            'nib' => $request->nib,
+            'npwp' => $request->npwp,
+            'director_name' => $request->director_name,
+            'director_title' => $request->director_title,
+            'city' => $request->city,
 
             'bank_jakarta' => $request->bank_jakarta,
             'bank_jakarta_name' => $request->bank_jakarta_name,

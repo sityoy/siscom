@@ -53,5 +53,10 @@ class Project extends Model
         return $this->hasMany(Ticket::class);
     }
 
+    public function procurementDocuments()
+    {
+        return $this->hasMany(ProcurementDocument::class);
+    }
+
 
 }
