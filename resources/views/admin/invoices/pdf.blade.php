@@ -67,10 +67,24 @@
         ['name' => 'BANK MANDIRI', 'number' => $company?->bank_mandiri, 'holder' => $company?->bank_mandiri_name],
         ['name' => 'BANK BCA', 'number' => $company?->bank_bca, 'holder' => $company?->bank_bca_name],
     ])->filter(fn (array $bank) => filled($bank['number']))->values();
+    $titleTranslations = [
+        'kepala sekolah' => 'Principal',
+        'wakil kepala sekolah' => 'Vice Principal',
+        'bendahara' => 'Treasurer',
+        'ketua yayasan' => 'Foundation Chairperson',
+        'direktur' => 'Director',
+        'direktur utama' => 'President Director',
+        'pimpinan' => 'Director',
+        'direktur/pimpinan' => 'Director',
+    ];
     $schoolSignerName = $invoice->client->authorized_official_name;
-    $schoolSignerTitle = $invoice->client->authorized_official_title ?: 'Principal';
+    $schoolSignerTitleSource = $invoice->client->authorized_official_title ?: 'Principal';
+    $schoolSignerTitle = $titleTranslations[strtolower(trim($schoolSignerTitleSource))]
+        ?? $schoolSignerTitleSource;
     $directorName = $company?->director_name;
-    $directorTitle = $company?->director_title ?: 'Director';
+    $directorTitleSource = $company?->director_title ?: 'Director';
+    $directorTitle = $titleTranslations[strtolower(trim($directorTitleSource))]
+        ?? $directorTitleSource;
     $companyName = $company?->legal_name ?: ($company?->company_name ?: 'SIS.COM');
     $city = $company?->city ?: 'Tangerang';
     $isOverdue = $invoice->late_months > 0 && $invoice->status !== 'paid';
