@@ -29,7 +29,7 @@ class ProcurementDocument extends Model
     ];
 
     public const STATUSES = [
-        'draft' => 'Draft',
+        'ready' => 'Siap Digunakan',
         'awaiting_signature' => 'Menunggu Tanda Tangan',
         'signed' => 'Sudah Ditandatangani',
         'paid' => 'Sudah Dibayar',

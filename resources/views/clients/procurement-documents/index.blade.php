@@ -41,7 +41,7 @@
                                 @if($document->signed_file_path)
                                     <a href="{{ route('client.procurement-documents.signed', $document) }}" class="btn btn-success btn-sm">Bertanda Tangan</a>
                                 @endif
-                                @if(in_array($document->status, ['awaiting_signature', 'signed'], true))
+                                @if(in_array($document->status, ['ready', 'awaiting_signature', 'signed'], true))
                                     <form method="POST" enctype="multipart/form-data"
                                           action="{{ route('client.procurement-documents.signed.upload', $document) }}"
                                           class="mt-2">

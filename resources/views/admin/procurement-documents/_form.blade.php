@@ -14,9 +14,8 @@
 
 <div class="alert alert-info">
     <i class="fas fa-info-circle mr-1"></i>
-    Paket otomatis dibuat sebagai <strong>Draft</strong> agar nomor, tanggal, nilai, pajak, dan
-    penandatangan dapat diperiksa terlebih dahulu. Draft hanya terlihat oleh admin. Ubah menjadi
-    <strong>Menunggu Tanda Tangan</strong> setelah dokumen sudah benar dan siap ditampilkan kepada sekolah.
+    Dokumen baru langsung berstatus <strong>Siap Digunakan</strong>, tanpa tahap Draft dan tanpa watermark.
+    Data penandatangan sekolah otomatis mengikuti Pejabat Berwenang pada data Client dan tetap dapat disesuaikan.
 </div>
 
 <div class="row">
@@ -77,7 +76,7 @@
         <label>Status <span class="text-danger">*</span></label>
         <select name="status" class="form-control" required>
             @foreach(\App\Models\ProcurementDocument::STATUSES as $value => $label)
-                <option value="{{ $value }}" @selected(old('status', $document->status ?: 'draft') === $value)>{{ $label }}</option>
+                <option value="{{ $value }}" @selected(old('status', $document->status ?: 'ready') === $value)>{{ $label }}</option>
             @endforeach
         </select>
     </div>

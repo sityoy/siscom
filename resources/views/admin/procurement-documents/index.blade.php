@@ -13,7 +13,7 @@
     </div>
     <div class="col-md-3 col-6">
         <div class="small-box bg-warning">
-            <div class="inner"><h3>{{ $summary['awaiting'] }}</h3><p>Menunggu Tanda Tangan</p></div>
+            <div class="inner"><h3>{{ $summary['ready'] }}</h3><p>Siap Digunakan</p></div>
             <div class="icon"><i class="fas fa-pen-nib"></i></div>
         </div>
     </div>
@@ -128,6 +128,7 @@
                         @php
                             $statusClasses = [
                                 'draft' => 'secondary',
+                                'ready' => 'info',
                                 'awaiting_signature' => 'warning',
                                 'signed' => 'success',
                                 'paid' => 'primary',

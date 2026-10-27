@@ -61,7 +61,7 @@ class ProcurementDocumentController extends Controller
         $this->authorizeDocument($procurementDocument);
 
         abort_unless(
-            in_array($procurementDocument->status, ['awaiting_signature', 'signed'], true),
+            in_array($procurementDocument->status, ['ready', 'awaiting_signature', 'signed'], true),
             422,
             'Dokumen ini tidak sedang menunggu tanda tangan.',
         );

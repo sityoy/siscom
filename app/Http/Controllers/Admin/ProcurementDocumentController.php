@@ -42,7 +42,7 @@ class ProcurementDocumentController extends Controller
 
         $summary = [
             'total' => ProcurementDocument::count(),
-            'awaiting' => ProcurementDocument::where('status', 'awaiting_signature')->count(),
+            'ready' => ProcurementDocument::whereIn('status', ['ready', 'awaiting_signature'])->count(),
             'signed' => ProcurementDocument::whereIn('status', ['signed', 'paid', 'archived'])->count(),
             'projects' => ProcurementDocument::distinct('project_id')->count('project_id'),
         ];
@@ -71,7 +71,7 @@ class ProcurementDocumentController extends Controller
                 'school_signer_title' => $selectedProject?->client?->authorized_official_title,
                 'provider_signer_name' => CompanySetting::first()?->director_name,
                 'provider_signer_title' => CompanySetting::first()?->director_title,
-                'status' => 'draft',
+                'status' => 'ready',
                 'transaction_method' => 'non_siplah',
             ]),
             'projects' => $projects,
@@ -184,7 +184,7 @@ class ProcurementDocumentController extends Controller
                     'type' => $type,
                     'document_number' => 'TEMP-'.Str::uuid(),
                     'document_date' => now()->toDateString(),
-                    'status' => 'draft',
+                    'status' => 'ready',
                     'subject' => $project->title,
                     'amount' => $invoice?->total_due ?? $project->budget,
                     'school_signer_name' => $project->client?->authorized_official_name,
@@ -363,7 +363,7 @@ class ProcurementDocumentController extends Controller
 
     private function notifyClientWhenReady(ProcurementDocument $document): void
     {
-        if (!in_array($document->status, ['awaiting_signature', 'signed', 'paid', 'archived'], true)) {
+        if (!in_array($document->status, ['ready', 'awaiting_signature', 'signed', 'paid', 'archived'], true)) {
             return;
         }
 

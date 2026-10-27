@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('type', 50)->index();
             $table->string('document_number')->unique();
             $table->date('document_date');
-            $table->string('status', 30)->default('draft')->index();
+            $table->string('status', 30)->default('ready')->index();
             $table->string('title')->nullable();
             $table->string('subject')->nullable();
             $table->decimal('amount', 15, 2)->default(0);

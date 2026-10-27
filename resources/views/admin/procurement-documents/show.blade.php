@@ -6,6 +6,7 @@
 @php
     $statusClasses = [
         'draft' => 'secondary',
+        'ready' => 'info',
         'awaiting_signature' => 'warning',
         'signed' => 'success',
         'paid' => 'primary',

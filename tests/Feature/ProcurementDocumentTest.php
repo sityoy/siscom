@@ -23,7 +23,7 @@ class ProcurementDocumentTest extends TestCase
             'project_id' => $project->id,
             'type' => 'quotation',
             'document_date' => '2026-10-27',
-            'status' => 'draft',
+            'status' => 'ready',
             'amount' => 5000000,
             'transaction_method' => 'non_siplah',
         ]);
@@ -32,7 +32,7 @@ class ProcurementDocumentTest extends TestCase
 
         $response->assertRedirect(route('procurement-documents.show', $document));
         $this->assertSame('001/SPH/SIS/X/2026', $document->document_number);
-        $this->assertSame('draft', $document->status);
+        $this->assertSame('ready', $document->status);
     }
 
     public function test_client_only_sees_published_documents_for_its_own_project(): void
@@ -55,7 +55,7 @@ class ProcurementDocumentTest extends TestCase
             'type' => 'quotation',
             'document_number' => '002/SPH/SIS/X/2026',
             'document_date' => '2026-10-27',
-            'status' => 'awaiting_signature',
+            'status' => 'ready',
             'amount' => 5000000,
         ]);
 
@@ -78,7 +78,7 @@ class ProcurementDocumentTest extends TestCase
             'project_id' => $project->id,
             'type' => 'quotation',
             'document_date' => '2026-10-27',
-            'status' => 'draft',
+            'status' => 'ready',
             'amount' => 5000000,
             'transaction_method' => 'non_siplah',
         ])->assertRedirect();
@@ -112,7 +112,7 @@ class ProcurementDocumentTest extends TestCase
             'type' => 'quotation',
             'document_number' => '002/SPH/SIS/X/2026',
             'document_date' => '2026-10-27',
-            'status' => 'draft',
+            'status' => 'ready',
             'amount' => 5000000,
         ]);
 
