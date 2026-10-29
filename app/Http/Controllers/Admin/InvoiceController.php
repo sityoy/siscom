@@ -15,6 +15,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Notification;
 use App\Models\CompanySetting;
 use App\Services\ProjectInvoiceSyncService;
+use Illuminate\Validation\ValidationException;
 
 class InvoiceController extends Controller
 {
@@ -47,13 +48,24 @@ class InvoiceController extends Controller
     {
         $clients = Client::all();
 
-        $projects = Project::all();
+        $projects = Project::withCount('invoices')->get();
 
         $selectedProject = null;
 
         if ($request->filled('project_id')) {
             $selectedProject = Project::with('client')
                 ->find($request->integer('project_id'));
+
+            $existingInvoice = $selectedProject?->invoices()
+                ->latest('invoice_date')
+                ->latest('id')
+                ->first();
+
+            if ($existingInvoice) {
+                return redirect()
+                    ->route('invoices.edit', $existingInvoice)
+                    ->with('warning', 'Project ini sudah memiliki invoice. Silakan edit invoice yang sudah ada.');
+            }
         }
 
         $invoiceDefaults = [
@@ -134,6 +146,12 @@ class InvoiceController extends Controller
         $project = $request->filled('project_id')
             ? Project::findOrFail($request->integer('project_id'))
             : null;
+
+        if ($project?->invoices()->exists()) {
+            throw ValidationException::withMessages([
+                'project_id' => 'Project ini sudah memiliki invoice. Gunakan menu Edit Invoice.',
+            ]);
+        }
 
         $subtotal = 0;
 
@@ -297,7 +315,7 @@ class InvoiceController extends Controller
     {
         $clients = Client::all();
 
-        $projects = Project::all();
+        $projects = Project::withCount('invoices')->get();
 
         return view(
             'admin.invoices.edit',
@@ -329,6 +347,15 @@ class InvoiceController extends Controller
             $project = $request->filled('project_id')
                 ? Project::findOrFail($request->integer('project_id'))
                 : null;
+
+            if (
+                $project
+                && $project->invoices()->whereKeyNot($invoice->id)->exists()
+            ) {
+                throw ValidationException::withMessages([
+                    'project_id' => 'Project yang dipilih sudah memiliki invoice lain.',
+                ]);
+            }
 
             $subtotal = 0;
 

@@ -2,6 +2,29 @@
     $client = $document->project->client;
     $providerName = $company?->legal_name ?: ($company?->company_name ?: 'SIS.COM');
     $subject = $document->subject ?: $document->project->title;
+    $indonesianTitles = [
+        'principal' => 'Kepala Sekolah',
+        'vice principal' => 'Wakil Kepala Sekolah',
+        'treasurer' => 'Bendahara',
+        'foundation chairperson' => 'Ketua Yayasan',
+        'director' => 'Direktur',
+        'president director' => 'Direktur Utama',
+        'leader' => 'Pimpinan',
+        'kepala sekolah' => 'Kepala Sekolah',
+        'wakil kepala sekolah' => 'Wakil Kepala Sekolah',
+        'bendahara' => 'Bendahara',
+        'ketua yayasan' => 'Ketua Yayasan',
+        'direktur' => 'Direktur',
+        'direktur utama' => 'Direktur Utama',
+        'pimpinan' => 'Pimpinan',
+        'direktur/pimpinan' => 'Direktur/Pimpinan',
+    ];
+    $schoolSignerTitleSource = $document->school_signer_title ?: 'Pejabat yang Berwenang';
+    $schoolSignerTitle = $indonesianTitles[strtolower(trim($schoolSignerTitleSource))]
+        ?? $schoolSignerTitleSource;
+    $providerSignerTitleSource = $document->provider_signer_title ?: 'Pimpinan SIS.COM';
+    $providerSignerTitle = $indonesianTitles[strtolower(trim($providerSignerTitleSource))]
+        ?? $providerSignerTitleSource;
 @endphp
 
 @if($document->status === 'draft')
@@ -121,13 +144,13 @@
     <tr>
         <td width="50%" class="text-center">
             Pihak Sekolah/Client,<br>
-            <strong>{{ $document->school_signer_title ?: 'Pejabat yang Berwenang' }}</strong>
+            <strong>{{ $schoolSignerTitle }}</strong>
             <div class="signature-space"></div>
             <strong>{{ $document->school_signer_name ?: '(...................................)' }}</strong>
         </td>
         <td width="50%" class="text-center">
             {{ $company?->city ?: 'Tangerang' }}, {{ $document->document_date->locale('id')->translatedFormat('d F Y') }}<br>
-            <strong>{{ $document->provider_signer_title ?: 'Pimpinan SIS.COM' }}</strong>
+            <strong>{{ $providerSignerTitle }}</strong>
             <div class="signature-space"></div>
             <strong>{{ $document->provider_signer_name ?: ($company?->director_name ?: '(...................................)') }}</strong>
         </td>

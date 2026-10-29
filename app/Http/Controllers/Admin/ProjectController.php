@@ -14,8 +14,8 @@ class ProjectController extends Controller
 {
     public function index()
     {
-        $projects = Project::with('client')
-            ->withCount(['files', 'procurementDocuments'])
+        $projects = Project::with(['client', 'latestInvoice'])
+            ->withCount(['files', 'procurementDocuments', 'invoices'])
             ->latest()
             ->paginate(10);
 

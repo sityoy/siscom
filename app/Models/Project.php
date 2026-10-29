@@ -43,6 +43,11 @@ class Project extends Model
         return $this->hasMany(Invoice::class);
     }
 
+    public function latestInvoice()
+    {
+        return $this->hasOne(Invoice::class)->latestOfMany();
+    }
+
     public function files()
     {
         return $this->hasMany( ProjectFile::class );

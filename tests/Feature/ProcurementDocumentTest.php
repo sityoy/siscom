@@ -95,6 +95,7 @@ class ProcurementDocumentTest extends TestCase
     {
         Carbon::setTestNow('2026-10-27 10:00:00');
         [$admin, $project] = $this->createAdminAndProject();
+        $this->createProjectInvoice($project, '2026-10-27', '#INV-NUMBERING');
 
         $this->actingAs($admin)
             ->post(route('procurement-documents.generate', $project))
@@ -165,6 +166,35 @@ class ProcurementDocumentTest extends TestCase
         );
 
         Carbon::setTestNow();
+    }
+
+    public function test_spj_package_cannot_be_generated_before_project_invoice_exists(): void
+    {
+        [$admin, $project] = $this->createAdminAndProject();
+
+        $this->actingAs($admin)
+            ->post(route('procurement-documents.generate', $project))
+            ->assertRedirect(route('projects.index'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('procurement_documents', [
+            'project_id' => $project->id,
+        ]);
+    }
+
+    public function test_project_cannot_open_a_second_invoice_creation_form(): void
+    {
+        [$admin, $project] = $this->createAdminAndProject();
+        $invoice = $this->createProjectInvoice(
+            $project,
+            '2026-10-29',
+            '#INV-SINGLE-PROJECT',
+        );
+
+        $this->actingAs($admin)
+            ->get(route('invoices.create', ['project_id' => $project->id]))
+            ->assertRedirect(route('invoices.edit', $invoice))
+            ->assertSessionHas('warning');
     }
 
     public function test_editing_invoice_date_resynchronizes_existing_spj_documents(): void
@@ -267,5 +297,23 @@ class ProcurementDocumentTest extends TestCase
         ]);
 
         return [$admin, $project, $clientUser];
+    }
+
+    private function createProjectInvoice(
+        Project $project,
+        string $invoiceDate,
+        string $invoiceNumber,
+    ): Invoice {
+        return Invoice::create([
+            'client_id' => $project->client_id,
+            'project_id' => $project->id,
+            'invoice_number' => $invoiceNumber,
+            'invoice_date' => $invoiceDate,
+            'due_date' => $invoiceDate,
+            'status' => 'unpaid',
+            'invoice_type' => 'project',
+            'subtotal' => $project->budget,
+            'grand_total' => $project->budget,
+        ]);
     }
 }

@@ -186,6 +186,13 @@ class ProcurementDocumentController extends Controller
         ]);
 
         $packageInvoice = $project->invoices->first();
+
+        if (!$packageInvoice) {
+            return redirect()
+                ->route('procurement-documents.index', ['project_id' => $project->id])
+                ->with('error', 'Buat invoice project terlebih dahulu sebelum mencetak Paket SPJ.');
+        }
+
         $packageDate = $packageInvoice?->invoice_date
             ?? $packageInvoice?->created_at
             ?? now();
@@ -209,6 +216,13 @@ class ProcurementDocumentController extends Controller
         $project->loadMissing('client');
         $invoice = app(ProjectInvoiceSyncService::class)
             ->primaryInvoice($project);
+
+        if (!$invoice) {
+            return redirect()
+                ->route('projects.index')
+                ->with('error', 'Buat invoice project terlebih dahulu sebelum membuat Paket SPJ.');
+        }
+
         $documentDate = $invoice?->invoice_date
             ?? $invoice?->created_at
             ?? now();

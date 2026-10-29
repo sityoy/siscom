@@ -45,6 +45,16 @@
 
 @endif
 
+        @if(session('warning'))
+
+            <div class="alert alert-warning">
+
+                {{ session('warning') }}
+
+            </div>
+
+        @endif
+
         @if(session('error'))
 
             <div class="alert alert-danger">
@@ -264,14 +274,23 @@
 
                             <td class="text-center">
 
-                                <a href="{{ route('invoices.create', [
-                                    'project_id' => $project->id
-                                ]) }}"
-                                   class="btn btn-success btn-sm">
+                                @if($project->latestInvoice)
+                                    <a href="{{ route('invoices.edit', $project->latestInvoice) }}"
+                                       class="btn btn-warning btn-sm">
 
-                                    Buat Invoice
+                                        Edit Invoice
 
-                                </a>
+                                    </a>
+                                @else
+                                    <a href="{{ route('invoices.create', [
+                                        'project_id' => $project->id
+                                    ]) }}"
+                                       class="btn btn-success btn-sm">
+
+                                        Buat Invoice
+
+                                    </a>
+                                @endif
 
                                 <a href="{{ route('project.files', $project->id) }}"
                                    class="btn btn-info btn-sm">
@@ -289,15 +308,15 @@
 
                                 </a>
 
-                                @if($project->procurement_documents_count === 0)
+                                @if($project->procurement_documents_count === 0 && $project->latestInvoice)
                                     <form method="POST"
                                           action="{{ route('procurement-documents.generate', $project) }}"
                                           class="d-inline"
-                                          onsubmit="return confirm('Buat paket draf dokumen rekanan untuk project ini?')">
+                                          onsubmit="return confirm('Buat paket dokumen rekanan untuk project ini sesuai tanggal invoice?')">
                                         @csrf
                                         <button class="btn btn-outline-primary btn-sm">Buat Paket SPJ</button>
                                     </form>
-                                @else
+                                @elseif($project->procurement_documents_count > 0)
                                     <form method="POST"
                                           action="{{ route('procurement-documents.package.destroy', $project) }}"
                                           class="d-inline"
@@ -306,6 +325,13 @@
                                         @method('DELETE')
                                         <button class="btn btn-outline-danger btn-sm">Hapus Paket SPJ</button>
                                     </form>
+                                @else
+                                    <button type="button"
+                                            class="btn btn-outline-secondary btn-sm"
+                                            disabled
+                                            title="Buat invoice terlebih dahulu">
+                                        Buat Paket SPJ
+                                    </button>
                                 @endif
 
 

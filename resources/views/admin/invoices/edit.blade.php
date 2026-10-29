@@ -6,6 +6,12 @@
 
 <div class="card">
 
+    @if(session('warning'))
+        <div class="alert alert-warning m-3 mb-0">
+            {{ session('warning') }}
+        </div>
+    @endif
+
     <form action="{{ route('invoices.update', $invoice->id) }}"
           method="POST">
 
@@ -62,15 +68,20 @@
                                 data-budget="{{ $project->budget }}"
                                 data-late-active="{{ $project->late_fee_active ? 1 : 0 }}"
                                 data-late-fee="{{ $project->late_fee_per_month ?? 100000 }}"
+                                @disabled($project->invoices_count > 0 && $invoice->project_id != $project->id)
                                 @selected($invoice->project_id == $project->id)>
 
-                                {{ $project->title }}
+                                {{ $project->title }}{{ $project->invoices_count > 0 && $invoice->project_id != $project->id ? ' — Invoice sudah ada' : '' }}
 
                             </option>
 
                         @endforeach
 
                     </select>
+
+                    @error('project_id')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
 
                 </div>
 
