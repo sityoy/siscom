@@ -22,7 +22,7 @@
 
         <small class="text-muted">
 
-            SIS.COM — Software House & IT Solutions
+            SIS.COM — Software Development  •  IT Consulting  •  IT Support  •  Computer Services
 
         </small>
 
