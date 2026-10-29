@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ ($language ?? 'id') === 'en' ? 'en' : 'id' }}">
 <head>
     <meta charset="utf-8">
     <title>Invoice {{ $invoice->invoice_number }}</title>
@@ -59,6 +59,84 @@
 </head>
 <body>
 @php
+    $language = $language ?? 'id';
+    $language = in_array($language, ['id', 'en'], true) ? $language : 'id';
+    $labels = [
+        'id' => [
+            'invoice_number' => 'Nomor Invoice',
+            'invoice_date' => 'Tanggal Invoice',
+            'invoice_type' => 'Jenis Invoice',
+            'package_renewal' => 'Perpanjangan Paket',
+            'project' => 'Proyek',
+            'due_date' => 'Jatuh Tempo',
+            'late_fee' => 'Denda',
+            'per_30_days' => '/ 30 hari',
+            'status' => 'Status',
+            'bill_to' => 'DITAGIHKAN KEPADA',
+            'description' => 'Deskripsi',
+            'qty' => 'Jumlah',
+            'price' => 'Harga',
+            'duration' => 'Durasi',
+            'period' => 'Periode',
+            'total' => 'Total',
+            'day' => 'Hari',
+            'month' => 'Bulan',
+            'year' => 'Tahun',
+            'to' => 's.d.',
+            'notes' => 'CATATAN',
+            'payment_information' => 'INFORMASI PEMBAYARAN',
+            'account_holder' => 'ATAS NAMA',
+            'payment_missing' => 'Rekening pembayaran belum diatur pada Pengaturan Perusahaan.',
+            'subtotal' => 'Subtotal',
+            'vat' => 'PPN',
+            'service_fee' => 'Biaya Layanan',
+            'approved_by' => 'Disetujui oleh,',
+            'thank_you' => 'Terima kasih atas kepercayaan Anda!',
+            'default_note' => 'Terima kasih telah mempercayakan kebutuhan teknologi Anda kepada',
+            'paid' => 'LUNAS',
+            'unpaid' => 'BELUM LUNAS',
+            'partial' => 'DIBAYAR SEBAGIAN',
+            'cancelled' => 'DIBATALKAN',
+            'overdue' => 'TERLAMBAT',
+        ],
+        'en' => [
+            'invoice_number' => 'Invoice Number',
+            'invoice_date' => 'Invoice Date',
+            'invoice_type' => 'Invoice Type',
+            'package_renewal' => 'Package Renewal',
+            'project' => 'Project',
+            'due_date' => 'Due Date',
+            'late_fee' => 'Late Fee',
+            'per_30_days' => '/ 30 days',
+            'status' => 'Status',
+            'bill_to' => 'BILL TO',
+            'description' => 'Description',
+            'qty' => 'Qty',
+            'price' => 'Price',
+            'duration' => 'Duration',
+            'period' => 'Period',
+            'total' => 'Total',
+            'day' => 'Day(s)',
+            'month' => 'Month(s)',
+            'year' => 'Year(s)',
+            'to' => 'to',
+            'notes' => 'NOTES',
+            'payment_information' => 'PAYMENT INFORMATION',
+            'account_holder' => 'ACCOUNT HOLDER',
+            'payment_missing' => 'Payment account has not been configured in Company Settings.',
+            'subtotal' => 'Subtotal',
+            'vat' => 'VAT',
+            'service_fee' => 'Service Fee',
+            'approved_by' => 'Approved by,',
+            'thank_you' => 'Thank you for your business!',
+            'default_note' => 'Thank you for entrusting your technology needs to',
+            'paid' => 'PAID',
+            'unpaid' => 'UNPAID',
+            'partial' => 'PARTIALLY PAID',
+            'cancelled' => 'CANCELLED',
+            'overdue' => 'OVERDUE',
+        ],
+    ][$language];
     $configuredLogo = $company?->logo ? storage_path('app/public/'.$company->logo) : null;
     $defaultLogo = public_path('logo/siscombg2.png');
     $logoPath = $configuredLogo && file_exists($configuredLogo) ? $configuredLogo : $defaultLogo;
@@ -67,7 +145,23 @@
         ['name' => 'BANK MANDIRI', 'number' => $company?->bank_mandiri, 'holder' => $company?->bank_mandiri_name],
         ['name' => 'BANK BCA', 'number' => $company?->bank_bca, 'holder' => $company?->bank_bca_name],
     ])->filter(fn (array $bank) => filled($bank['number']))->values();
-    $titleTranslations = [
+    $titleTranslations = $language === 'id' ? [
+        'principal' => 'Kepala Sekolah',
+        'vice principal' => 'Wakil Kepala Sekolah',
+        'treasurer' => 'Bendahara',
+        'foundation chairperson' => 'Ketua Yayasan',
+        'director' => 'Direktur',
+        'president director' => 'Direktur Utama',
+        'leader' => 'Pimpinan',
+        'kepala sekolah' => 'Kepala Sekolah',
+        'wakil kepala sekolah' => 'Wakil Kepala Sekolah',
+        'bendahara' => 'Bendahara',
+        'ketua yayasan' => 'Ketua Yayasan',
+        'direktur' => 'Direktur',
+        'direktur utama' => 'Direktur Utama',
+        'pimpinan' => 'Pimpinan',
+        'direktur/pimpinan' => 'Direktur/Pimpinan',
+    ] : [
         'kepala sekolah' => 'Principal',
         'wakil kepala sekolah' => 'Vice Principal',
         'bendahara' => 'Treasurer',
@@ -78,17 +172,24 @@
         'direktur/pimpinan' => 'Director',
     ];
     $schoolSignerName = $invoice->client->authorized_official_name;
-    $schoolSignerTitleSource = $invoice->client->authorized_official_title ?: 'Principal';
+    $schoolSignerTitleSource = $invoice->client->authorized_official_title
+        ?: ($language === 'id' ? 'Kepala Sekolah' : 'Principal');
     $schoolSignerTitle = $titleTranslations[strtolower(trim($schoolSignerTitleSource))]
         ?? $schoolSignerTitleSource;
     $directorName = $company?->director_name;
-    $directorTitleSource = $company?->director_title ?: 'Director';
+    $directorTitleSource = $company?->director_title
+        ?: ($language === 'id' ? 'Direktur' : 'Director');
     $directorTitle = $titleTranslations[strtolower(trim($directorTitleSource))]
         ?? $directorTitleSource;
     $companyName = $company?->legal_name ?: ($company?->company_name ?: 'SIS.COM');
     $city = $company?->city ?: 'Tangerang';
     $isOverdue = $invoice->late_months > 0 && $invoice->status !== 'paid';
-    $displayStatus = $isOverdue ? 'OVERDUE' : strtoupper($invoice->status);
+    $displayStatus = $isOverdue
+        ? $labels['overdue']
+        : ($labels[$invoice->status] ?? strtoupper($invoice->status));
+    $formatDate = fn ($date) => $language === 'id'
+        ? $date->copy()->locale('id')->translatedFormat('d F Y')
+        : $date->format('d M Y');
 @endphp
 
 @include('admin.procurement-documents._company-letterhead')
@@ -98,14 +199,14 @@
         <td width="58%"><div class="invoice-title">INVOICE</div></td>
         <td width="42%">
             <table class="invoice-meta">
-                <tr><td>Invoice Number</td><td>: {{ $invoice->invoice_number }}</td></tr>
-                <tr><td>Invoice Date</td><td>: {{ ($invoice->invoice_date ?? $invoice->created_at)->format('d M Y') }}</td></tr>
-                <tr><td>Invoice Type</td><td>: {{ $invoice->invoice_type === 'renewal' ? 'Package Renewal' : 'Project' }}</td></tr>
-                <tr><td>Due Date</td><td>: {{ $invoice->due_date?->format('d M Y') ?? '-' }}</td></tr>
+                <tr><td>{{ $labels['invoice_number'] }}</td><td>: {{ $invoice->invoice_number }}</td></tr>
+                <tr><td>{{ $labels['invoice_date'] }}</td><td>: {{ $formatDate($invoice->invoice_date ?? $invoice->created_at) }}</td></tr>
+                <tr><td>{{ $labels['invoice_type'] }}</td><td>: {{ $invoice->invoice_type === 'renewal' ? $labels['package_renewal'] : $labels['project'] }}</td></tr>
+                <tr><td>{{ $labels['due_date'] }}</td><td>: {{ $invoice->due_date ? $formatDate($invoice->due_date) : '-' }}</td></tr>
                 @if($invoice->late_fee_active)
-                    <tr><td>Late Fee</td><td>: Rp {{ number_format($invoice->late_fee_per_month, 0, ',', '.') }} / 30 days</td></tr>
+                    <tr><td>{{ $labels['late_fee'] }}</td><td>: Rp {{ number_format($invoice->late_fee_per_month, 0, ',', '.') }} {{ $labels['per_30_days'] }}</td></tr>
                 @endif
-                <tr><td>Status</td><td>: <span class="badge {{ $isOverdue ? 'overdue' : $invoice->status }}">{{ $displayStatus }}</span></td></tr>
+                <tr><td>{{ $labels['status'] }}</td><td>: <span class="badge {{ $isOverdue ? 'overdue' : $invoice->status }}">{{ $displayStatus }}</span></td></tr>
             </table>
         </td>
     </tr>
@@ -115,7 +216,7 @@
     <tr>
         <td>
             <div class="box">
-                <div class="section-title">BILL TO</div>
+                <div class="section-title">{{ $labels['bill_to'] }}</div>
                 <strong>{{ $invoice->client->name }}</strong><br>
                 @if($invoice->client->address){{ $invoice->client->address }}<br>@endif
                 @if($invoice->client->email){{ $invoice->client->email }}@endif
@@ -123,8 +224,8 @@
         </td>
         <td>
             <div class="box">
-                <div class="section-title">PROJECT</div>
-                <strong>{{ $invoice->project?->title ?? 'Package Renewal' }}</strong>
+                <div class="section-title">{{ strtoupper($labels['project']) }}</div>
+                <strong>{{ $invoice->project?->title ?? $labels['package_renewal'] }}</strong>
                 @if($invoice->project?->description)<br>{{ $invoice->project->description }}@endif
             </div>
         </td>
@@ -134,8 +235,8 @@
 <table class="items">
     <thead>
         <tr>
-            <th width="5%">No.</th><th width="29%">Description</th><th width="7%">Qty</th>
-            <th width="16%">Price</th><th width="12%">Duration</th><th width="15%">Period</th><th width="16%">Total</th>
+            <th width="5%">No.</th><th width="29%">{{ $labels['description'] }}</th><th width="7%">{{ $labels['qty'] }}</th>
+            <th width="16%">{{ $labels['price'] }}</th><th width="12%">{{ $labels['duration'] }}</th><th width="15%">{{ $labels['period'] }}</th><th width="16%">{{ $labels['total'] }}</th>
         </tr>
     </thead>
     <tbody>
@@ -149,14 +250,14 @@
                     @if($item->duration)
                         {{ $item->duration }}
                         {{ match ($item->duration_type) {
-                            'Hari' => 'Day(s)', 'Bulan' => 'Month(s)', 'Tahun' => 'Year(s)', default => $item->duration_type,
+                            'Hari' => $labels['day'], 'Bulan' => $labels['month'], 'Tahun' => $labels['year'], default => $item->duration_type,
                         } }}
                     @else - @endif
                 </td>
                 <td class="text-center">
                     @if($item->start_date)
-                        {{ \Carbon\Carbon::parse($item->start_date)->format('d M Y') }}<br>to<br>
-                        {{ $item->end_date ? \Carbon\Carbon::parse($item->end_date)->format('d M Y') : '-' }}
+                        {{ $formatDate(\Carbon\Carbon::parse($item->start_date)) }}<br>{{ $labels['to'] }}<br>
+                        {{ $item->end_date ? $formatDate(\Carbon\Carbon::parse($item->end_date)) : '-' }}
                     @else - @endif
                 </td>
                 <td class="text-right"><strong>Rp {{ number_format($item->total, 0, ',', '.') }}</strong></td>
@@ -169,10 +270,10 @@
     <tr>
         <td class="payment-column">
             <div class="notes">
-                <div class="section-title">NOTES</div>
-                {{ $invoice->notes ?: 'Thank you for trusting '.$companyName.' with your technology needs.' }}
+                <div class="section-title">{{ $labels['notes'] }}</div>
+                {{ $invoice->notes ?: $labels['default_note'].' '.$companyName.'.' }}
             </div>
-            <div class="section-title">PAYMENT INFORMATION</div>
+            <div class="section-title">{{ $labels['payment_information'] }}</div>
             @if($banks->isNotEmpty())
                 <table class="banks"><tr>
                     @foreach($banks as $bank)
@@ -180,22 +281,22 @@
                             <div class="bank-card">
                                 <div class="bank-name">{{ $bank['name'] }}</div>
                                 <strong>{{ $bank['number'] }}</strong><br>
-                                ACCOUNT HOLDER:<br>{{ $bank['holder'] ?: '-' }}
+                                {{ $labels['account_holder'] }}:<br>{{ $bank['holder'] ?: '-' }}
                             </div>
                         </td>
                     @endforeach
                 </tr></table>
             @else
-                <div class="notes">Payment account has not been configured in Company Settings.</div>
+                <div class="notes">{{ $labels['payment_missing'] }}</div>
             @endif
         </td>
         <td class="summary-column">
             <table class="summary">
-                <tr><td>Subtotal</td><td class="text-right">Rp {{ number_format($invoice->subtotal, 0, ',', '.') }}</td></tr>
-                <tr><td>VAT {{ number_format($invoice->vat_percent, 0) }}%</td><td class="text-right">Rp {{ number_format($invoice->vat, 0, ',', '.') }}</td></tr>
-                <tr><td>Service Fee</td><td class="text-right">Rp {{ number_format($invoice->service_fee, 0, ',', '.') }}</td></tr>
+                <tr><td>{{ $labels['subtotal'] }}</td><td class="text-right">Rp {{ number_format($invoice->subtotal, 0, ',', '.') }}</td></tr>
+                <tr><td>{{ $labels['vat'] }} {{ number_format($invoice->vat_percent, 0) }}%</td><td class="text-right">Rp {{ number_format($invoice->vat, 0, ',', '.') }}</td></tr>
+                <tr><td>{{ $labels['service_fee'] }}</td><td class="text-right">Rp {{ number_format($invoice->service_fee, 0, ',', '.') }}</td></tr>
                 @if($invoice->late_fee_amount > 0)
-                    <tr class="late-fee"><td>Late Fee ({{ $invoice->late_months }} {{ (int) $invoice->late_months === 1 ? 'Month' : 'Months' }})</td><td class="text-right">Rp {{ number_format($invoice->late_fee_amount, 0, ',', '.') }}</td></tr>
+                    <tr class="late-fee"><td>{{ $labels['late_fee'] }} ({{ $invoice->late_months }} {{ $labels['month'] }})</td><td class="text-right">Rp {{ number_format($invoice->late_fee_amount, 0, ',', '.') }}</td></tr>
                 @endif
                 <tr class="total"><td>TOTAL</td><td class="text-right">Rp {{ number_format($invoice->total_due, 0, ',', '.') }}</td></tr>
             </table>
@@ -206,13 +307,13 @@
 <table class="signatures">
     <tr>
         <td>
-            Approved by,<br><strong>{{ $schoolSignerTitle }}</strong>
+            {{ $labels['approved_by'] }}<br><strong>{{ $schoolSignerTitle }}</strong>
             <div class="signature-space"></div>
             <span class="signer-name">{{ $schoolSignerName ?: '(...................................)' }}</span>
             {{ $invoice->client->name }}
         </td>
         <td>
-            {{ $city }}, {{ ($invoice->invoice_date ?? $invoice->created_at)->format('d F Y') }}<br><strong>{{ $directorTitle }}</strong>
+            {{ $city }}, {{ $formatDate($invoice->invoice_date ?? $invoice->created_at) }}<br><strong>{{ $directorTitle }}</strong>
             <div class="signature-space"></div>
             <span class="signer-name">{{ $directorName ?: '(...................................)' }}</span>
             {{ $companyName }}
@@ -221,7 +322,7 @@
 </table>
 
 <div class="footer">
-    Thank you for your business!<br>
+    {{ $labels['thank_you'] }}<br>
     {{ $company?->website ?: 'SIS.COM' }} — {{ $companyName }}
 </div>
 </body>

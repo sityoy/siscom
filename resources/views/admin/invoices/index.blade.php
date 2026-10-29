@@ -496,12 +496,21 @@
 
                                 <div class="d-grid gap-2">
 
-                                    <a href="{{ route('invoices.pdf', $invoice->id) }}"
+                                    <a href="{{ route('invoices.pdf', ['invoice' => $invoice->id, 'lang' => 'id']) }}"
                                        class="btn btn-success btn-sm rounded-pill">
 
                                         <i class="bi bi-file-earmark-pdf me-1"></i>
 
-                                        PDF
+                                        PDF Indonesia
+
+                                    </a>
+
+                                    <a href="{{ route('invoices.pdf', ['invoice' => $invoice->id, 'lang' => 'en']) }}"
+                                       class="btn btn-outline-success btn-sm rounded-pill">
+
+                                        <i class="bi bi-translate me-1"></i>
+
+                                        PDF English
 
                                     </a>
 

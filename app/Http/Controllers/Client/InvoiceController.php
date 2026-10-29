@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\CompanySetting;
+use Illuminate\Http\Request;
 
 class InvoiceController extends Controller
 {
@@ -36,7 +37,7 @@ class InvoiceController extends Controller
         );
     }
 
-    public function pdf(Invoice $invoice)
+    public function pdf(Request $request, Invoice $invoice)
     {
         $client = auth()->user()->client;
 
@@ -55,19 +56,22 @@ class InvoiceController extends Controller
 
         $invoice->loadMissing(['client.user', 'project', 'items']);
         $company = CompanySetting::first();
+        $language = in_array($request->query('lang'), ['id', 'en'], true)
+            ? $request->query('lang')
+            : 'id';
 
         $pdf = Pdf::loadView(
 
             'admin.invoices.pdf',
 
-            compact('invoice', 'company')
+            compact('invoice', 'company', 'language')
 
         );
 
         return $pdf->download(
 
             'invoice-' .
-            $invoice->invoice_number .
+            $invoice->invoice_number . '-' . strtoupper($language) .
             '.pdf'
 
         );

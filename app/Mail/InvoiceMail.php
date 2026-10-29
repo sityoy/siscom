@@ -34,6 +34,7 @@ class InvoiceMail extends Mailable
             [
                 'invoice' => $this->invoice,
                 'company' => $company,
+                'language' => 'id',
             ]
 
         );

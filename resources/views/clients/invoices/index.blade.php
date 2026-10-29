@@ -117,10 +117,17 @@
 
                             <td>
 
-                                <a href="{{ route('client.invoices.pdf', $invoice->id) }}"
+                                <a href="{{ route('client.invoices.pdf', ['invoice' => $invoice->id, 'lang' => 'id']) }}"
                                    class="btn btn-success btn-sm">
 
-                                    Download PDF
+                                    PDF Indonesia
+
+                                </a>
+
+                                <a href="{{ route('client.invoices.pdf', ['invoice' => $invoice->id, 'lang' => 'en']) }}"
+                                   class="btn btn-outline-success btn-sm">
+
+                                    PDF English
 
                                 </a>
 

@@ -50,6 +50,12 @@
     $configuredLogo = $company?->logo ? storage_path('app/public/'.$company->logo) : null;
     $defaultLogo = public_path('logo/siscombg2.png');
     $logoPath = $configuredLogo && file_exists($configuredLogo) ? $configuredLogo : $defaultLogo;
+    $invoiceStatusLabels = [
+        'paid' => 'LUNAS',
+        'unpaid' => 'BELUM LUNAS',
+        'partial' => 'DIBAYAR SEBAGIAN',
+        'cancelled' => 'DIBATALKAN',
+    ];
 @endphp
 
 @include('admin.procurement-documents._company-letterhead')
@@ -87,7 +93,7 @@
                 <td class="text-center">{{ $project->procurementDocuments->count() + $loop->iteration }}</td>
                 <td>Invoice</td>
                 <td>{{ $invoice->invoice_number }}</td>
-                <td>{{ strtoupper($invoice->status) }}</td>
+                <td>{{ $invoiceStatusLabels[$invoice->status] ?? strtoupper($invoice->status) }}</td>
             </tr>
         @endforeach
     </tbody>
@@ -119,7 +125,7 @@
         <tr><td width="28%">Nomor Invoice</td><td width="3%">:</td><td>{{ $invoice->invoice_number }}</td></tr>
         <tr><td>Tanggal</td><td>:</td><td>{{ ($invoice->invoice_date ?? $invoice->created_at)->locale('id')->translatedFormat('d F Y') }}</td></tr>
         <tr><td>Jatuh Tempo</td><td>:</td><td>{{ $invoice->due_date?->locale('id')->translatedFormat('d F Y') ?? '-' }}</td></tr>
-        <tr><td>Status</td><td>:</td><td>{{ strtoupper($invoice->status) }}</td></tr>
+        <tr><td>Status</td><td>:</td><td>{{ $invoiceStatusLabels[$invoice->status] ?? strtoupper($invoice->status) }}</td></tr>
     </table>
     <table class="invoice-table">
         <thead><tr><th>Uraian</th><th width="10%">Qty</th><th width="23%">Harga</th><th width="23%">Total</th></tr></thead>
@@ -132,10 +138,19 @@
                     <td class="text-right">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
                 </tr>
             @endforeach
+            <tr><td colspan="3" class="text-right">Subtotal</td><td class="text-right">Rp {{ number_format($invoice->subtotal, 0, ',', '.') }}</td></tr>
+            <tr><td colspan="3" class="text-right">PPN {{ number_format($invoice->vat_percent, 0) }}%</td><td class="text-right">Rp {{ number_format($invoice->vat, 0, ',', '.') }}</td></tr>
+            <tr><td colspan="3" class="text-right">Biaya Layanan</td><td class="text-right">Rp {{ number_format($invoice->service_fee, 0, ',', '.') }}</td></tr>
+            @if($invoice->late_fee_amount > 0)
+                <tr>
+                    <td colspan="3" class="text-right"><strong>Denda ({{ $invoice->late_months }} bulan)</strong></td>
+                    <td class="text-right"><strong>Rp {{ number_format($invoice->late_fee_amount, 0, ',', '.') }}</strong></td>
+                </tr>
+            @endif
             <tr><td colspan="3" class="text-right"><strong>Total Tagihan</strong></td><td class="text-right"><strong>Rp {{ number_format($invoice->total_due, 0, ',', '.') }}</strong></td></tr>
         </tbody>
     </table>
-    <p class="muted">Ringkasan ini merupakan bagian paket SPJ. Invoice resmi tetap tersedia melalui menu Invoice.</p>
+    <p class="muted">Perhitungan ringkasan ini menggunakan sumber data yang sama dengan PDF Invoice resmi.</p>
 @endforeach
 </body>
 </html>

@@ -492,44 +492,52 @@ class InvoiceController extends Controller
         );
     }
 
-    public function pdf(Invoice $invoice)
+    public function pdf(Request $request, Invoice $invoice)
     {
         $invoice->loadMissing(['client.user', 'project', 'items']);
         $company = CompanySetting::first();
+        $language = $this->invoiceLanguage($request);
 
         $pdf = Pdf::loadView(
             'admin.invoices.pdf',
-            compact('invoice', 'company')
+            compact('invoice', 'company', 'language')
 
         );
 
 
         return $pdf->download(
             'invoice-' .
-            $invoice->invoice_number .
+            $invoice->invoice_number . '-' . strtoupper($language) .
             '.pdf'
         );
 
 
     }
 
-    public function viewPdf(
-        Invoice $invoice
-    ){
+    public function viewPdf(Request $request, Invoice $invoice)
+    {
         $invoice->loadMissing(['client.user', 'project', 'items']);
         $company = CompanySetting::first();
+        $language = $this->invoiceLanguage($request);
 
         $pdf = Pdf::loadView(
             'admin.invoices.pdf',
-            compact('invoice', 'company')
+            compact('invoice', 'company', 'language')
         );
 
         return $pdf->stream();
     }
 
-    public function whatsappPdf(Invoice $invoice)
+    public function whatsappPdf(Request $request, Invoice $invoice)
     {
-        return $this->viewPdf($invoice);
+        return $this->viewPdf($request, $invoice);
+    }
+
+    private function invoiceLanguage(Request $request): string
+    {
+        return in_array($request->query('lang'), ['id', 'en'], true)
+            ? $request->query('lang')
+            : 'id';
     }
 
 }
