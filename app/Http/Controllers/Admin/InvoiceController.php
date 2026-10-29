@@ -14,6 +14,7 @@ use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Notification;
 use App\Models\CompanySetting;
+use App\Services\ProjectInvoiceSyncService;
 
 class InvoiceController extends Controller
 {
@@ -130,6 +131,10 @@ class InvoiceController extends Controller
             'price.*' => 'required|numeric|min:0',
         ]);
 
+        $project = $request->filled('project_id')
+            ? Project::findOrFail($request->integer('project_id'))
+            : null;
+
         $subtotal = 0;
 
         foreach ($request->price as $index => $price) {
@@ -157,7 +162,7 @@ class InvoiceController extends Controller
 
         $invoice = Invoice::create([
 
-            'client_id' => $request->client_id,
+            'client_id' => $project?->client_id ?? $request->client_id,
 
             'project_id' => $request->project_id,
 
@@ -175,11 +180,13 @@ class InvoiceController extends Controller
 
             'service_fee' => $serviceFee,
 
-            'late_fee_active' => $request->boolean('late_fee_active'),
+            'late_fee_active' => $project
+                ? (bool) $project->late_fee_active
+                : $request->boolean('late_fee_active'),
 
-            'late_fee_per_month' => $request->boolean('late_fee_active')
-                ? $request->late_fee_per_month
-                : 0,
+            'late_fee_per_month' => $project
+                ? ($project->late_fee_active ? $project->late_fee_per_month : 0)
+                : ($request->boolean('late_fee_active') ? $request->late_fee_per_month : 0),
 
             'cashback' => $cashback,
 
@@ -244,6 +251,9 @@ class InvoiceController extends Controller
 
             ]);
         }
+
+        app(ProjectInvoiceSyncService::class)
+            ->syncAfterInvoiceSaved($invoice->fresh('project'));
 
         // EMAIL
         try {
@@ -315,6 +325,11 @@ class InvoiceController extends Controller
                 'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
             ]);
 
+            $previousProjectId = $invoice->project_id;
+            $project = $request->filled('project_id')
+                ? Project::findOrFail($request->integer('project_id'))
+                : null;
+
             $subtotal = 0;
 
             foreach ($request->price as $index => $price) {
@@ -342,7 +357,7 @@ class InvoiceController extends Controller
 
             $invoice->update([
 
-                'client_id' => $request->client_id,
+                'client_id' => $project?->client_id ?? $request->client_id,
 
                 'project_id' => $request->project_id,
 
@@ -360,11 +375,13 @@ class InvoiceController extends Controller
 
                 'service_fee' => $serviceFee,
 
-                'late_fee_active' => $request->boolean('late_fee_active'),
+                'late_fee_active' => $project
+                    ? (bool) $project->late_fee_active
+                    : $request->boolean('late_fee_active'),
 
-                'late_fee_per_month' => $request->boolean('late_fee_active')
-                    ? $request->late_fee_per_month
-                    : 0,
+                'late_fee_per_month' => $project
+                    ? ($project->late_fee_active ? $project->late_fee_per_month : 0)
+                    : ($request->boolean('late_fee_active') ? $request->late_fee_per_month : 0),
 
                 'cashback' => $cashback,
 
@@ -418,6 +435,9 @@ class InvoiceController extends Controller
 
             }
 
+            app(ProjectInvoiceSyncService::class)
+                ->syncAfterInvoiceSaved($invoice->fresh('project'), $previousProjectId);
+
             return redirect()
                 ->route('invoices.index')
                 ->with(
@@ -428,9 +448,16 @@ class InvoiceController extends Controller
 
     public function destroy(Invoice $invoice)
     {
+        $projectId = $invoice->project_id;
+
         $invoice->items()->delete();
 
         $invoice->delete();
+
+        if ($projectId && ($project = Project::find($projectId))) {
+            app(ProjectInvoiceSyncService::class)
+                ->syncProjectPackage($project);
+        }
 
         return back()->with(
             'success',

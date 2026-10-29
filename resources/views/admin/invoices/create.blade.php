@@ -529,6 +529,10 @@ projectSelect.addEventListener('change', function(){
     firstItem.querySelector('.price').value =
         option.dataset.budget || 0;
 
+    firstItem.querySelector('.price').dispatchEvent(
+        new Event('input', { bubbles: true })
+    );
+
     document.getElementById('late-fee-active').checked =
         option.dataset.lateActive === '1';
 

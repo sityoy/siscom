@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Invoice;
 use App\Models\ProcurementDocument;
 use App\Models\Project;
 use App\Models\User;
+use App\Services\ProjectInvoiceSyncService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -125,6 +127,81 @@ class ProcurementDocumentTest extends TestCase
         );
 
         Carbon::setTestNow();
+    }
+
+    public function test_spj_package_uses_the_latest_active_invoice_date(): void
+    {
+        Carbon::setTestNow('2026-10-29 10:00:00');
+        [$admin, $project] = $this->createAdminAndProject();
+
+        $invoice = Invoice::create([
+            'client_id' => $project->client_id,
+            'project_id' => $project->id,
+            'invoice_number' => '#INV-TEST-001',
+            'invoice_date' => '2026-06-09',
+            'due_date' => '2026-07-11',
+            'status' => 'unpaid',
+            'invoice_type' => 'project',
+            'subtotal' => 5000000,
+            'grand_total' => 5000000,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('procurement-documents.generate', $project))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('procurement_documents', [
+            'project_id' => $project->id,
+            'invoice_id' => $invoice->id,
+            'document_date' => '2026-06-09',
+        ]);
+
+        $this->assertSame(
+            ProcurementDocument::where('project_id', $project->id)->count(),
+            ProcurementDocument::where('project_id', $project->id)
+                ->where('invoice_id', $invoice->id)
+                ->whereDate('document_date', '2026-06-09')
+                ->count(),
+        );
+
+        Carbon::setTestNow();
+    }
+
+    public function test_editing_invoice_date_resynchronizes_existing_spj_documents(): void
+    {
+        [$admin, $project] = $this->createAdminAndProject();
+
+        $invoice = Invoice::create([
+            'client_id' => $project->client_id,
+            'project_id' => $project->id,
+            'invoice_number' => '#INV-TEST-002',
+            'invoice_date' => '2026-06-09',
+            'due_date' => '2026-07-11',
+            'status' => 'unpaid',
+            'invoice_type' => 'project',
+            'subtotal' => 5000000,
+            'grand_total' => 5000000,
+        ]);
+
+        $document = ProcurementDocument::create([
+            'project_id' => $project->id,
+            'created_by' => $admin->id,
+            'type' => 'handover',
+            'document_number' => '001/BAST/SIS/X/2026',
+            'document_date' => '2026-10-29',
+            'status' => 'ready',
+            'amount' => 5000000,
+        ]);
+
+        $invoice->update(['invoice_date' => '2026-06-15']);
+
+        app(ProjectInvoiceSyncService::class)
+            ->syncAfterInvoiceSaved($invoice->fresh('project'));
+
+        $document->refresh();
+
+        $this->assertSame($invoice->id, $document->invoice_id);
+        $this->assertSame('2026-06-15', $document->document_date->toDateString());
     }
 
     public function test_super_admin_can_delete_an_entire_project_spj_package(): void

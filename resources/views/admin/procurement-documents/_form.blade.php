@@ -41,7 +41,10 @@
             <option value="">-- Tidak ada/belum dibuat --</option>
             @foreach($projects as $project)
                 @foreach($project->invoices as $invoice)
-                    <option value="{{ $invoice->id }}" data-project="{{ $project->id }}"
+                    <option value="{{ $invoice->id }}"
+                            data-project="{{ $project->id }}"
+                            data-invoice-date="{{ ($invoice->invoice_date ?? $invoice->created_at)->format('Y-m-d') }}"
+                            data-total="{{ $invoice->total_due }}"
                             @selected((string) $selectedInvoiceId === (string) $invoice->id)>
                         {{ $invoice->invoice_number }} — Rp {{ number_format($invoice->total_due, 0, ',', '.') }}
                     </option>
@@ -68,7 +71,7 @@
 
     <div class="col-md-4 mb-3">
         <label>Tanggal Dokumen <span class="text-danger">*</span></label>
-        <input type="date" name="document_date" class="form-control" required
+        <input type="date" name="document_date" id="document_date" class="form-control" required
                value="{{ old('document_date', optional($document->document_date)->format('Y-m-d') ?? now()->format('Y-m-d')) }}">
     </div>
 
@@ -202,6 +205,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const project = document.getElementById('project_id');
     const invoice = document.getElementById('invoice_id');
     const amount = document.getElementById('amount');
+    const documentDate = document.getElementById('document_date');
     const schoolSignerName = document.getElementById('school_signer_name');
     const schoolSignerTitle = document.getElementById('school_signer_title');
 
@@ -226,6 +230,15 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function syncInvoiceData() {
+        const option = invoice.options[invoice.selectedIndex];
+
+        if (!option || !option.value) return;
+
+        documentDate.value = option.dataset.invoiceDate || documentDate.value;
+        amount.value = option.dataset.total || amount.value;
+    }
+
     project.addEventListener('change', function () {
         const option = project.options[project.selectedIndex];
         if ((!amount.value || Number(amount.value) === 0) && option.dataset.budget) {
@@ -233,7 +246,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         fillSchoolSigner(true);
         filterInvoices();
+
+        const firstInvoice = Array.from(invoice.options).find(function (invoiceOption) {
+            return invoiceOption.value && !invoiceOption.hidden;
+        });
+
+        if (firstInvoice) {
+            invoice.value = firstInvoice.value;
+            syncInvoiceData();
+        }
     });
+
+    invoice.addEventListener('change', syncInvoiceData);
 
     filterInvoices();
     fillSchoolSigner(false);

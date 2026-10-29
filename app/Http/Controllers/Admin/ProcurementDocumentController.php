@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use App\Services\ProjectInvoiceSyncService;
 
 class ProcurementDocumentController extends Controller
 {
@@ -57,16 +58,28 @@ class ProcurementDocumentController extends Controller
 
     public function create(Request $request)
     {
-        $projects = Project::with(['client', 'invoices'])->latest()->get();
+        $projects = Project::with([
+            'client',
+            'invoices' => fn ($query) => $query
+                ->where('status', '!=', 'cancelled')
+                ->orderByDesc('invoice_date')
+                ->orderByDesc('id'),
+        ])->latest()->get();
         $selectedProject = $request->filled('project_id')
             ? $projects->firstWhere('id', $request->integer('project_id'))
             : null;
+        $selectedInvoice = $selectedProject?->invoices?->first();
 
         return view('admin.procurement-documents.create', [
             'document' => new ProcurementDocument([
                 'project_id' => $selectedProject?->id,
-                'document_date' => now()->toDateString(),
-                'amount' => $selectedProject?->budget ?? 0,
+                'invoice_id' => $selectedInvoice?->id,
+                'document_date' => ($selectedInvoice?->invoice_date
+                    ?? $selectedInvoice?->created_at
+                    ?? now())->toDateString(),
+                'amount' => $selectedInvoice?->total_due
+                    ?? $selectedProject?->budget
+                    ?? 0,
                 'school_signer_name' => $selectedProject?->client?->authorized_official_name,
                 'school_signer_title' => $selectedProject?->client?->authorized_official_title,
                 'provider_signer_name' => CompanySetting::first()?->director_name,
@@ -83,6 +96,7 @@ class ProcurementDocumentController extends Controller
     {
         $data = $this->validatedData($request);
         $this->ensureInvoiceBelongsToProject($data);
+        $data = $this->applyInvoiceData($data);
         $data = $this->applyDefaultSigners($data);
 
         $data['created_by'] = $request->user()->id;
@@ -111,7 +125,13 @@ class ProcurementDocumentController extends Controller
     {
         return view('admin.procurement-documents.edit', [
             'document' => $procurementDocument,
-            'projects' => Project::with(['client', 'invoices'])->latest()->get(),
+            'projects' => Project::with([
+                'client',
+                'invoices' => fn ($query) => $query
+                    ->where('status', '!=', 'cancelled')
+                    ->orderByDesc('invoice_date')
+                    ->orderByDesc('id'),
+            ])->latest()->get(),
             'selectedProject' => $procurementDocument->project,
         ]);
     }
@@ -121,6 +141,7 @@ class ProcurementDocumentController extends Controller
         $previousStatus = $procurementDocument->status;
         $data = $this->validatedData($request, $procurementDocument);
         $this->ensureInvoiceBelongsToProject($data);
+        $data = $this->applyInvoiceData($data);
         $data = $this->applyDefaultSigners($data);
 
         if (empty($data['document_number'])) {
@@ -153,12 +174,32 @@ class ProcurementDocumentController extends Controller
 
     public function projectPackage(Project $project)
     {
-        $project->load(['client', 'invoices.items', 'procurementDocuments' => fn ($query) =>
-            $query->orderBy('document_date')->orderBy('id')]);
+        $project->load([
+            'client',
+            'invoices' => fn ($query) => $query
+                ->with('items')
+                ->where('status', '!=', 'cancelled')
+                ->orderByDesc('invoice_date')
+                ->orderByDesc('id'),
+            'procurementDocuments' => fn ($query) =>
+                $query->orderBy('document_date')->orderBy('id'),
+        ]);
+
+        $packageInvoice = $project->invoices->first();
+        $packageDate = $packageInvoice?->invoice_date
+            ?? $packageInvoice?->created_at
+            ?? now();
+
+        $project->procurementDocuments->each(
+            fn (ProcurementDocument $document) =>
+                $document->setAttribute('document_date', $packageDate),
+        );
 
         return Pdf::loadView('admin.procurement-documents.package-pdf', [
             'project' => $project,
             'company' => CompanySetting::first(),
+            'packageInvoice' => $packageInvoice,
+            'packageDate' => $packageDate,
         ])->setPaper('a4')->stream('paket-spj-'.Str::slug($project->title).'.pdf');
     }
 
@@ -166,10 +207,14 @@ class ProcurementDocumentController extends Controller
     {
         $company = CompanySetting::first();
         $project->loadMissing('client');
-        $invoice = $project->invoices()->latest()->first();
+        $invoice = app(ProjectInvoiceSyncService::class)
+            ->primaryInvoice($project);
+        $documentDate = $invoice?->invoice_date
+            ?? $invoice?->created_at
+            ?? now();
         $created = 0;
 
-        DB::transaction(function () use ($request, $project, $company, $invoice, &$created) {
+        DB::transaction(function () use ($request, $project, $company, $invoice, $documentDate, &$created) {
             foreach (array_keys(ProcurementDocument::TYPES) as $type) {
                 if ($project->procurementDocuments()->where('type', $type)->exists()) {
                     continue;
@@ -177,13 +222,11 @@ class ProcurementDocumentController extends Controller
 
                 $document = ProcurementDocument::create([
                     'project_id' => $project->id,
-                    'invoice_id' => in_array($type, ['payment_request', 'receipt'], true)
-                        ? $invoice?->id
-                        : null,
+                    'invoice_id' => $invoice?->id,
                     'created_by' => $request->user()->id,
                     'type' => $type,
                     'document_number' => 'TEMP-'.Str::uuid(),
-                    'document_date' => now()->toDateString(),
+                    'document_date' => $documentDate->toDateString(),
                     'status' => 'ready',
                     'subject' => $project->title,
                     'amount' => $invoice?->total_due ?? $project->budget,
@@ -205,7 +248,7 @@ class ProcurementDocumentController extends Controller
             ->with(
                 'success',
                 $created > 0
-                    ? $created.' draf dokumen pendukung SPJ berhasil dibuat.'
+                    ? $created.' dokumen pendukung SPJ berhasil dibuat.'
                     : 'Semua jenis dokumen untuk project ini sudah tersedia.',
             );
     }
@@ -357,6 +400,23 @@ class ProcurementDocumentController extends Controller
             ?: $company?->director_name;
         $data['provider_signer_title'] = ($data['provider_signer_title'] ?? null)
             ?: $company?->director_title;
+
+        return $data;
+    }
+
+    private function applyInvoiceData(array $data): array
+    {
+        if (empty($data['invoice_id'])) {
+            return $data;
+        }
+
+        $invoice = Invoice::findOrFail($data['invoice_id']);
+        $invoiceDate = $invoice->invoice_date
+            ?? $invoice->created_at
+            ?? now();
+
+        $data['document_date'] = $invoiceDate->toDateString();
+        $data['amount'] = $invoice->total_due;
 
         return $data;
     }

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\ProjectFile;
 use App\Models\Notification;
+use App\Services\ProjectInvoiceSyncService;
 
 class ProjectController extends Controller
 {
@@ -202,17 +203,8 @@ class ProjectController extends Controller
 
         ]);
 
-        $project->invoices()
-            ->whereIn('status', [
-                'unpaid',
-                'partial',
-            ])
-            ->update([
-                'late_fee_active' => $lateFeeActive,
-                'late_fee_per_month' => $lateFeeActive
-                    ? $request->late_fee_per_month
-                    : 0,
-            ]);
+        app(ProjectInvoiceSyncService::class)
+            ->syncOpenInvoicesFromProject($project->fresh());
 
         Notification::create([
 

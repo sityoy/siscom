@@ -58,6 +58,8 @@
 
                             <option value="{{ $project->id }}"
                                 data-client="{{ $project->client_id }}"
+                                data-title="{{ $project->title }}"
+                                data-budget="{{ $project->budget }}"
                                 data-late-active="{{ $project->late_fee_active ? 1 : 0 }}"
                                 data-late-fee="{{ $project->late_fee_per_month ?? 100000 }}"
                                 @selected($invoice->project_id == $project->id)>
@@ -549,6 +551,20 @@ projectSelect.addEventListener('change', function(){
     if (!option.value) return;
 
     clientSelect.value = option.dataset.client;
+
+    const firstItem = document.querySelector('.invoice-item');
+
+    if (firstItem) {
+        firstItem.querySelector('[name="description[]"]').value =
+            'Biaya Project - ' + option.dataset.title;
+
+        firstItem.querySelector('.price').value =
+            option.dataset.budget || 0;
+
+        firstItem.querySelector('.price').dispatchEvent(
+            new Event('input', { bubbles: true })
+        );
+    }
 
     document.getElementById('late-fee-active').checked =
         option.dataset.lateActive === '1';

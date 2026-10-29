@@ -60,7 +60,8 @@
     <div class="cover-box">
         <strong>{{ $project->client->name }}</strong><br><br>
         Nilai Project: Rp {{ number_format($project->budget, 0, ',', '.') }}<br>
-        Tahun: {{ now()->format('Y') }}
+        Tanggal Invoice: {{ $packageDate->locale('id')->translatedFormat('d F Y') }}<br>
+        Tahun: {{ $packageDate->format('Y') }}
     </div>
     <strong>{{ $company?->legal_name ?: ($company?->company_name ?: 'SIS.COM') }}</strong><br>
     Software House & IT Solutions
