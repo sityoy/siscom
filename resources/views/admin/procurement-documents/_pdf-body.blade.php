@@ -2,6 +2,7 @@
     $client = $document->project->client;
     $providerName = $company?->legal_name ?: ($company?->company_name ?: 'SIS.COM');
     $subject = $document->subject ?: $document->project->title;
+    $package = $document->project->procurementPackage;
     $indonesianTitles = [
         'principal' => 'Kepala Sekolah',
         'vice principal' => 'Wakil Kepala Sekolah',
@@ -40,6 +41,12 @@
     <tr><td>Nama Sekolah/Client</td><td>:</td><td>{{ $client->name }}</td></tr>
     @if($client->address)<tr><td>Alamat</td><td>:</td><td>{{ $client->address }}</td></tr>@endif
     <tr><td>Project/Pekerjaan</td><td>:</td><td>{{ $document->project->title }}</td></tr>
+    @if($package)
+        <tr><td>Jenis Paket SPJ</td><td>:</td><td>{{ $package->type_label }}</td></tr>
+        @if($package->package_type === 'third_party')
+            <tr><td>Vendor Pelaksana/Pemasok</td><td>:</td><td>{{ $package->vendor_name ?: '-' }}</td></tr>
+        @endif
+    @endif
     @if($document->funding_source)<tr><td>Sumber Dana</td><td>:</td><td>{{ $document->funding_source }}</td></tr>@endif
 </table>
 

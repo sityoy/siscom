@@ -373,9 +373,14 @@ return [
                 'icon' => 'fas fa-chart-pie',
             ],
             [
-                'text' => 'Paket SPJ per Project',
-                'url'  => 'admin/procurement-packages',
-                'icon' => 'fas fa-box-open',
+                'text' => 'SPJ Dikerjakan SIS.COM',
+                'url'  => 'admin/procurement-packages?mode=direct',
+                'icon' => 'fas fa-building',
+            ],
+            [
+                'text' => 'SPJ Rekanan / Vendor',
+                'url'  => 'admin/procurement-packages?mode=third_party',
+                'icon' => 'fas fa-user-friends',
             ],
             [
                 'text' => 'Dokumen Pajak & PP 55',
@@ -383,44 +388,50 @@ return [
                 'icon' => 'fas fa-shield-alt',
             ],
             [
-                'text' => 'Surat Penawaran',
-                'url'  => 'admin/procurement-documents/type/quotation',
-                'icon' => 'fas fa-file-invoice-dollar',
-            ],
-            [
-                'text' => 'BA Negosiasi',
-                'url'  => 'admin/procurement-documents/type/negotiation_minutes',
-                'icon' => 'fas fa-comments-dollar',
-            ],
-            [
-                'text' => 'Surat Pesanan / SPK',
-                'url'  => 'admin/procurement-documents/type/purchase_order',
-                'icon' => 'fas fa-file-signature',
-            ],
-            [
-                'text' => 'Surat Perintah Tugas',
-                'url'  => 'admin/procurement-documents/type/work_order',
-                'icon' => 'fas fa-tasks',
-            ],
-            [
-                'text' => 'Laporan Pekerjaan',
-                'url'  => 'admin/procurement-documents/type/work_report',
-                'icon' => 'fas fa-clipboard-check',
-            ],
-            [
-                'text' => 'BAST',
-                'url'  => 'admin/procurement-documents/type/handover',
-                'icon' => 'fas fa-people-carry',
-            ],
-            [
-                'text' => 'Permohonan Pembayaran',
-                'url'  => 'admin/procurement-documents/type/payment_request',
-                'icon' => 'fas fa-money-check-alt',
-            ],
-            [
-                'text' => 'Kwitansi',
-                'url'  => 'admin/procurement-documents/type/receipt',
-                'icon' => 'fas fa-receipt',
+                'text' => 'Dokumen per Jenis',
+                'icon' => 'fas fa-folder-open',
+                'submenu' => [
+                    [
+                        'text' => 'Surat Penawaran',
+                        'url'  => 'admin/procurement-documents/type/quotation',
+                        'icon' => 'fas fa-file-invoice-dollar',
+                    ],
+                    [
+                        'text' => 'BA Negosiasi',
+                        'url'  => 'admin/procurement-documents/type/negotiation_minutes',
+                        'icon' => 'fas fa-comments-dollar',
+                    ],
+                    [
+                        'text' => 'Surat Pesanan / SPK',
+                        'url'  => 'admin/procurement-documents/type/purchase_order',
+                        'icon' => 'fas fa-file-signature',
+                    ],
+                    [
+                        'text' => 'Surat Perintah Tugas',
+                        'url'  => 'admin/procurement-documents/type/work_order',
+                        'icon' => 'fas fa-tasks',
+                    ],
+                    [
+                        'text' => 'Laporan Pekerjaan',
+                        'url'  => 'admin/procurement-documents/type/work_report',
+                        'icon' => 'fas fa-clipboard-check',
+                    ],
+                    [
+                        'text' => 'BAST',
+                        'url'  => 'admin/procurement-documents/type/handover',
+                        'icon' => 'fas fa-people-carry',
+                    ],
+                    [
+                        'text' => 'Permohonan Pembayaran',
+                        'url'  => 'admin/procurement-documents/type/payment_request',
+                        'icon' => 'fas fa-money-check-alt',
+                    ],
+                    [
+                        'text' => 'Kwitansi',
+                        'url'  => 'admin/procurement-documents/type/receipt',
+                        'icon' => 'fas fa-receipt',
+                    ],
+                ],
             ],
         ],
     ],

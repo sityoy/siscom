@@ -56,6 +56,7 @@
         'partial' => 'DIBAYAR SEBAGIAN',
         'cancelled' => 'DIBATALKAN',
     ];
+    $procurementPackage = $project->procurementPackage;
 @endphp
 
 @include('admin.procurement-documents._company-letterhead')
@@ -67,6 +68,10 @@
         <strong>{{ $project->client->name }}</strong><br><br>
         Nilai Project: Rp {{ number_format($project->budget, 0, ',', '.') }}<br>
         Tanggal Invoice: {{ $packageDate->locale('id')->translatedFormat('d F Y') }}<br>
+        Jenis Paket: {{ $procurementPackage?->type_label ?? 'SPJ Proyek SIS.COM' }}<br>
+        @if($procurementPackage?->package_type === 'third_party')
+            Vendor Pelaksana/Pemasok: {{ $procurementPackage->vendor_name ?: '-' }}<br>
+        @endif
         Tahun: {{ $packageDate->format('Y') }}
     </div>
     <strong>{{ $company?->legal_name ?: ($company?->company_name ?: 'SIS.COM') }}</strong><br>

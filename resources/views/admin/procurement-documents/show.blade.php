@@ -38,6 +38,14 @@
                     <dt class="col-sm-4">Project</dt>
                     <dd class="col-sm-8">{{ $document->project->title }}</dd>
 
+                    <dt class="col-sm-4">Jenis Paket SPJ</dt>
+                    <dd class="col-sm-8">
+                        {{ $document->project->procurementPackage?->type_label ?? 'SPJ Proyek SIS.COM' }}
+                        @if($document->project->procurementPackage?->package_type === 'third_party')
+                            <small class="d-block text-muted">Vendor: {{ $document->project->procurementPackage->vendor_name ?: '-' }}</small>
+                        @endif
+                    </dd>
+
                     <dt class="col-sm-4">Tanggal</dt>
                     <dd class="col-sm-8">{{ $document->document_date->format('d M Y') }}</dd>
 

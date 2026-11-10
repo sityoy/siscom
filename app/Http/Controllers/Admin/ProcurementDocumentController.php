@@ -7,6 +7,8 @@ use App\Models\CompanySetting;
 use App\Models\Invoice;
 use App\Models\Notification;
 use App\Models\ProcurementDocument;
+use App\Models\ProcurementPackage;
+use App\Models\ProcurementPackageFile;
 use App\Models\Project;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -66,10 +68,17 @@ class ProcurementDocumentController extends Controller
         ));
     }
 
-    public function packages()
+    public function packages(Request $request)
     {
+        $mode = $request->input('mode');
+
+        if ($mode && !array_key_exists($mode, ProcurementPackage::TYPES)) {
+            abort(404);
+        }
+
         $projects = Project::with([
             'client',
+            'procurementPackage.files.uploader',
             'invoices' => fn ($query) => $query
                 ->where('status', '!=', 'cancelled')
                 ->orderByDesc('invoice_date')
@@ -80,13 +89,202 @@ class ProcurementDocumentController extends Controller
         ])
             ->whereHas('invoices', fn ($query) =>
                 $query->where('status', '!=', 'cancelled'))
+            ->when($mode === 'direct', fn ($query) =>
+                $query->where(function ($query) {
+                    $query->whereDoesntHave('procurementPackage')
+                        ->orWhereHas('procurementPackage', fn ($package) =>
+                            $package->where('package_type', 'direct'));
+                }))
+            ->when($mode === 'third_party', fn ($query) =>
+                $query->whereHas('procurementPackage', fn ($package) =>
+                    $package->where('package_type', 'third_party')))
             ->latest()
             ->paginate(10);
 
         return view('admin.procurement-documents.packages', [
             'projects' => $projects,
             'requiredDocumentCount' => count(ProcurementDocument::TYPES),
+            'mode' => $mode,
         ]);
+    }
+
+    public function editPackage(Project $project)
+    {
+        $project->load([
+            'client',
+            'procurementPackage.files.uploader',
+            'invoices' => fn ($query) => $query
+                ->where('status', '!=', 'cancelled')
+                ->orderByDesc('invoice_date')
+                ->orderByDesc('id'),
+        ]);
+        $invoice = $project->invoices->first();
+
+        abort_unless($invoice, 404, 'Project harus memiliki invoice aktif.');
+
+        $company = CompanySetting::first();
+        $taxRate = $company?->usesUmkmFinal()
+            ? (float) $company->income_tax_rate
+            : 0;
+        $contractValue = (float) $invoice->grand_total;
+        $taxBase = (float) ($invoice->income_tax_base ?: $contractValue);
+
+        $package = $project->procurementPackage ?: new ProcurementPackage([
+            'project_id' => $project->id,
+            'package_type' => 'direct',
+            'procurement_method' => 'non_siplah',
+            'status' => 'preparation',
+            'contract_value' => $contractValue,
+            'target_fee_percent' => 10,
+            'income_tax_rate' => $taxRate,
+            'income_tax_amount' => $taxBase * $taxRate / 100,
+            'tax_collection_method' => $invoice->income_tax_withheld
+                ? 'withheld'
+                : 'self_paid',
+        ]);
+
+        return view('admin.procurement-documents.package-settings', compact(
+            'project',
+            'invoice',
+            'package',
+            'company',
+        ));
+    }
+
+    public function updatePackage(Request $request, Project $project)
+    {
+        $data = $request->validate([
+            'package_type' => ['required', Rule::in(array_keys(ProcurementPackage::TYPES))],
+            'procurement_method' => ['required', Rule::in(['siplah', 'non_siplah'])],
+            'status' => ['required', Rule::in(array_keys(ProcurementPackage::STATUSES))],
+            'vendor_name' => [
+                Rule::requiredIf(fn () => $request->input('package_type') === 'third_party'),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'vendor_tax_id' => 'nullable|string|max:50',
+            'vendor_tax_status' => ['nullable', Rule::in(['unknown', 'non_pkp', 'pkp', 'pp55', 'individual'])],
+            'vendor_contact' => 'nullable|string|max:100',
+            'vendor_address' => 'nullable|string|max:1000',
+            'contract_value' => 'required|numeric|min:0',
+            'vendor_cost' => 'nullable|numeric|min:0',
+            'vendor_tax_amount' => 'nullable|numeric|min:0',
+            'operational_cost' => 'nullable|numeric|min:0',
+            'partner_name' => [
+                Rule::requiredIf(fn () => (float) $request->input('partner_fee', 0) > 0),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'partner_fee' => 'nullable|numeric|min:0',
+            'target_fee_percent' => 'required|numeric|min:0|max:100',
+            'tax_collection_method' => ['required', Rule::in(['withheld', 'self_paid'])],
+            'notes' => 'nullable|string|max:3000',
+        ]);
+
+        $invoice = app(ProjectInvoiceSyncService::class)->primaryInvoice($project);
+        abort_unless($invoice, 422, 'Project harus memiliki invoice aktif.');
+
+        $contractValue = (float) $invoice->grand_total;
+        $vendorCost = (float) ($data['vendor_cost'] ?? 0);
+        $vendorTaxAmount = (float) ($data['vendor_tax_amount'] ?? 0);
+        if ($data['package_type'] === 'direct') {
+            $vendorCost = 0;
+            $vendorTaxAmount = 0;
+        }
+        $operationalCost = (float) ($data['operational_cost'] ?? 0);
+        $partnerFee = (float) ($data['partner_fee'] ?? 0);
+        $company = CompanySetting::first();
+        $incomeTaxRate = $company?->usesUmkmFinal()
+            ? (float) $company->income_tax_rate
+            : 0;
+        $taxBase = (float) ($invoice->income_tax_base ?: $contractValue);
+        $incomeTaxAmount = $taxBase * $incomeTaxRate / 100;
+        $managementFee = $contractValue - $vendorCost;
+        $netProfit = $managementFee - $operationalCost - $partnerFee - $incomeTaxAmount;
+
+        if ($netProfit < 0) {
+            throw ValidationException::withMessages([
+                'contract_value' => 'Pembagian biaya melebihi nilai kontrak. Periksa biaya vendor, operasional, partner, dan pajak.',
+            ]);
+        }
+
+        if ($vendorTaxAmount > $vendorCost) {
+            throw ValidationException::withMessages([
+                'vendor_tax_amount' => 'Potongan pajak vendor tidak boleh melebihi biaya vendor.',
+            ]);
+        }
+
+        $data['vendor_cost'] = $vendorCost;
+        $data['vendor_tax_amount'] = $vendorTaxAmount;
+        $data['contract_value'] = $contractValue;
+        $data['operational_cost'] = $operationalCost;
+        $data['partner_fee'] = $partnerFee;
+        $data['management_fee_amount'] = $managementFee;
+        $data['income_tax_rate'] = $incomeTaxRate;
+        $data['income_tax_amount'] = $incomeTaxAmount;
+        $data['net_profit'] = $netProfit;
+
+        if ($data['package_type'] === 'direct') {
+            $data['vendor_name'] = null;
+            $data['vendor_tax_id'] = null;
+            $data['vendor_tax_status'] = null;
+            $data['vendor_contact'] = null;
+            $data['vendor_address'] = null;
+        }
+
+        $project->procurementPackage()->updateOrCreate(
+            ['project_id' => $project->id],
+            $data,
+        );
+
+        return redirect()
+            ->route('procurement-documents.packages.edit', $project)
+            ->with('success', 'Jenis paket SPJ dan pembagian biaya berhasil disimpan.');
+    }
+
+    public function uploadPackageFile(Request $request, ProcurementPackage $procurementPackage)
+    {
+        $data = $request->validate([
+            'category' => ['required', Rule::in(array_keys(ProcurementPackageFile::CATEGORIES))],
+            'title' => 'nullable|string|max:255',
+            'file' => 'required|file|mimes:pdf,jpg,jpeg,png,xlsx,xls,doc,docx|max:10240',
+        ]);
+        $file = $request->file('file');
+        $path = $file->store(
+            'procurement-packages/'.$procurementPackage->id,
+            'local',
+        );
+
+        $procurementPackage->files()->create([
+            'uploaded_by' => $request->user()->id,
+            'category' => $data['category'],
+            'title' => $data['title'] ?: ProcurementPackageFile::CATEGORIES[$data['category']],
+            'file_path' => $path,
+            'original_name' => $file->getClientOriginalName(),
+            'file_size' => $file->getSize(),
+        ]);
+
+        return back()->with('success', 'Dokumen pendukung vendor berhasil diunggah.');
+    }
+
+    public function downloadPackageFile(ProcurementPackageFile $procurementPackageFile)
+    {
+        abort_unless(Storage::disk('local')->exists($procurementPackageFile->file_path), 404);
+
+        return Storage::disk('local')->download(
+            $procurementPackageFile->file_path,
+            $procurementPackageFile->original_name,
+        );
+    }
+
+    public function destroyPackageFile(ProcurementPackageFile $procurementPackageFile)
+    {
+        Storage::disk('local')->delete($procurementPackageFile->file_path);
+        $procurementPackageFile->delete();
+
+        return back()->with('success', 'Dokumen pendukung vendor berhasil dihapus.');
     }
 
     public function taxDocuments()
@@ -230,7 +428,7 @@ class ProcurementDocumentController extends Controller
 
     public function show(ProcurementDocument $procurementDocument)
     {
-        $procurementDocument->load(['project.client', 'invoice', 'creator']);
+        $procurementDocument->load(['project.client', 'project.procurementPackage', 'invoice', 'creator']);
 
         return view('admin.procurement-documents.show', [
             'document' => $procurementDocument,
@@ -277,7 +475,7 @@ class ProcurementDocumentController extends Controller
 
     public function pdf(ProcurementDocument $procurementDocument)
     {
-        $procurementDocument->load(['project.client', 'invoice']);
+        $procurementDocument->load(['project.client', 'project.procurementPackage', 'invoice']);
         $company = CompanySetting::first();
 
         return Pdf::loadView('admin.procurement-documents.pdf', [
@@ -292,6 +490,7 @@ class ProcurementDocumentController extends Controller
     {
         $project->load([
             'client',
+            'procurementPackage',
             'invoices' => fn ($query) => $query
                 ->with('items')
                 ->where('status', '!=', 'cancelled')
@@ -338,6 +537,31 @@ class ProcurementDocumentController extends Controller
                 ->route('projects.index')
                 ->with('error', 'Buat invoice project terlebih dahulu sebelum membuat Paket SPJ.');
         }
+
+        $project->procurementPackage()->firstOrCreate(
+            ['project_id' => $project->id],
+            [
+                'package_type' => 'direct',
+                'procurement_method' => 'non_siplah',
+                'status' => 'documents',
+                'contract_value' => $invoice->grand_total,
+                'target_fee_percent' => 10,
+                'income_tax_rate' => $company?->usesUmkmFinal()
+                    ? $company->income_tax_rate
+                    : 0,
+                'income_tax_amount' => $company?->usesUmkmFinal()
+                    ? (float) $invoice->income_tax_base * (float) $company->income_tax_rate / 100
+                    : 0,
+                'tax_collection_method' => $invoice->income_tax_withheld
+                    ? 'withheld'
+                    : 'self_paid',
+                'management_fee_amount' => $invoice->grand_total,
+                'net_profit' => (float) $invoice->grand_total
+                    - ($company?->usesUmkmFinal()
+                        ? (float) $invoice->income_tax_base * (float) $company->income_tax_rate / 100
+                        : 0),
+            ],
+        );
 
         $documentDate = $invoice?->invoice_date
             ?? $invoice?->created_at

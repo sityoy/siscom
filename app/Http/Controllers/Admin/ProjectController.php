@@ -229,6 +229,20 @@ class ProjectController extends Controller
 
     public function destroy(Project $project)
     {
+        $project->loadMissing('procurementPackage.files');
+
+        if ($project->procurementPackage) {
+            $vendorFilePaths = $project->procurementPackage->files
+                ->pluck('file_path')
+                ->filter()
+                ->values()
+                ->all();
+
+            if ($vendorFilePaths !== []) {
+                \Storage::disk('local')->delete($vendorFilePaths);
+            }
+        }
+
         foreach ($project->files as $file) {
 
             if (

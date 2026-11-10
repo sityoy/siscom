@@ -119,5 +119,28 @@ class ProjectInvoiceSyncService
             'vat_amount' => $invoice->vat,
             'income_tax_amount' => $invoice->income_tax_amount,
         ]);
+
+        $package = $project->procurementPackage;
+
+        if ($package) {
+            $contractValue = (float) $invoice->grand_total;
+            $vendorCost = $package->package_type === 'third_party'
+                ? (float) $package->vendor_cost
+                : 0;
+            $incomeTaxRate = (float) $package->income_tax_rate;
+            $incomeTaxAmount = (float) ($invoice->income_tax_base ?: $contractValue)
+                * $incomeTaxRate / 100;
+            $managementFee = $contractValue - $vendorCost;
+
+            $package->update([
+                'contract_value' => $contractValue,
+                'management_fee_amount' => $managementFee,
+                'income_tax_amount' => $incomeTaxAmount,
+                'net_profit' => $managementFee
+                    - (float) $package->operational_cost
+                    - (float) $package->partner_fee
+                    - $incomeTaxAmount,
+            ]);
+        }
     }
 }

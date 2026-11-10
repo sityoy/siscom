@@ -323,6 +323,31 @@ Route::prefix('admin')
         )->name('procurement-documents.packages');
 
         Route::get(
+            '/procurement-packages/{project}/edit',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'editPackage']
+        )->name('procurement-documents.packages.edit');
+
+        Route::put(
+            '/procurement-packages/{project}',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'updatePackage']
+        )->name('procurement-documents.packages.update');
+
+        Route::post(
+            '/procurement-packages/{procurementPackage}/files',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'uploadPackageFile']
+        )->name('procurement-documents.packages.files.store');
+
+        Route::get(
+            '/procurement-package-files/{procurementPackageFile}',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'downloadPackageFile']
+        )->name('procurement-documents.packages.files.download');
+
+        Route::delete(
+            '/procurement-package-files/{procurementPackageFile}',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'destroyPackageFile']
+        )->name('procurement-documents.packages.files.destroy');
+
+        Route::get(
             '/procurement-tax-documents',
             [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'taxDocuments']
         )->name('procurement-documents.tax-documents');

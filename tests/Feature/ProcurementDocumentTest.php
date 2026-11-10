@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\CompanySetting;
 use App\Models\Invoice;
 use App\Models\ProcurementDocument;
+use App\Models\ProcurementPackage;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\ProjectInvoiceSyncService;
@@ -406,6 +407,87 @@ class ProcurementDocumentTest extends TestCase
             ->assertOk()
             ->assertSee('001/SPH/SIS/XI/2026')
             ->assertDontSee('001/BAST/SIS/XI/2026');
+    }
+
+    public function test_third_party_spj_calculates_vendor_cost_tax_and_net_profit(): void
+    {
+        [$admin, $project] = $this->createAdminAndProject();
+
+        CompanySetting::create([
+            'company_name' => 'SIS.COM',
+            'tax_status' => 'non_pkp',
+            'income_tax_scheme' => 'umkm_final',
+            'income_tax_rate' => 0.50,
+            'pp55_active' => true,
+        ]);
+
+        $invoice = $this->createProjectInvoice(
+            $project,
+            '2026-11-10',
+            '#INV-THIRD-PARTY',
+        );
+        $invoice->update([
+            'income_tax_base' => 5000000,
+            'income_tax_rate' => 0.50,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('procurement-documents.packages.update', $project), [
+                'package_type' => 'third_party',
+                'procurement_method' => 'non_siplah',
+                'status' => 'documents',
+                'vendor_name' => 'Vendor Teknologi Contoh',
+                'contract_value' => 5000000,
+                'vendor_cost' => 4000000,
+                'operational_cost' => 100000,
+                'partner_fee' => 0,
+                'target_fee_percent' => 10,
+                'tax_collection_method' => 'withheld',
+            ])
+            ->assertRedirect(route('procurement-documents.packages.edit', $project));
+
+        $package = ProcurementPackage::firstOrFail();
+
+        $this->assertSame('third_party', $package->package_type);
+        $this->assertSame('1000000.00', $package->management_fee_amount);
+        $this->assertSame('25000.00', $package->income_tax_amount);
+        $this->assertSame('875000.00', $package->net_profit);
+        $this->assertEquals(17.5, $package->actual_fee_percent);
+    }
+
+    public function test_admin_can_upload_and_download_a_private_vendor_document(): void
+    {
+        Storage::fake('local');
+        [$admin, $project] = $this->createAdminAndProject();
+
+        $package = ProcurementPackage::create([
+            'project_id' => $project->id,
+            'package_type' => 'third_party',
+            'procurement_method' => 'non_siplah',
+            'status' => 'documents',
+            'vendor_name' => 'Vendor Teknologi Contoh',
+            'contract_value' => 5000000,
+            'vendor_cost' => 4000000,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('procurement-documents.packages.files.store', $package), [
+                'category' => 'vendor_invoice',
+                'title' => 'Invoice Vendor November 2026',
+                'file' => UploadedFile::fake()->create(
+                    'invoice-vendor.pdf',
+                    100,
+                    'application/pdf',
+                ),
+            ])
+            ->assertRedirect();
+
+        $file = $package->files()->firstOrFail();
+
+        Storage::disk('local')->assertExists($file->file_path);
+        $this->actingAs($admin)
+            ->get(route('procurement-documents.packages.files.download', $file))
+            ->assertDownload('invoice-vendor.pdf');
     }
 
     private function createAdminAndProject(bool $withClientUser = false): array

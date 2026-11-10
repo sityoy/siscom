@@ -4,6 +4,35 @@
 
 @section('admin-content')
 
+@if(!$activeType)
+<div class="row mb-3">
+    <div class="col-md-4 mb-3">
+        <a href="{{ route('procurement-documents.packages', ['mode' => 'direct']) }}" class="card h-100 text-decoration-none">
+            <div class="card-body d-flex align-items-center">
+                <div class="bg-primary rounded-circle p-3 mr-3"><i class="fas fa-building text-white fa-lg"></i></div>
+                <div><h5 class="font-weight-bold text-dark mb-1">SPJ Dikerjakan SIS.COM</h5><small class="text-muted">Pekerjaan dilaksanakan langsung tanpa vendor utama.</small></div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4 mb-3">
+        <a href="{{ route('procurement-documents.packages', ['mode' => 'third_party']) }}" class="card h-100 text-decoration-none">
+            <div class="card-body d-flex align-items-center">
+                <div class="bg-warning rounded-circle p-3 mr-3"><i class="fas fa-user-friends text-white fa-lg"></i></div>
+                <div><h5 class="font-weight-bold text-dark mb-1">SPJ Rekanan / Vendor</h5><small class="text-muted">Ada pemasok atau pelaksana lain dan pembagian biaya.</small></div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4 mb-3">
+        <a href="{{ route('procurement-documents.tax-documents') }}" class="card h-100 text-decoration-none">
+            <div class="card-body d-flex align-items-center">
+                <div class="bg-success rounded-circle p-3 mr-3"><i class="fas fa-shield-alt text-white fa-lg"></i></div>
+                <div><h5 class="font-weight-bold text-dark mb-1">Dokumen Pajak & PP 55</h5><small class="text-muted">Suket, BPE, tarif PPh, dan status Non-PKP.</small></div>
+            </div>
+        </a>
+    </div>
+</div>
+@endif
+
 <div class="row">
     <div class="col-md-3 col-6">
         <div class="small-box bg-primary">

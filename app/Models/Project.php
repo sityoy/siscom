@@ -63,5 +63,10 @@ class Project extends Model
         return $this->hasMany(ProcurementDocument::class);
     }
 
+    public function procurementPackage()
+    {
+        return $this->hasOne(ProcurementPackage::class);
+    }
+
 
 }
