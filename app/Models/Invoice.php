@@ -23,6 +23,18 @@ class Invoice extends Model
 
         'vat',
 
+        'provider_tax_status',
+
+        'income_tax_scheme',
+
+        'income_tax_rate',
+
+        'income_tax_base',
+
+        'income_tax_withheld',
+
+        'income_tax_amount',
+
         'service_fee',
 
         'late_fee_active',
@@ -51,6 +63,10 @@ class Invoice extends Model
         'late_fee_active' => 'boolean',
         'late_fee_per_month' => 'decimal:2',
         'grand_total' => 'decimal:2',
+        'income_tax_rate' => 'decimal:2',
+        'income_tax_base' => 'decimal:2',
+        'income_tax_withheld' => 'boolean',
+        'income_tax_amount' => 'decimal:2',
     ];
 
     public function calculateLateMonths($asOf = null): int
@@ -105,6 +121,19 @@ class Invoice extends Model
     public function getTotalDueAttribute(): float
     {
         return $this->calculateTotalDue();
+    }
+
+    public function getNetReceivableAttribute(): float
+    {
+        return $this->calculateNetReceivable();
+    }
+
+    public function calculateNetReceivable($asOf = null): float
+    {
+        return max(
+            0,
+            $this->calculateTotalDue($asOf) - (float) $this->income_tax_amount,
+        );
     }
 
     public function client()

@@ -9,6 +9,7 @@ use Illuminate\Validation\Rule;
 use App\Models\User;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Models\CompanySetting;
 use Carbon\Carbon;
 
 class ClientController extends Controller
@@ -260,6 +261,11 @@ public function index(Request $request)
             );
         }
 
+        $company = CompanySetting::first();
+        $incomeTaxRate = $company?->usesUmkmFinal()
+            ? (float) $company->income_tax_rate
+            : 0;
+
         $invoice = Invoice::create([
 
             'client_id'      => $client->id,
@@ -270,12 +276,26 @@ public function index(Request $request)
                 'INV-' .
                 now()->format('YmdHis'),
 
+            'invoice_date' => now(),
+
             'subtotal'       =>
                 $client->package_price,
 
             'vat_percent'    => 0,
 
             'vat'            => 0,
+
+            'provider_tax_status' => $company?->tax_status ?? 'non_pkp',
+
+            'income_tax_scheme' => $company?->income_tax_scheme ?? 'umkm_final',
+
+            'income_tax_rate' => $incomeTaxRate,
+
+            'income_tax_base' => $client->package_price,
+
+            'income_tax_withheld' => false,
+
+            'income_tax_amount' => 0,
 
             'service_fee'    => 0,
 

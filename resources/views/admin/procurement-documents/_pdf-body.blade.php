@@ -116,13 +116,25 @@
     </ol>
 @endif
 
-@if((float) $document->tax_base > 0 || (float) $document->vat_amount > 0 || (float) $document->income_tax_amount > 0)
+@if($document->provider_tax_status || (float) $document->tax_base > 0 || (float) $document->vat_amount > 0 || (float) $document->income_tax_amount > 0)
     <div class="section-title">Informasi Perpajakan</div>
     <table class="tax-table">
-        <tr><td>DPP</td><td class="text-right">Rp {{ number_format($document->tax_base, 0, ',', '.') }}</td></tr>
+        <tr>
+            <td>Status Penyedia</td>
+            <td class="text-right">
+                {{ $document->provider_tax_status === 'umkm_final' ? 'Non-PKP — PPh Final UMKM (PP 55)' : strtoupper(str_replace('_', ' ', $document->provider_tax_status)) }}
+            </td>
+        </tr>
+        <tr><td>Dasar Pengenaan PPh</td><td class="text-right">Rp {{ number_format($document->tax_base, 0, ',', '.') }}</td></tr>
         <tr><td>PPN</td><td class="text-right">Rp {{ number_format($document->vat_amount, 0, ',', '.') }}</td></tr>
-        <tr><td>PPh/Potongan Pajak</td><td class="text-right">Rp {{ number_format($document->income_tax_amount, 0, ',', '.') }}</td></tr>
+        <tr><td>PPh Final UMKM Dipotong</td><td class="text-right">Rp {{ number_format($document->income_tax_amount, 0, ',', '.') }}</td></tr>
+        @if((float) $document->income_tax_amount > 0)
+            <tr><td><strong>Pembayaran Bersih</strong></td><td class="text-right"><strong>Rp {{ number_format(max(0, (float) $document->amount - (float) $document->income_tax_amount), 0, ',', '.') }}</strong></td></tr>
+        @endif
     </table>
+    @if(in_array($document->provider_tax_status, ['non_pkp', 'umkm_final'], true))
+        <p class="muted">Penyedia berstatus Non-PKP sehingga tidak memungut PPN dan tidak menerbitkan Faktur Pajak.</p>
+    @endif
 @endif
 
 @if($document->notes)

@@ -307,6 +307,16 @@
 
             <hr>
 
+            <div class="alert alert-info">
+                <strong>Profil pajak perusahaan:</strong> {{ $company->tax_status_label }}
+                @if($company->usesUmkmFinal())
+                    — PPh Final UMKM {{ number_format($company->income_tax_rate, 2, ',', '.') }}% (PP 55 aktif)
+                @endif
+                @if(!$company->isPkp())
+                    <br>PPN otomatis 0 karena perusahaan berstatus Non-PKP.
+                @endif
+            </div>
+
             <div class="row">
 
                 <div class="col-md-4">
@@ -317,7 +327,8 @@
                            name="vat_percent"
                            class="form-control"
                            id="vat-percent"
-                           value="{{ old('vat_percent', $invoiceDefaults['vat_percent']) }}">
+                           value="{{ old('vat_percent', $invoiceDefaults['vat_percent']) }}"
+                           @readonly(!$company->isPkp())>
 
                 </div>
 
@@ -376,6 +387,27 @@
                            value="{{ old('service_fee', $invoiceDefaults['service_fee']) }}">
 
                 </div>
+                <div class="col-md-4">
+
+                    <label>PPh Final UMKM</label>
+
+                    <input type="hidden" name="income_tax_withheld" value="0">
+
+                    <div class="form-check mt-2">
+                        <input type="checkbox"
+                               name="income_tax_withheld"
+                               id="income-tax-withheld"
+                               class="form-check-input"
+                               value="1"
+                               @checked(old('income_tax_withheld', $invoiceDefaults['income_tax_withheld']))
+                               @disabled(!$company->usesUmkmFinal())>
+                        <label class="form-check-label" for="income-tax-withheld">
+                            Dipotong oleh sekolah/client ({{ number_format($company->income_tax_rate, 2, ',', '.') }}%)
+                        </label>
+                    </div>
+
+                </div>
+
                 <div class="col-md-4">
 
                 <label>Cashback (%)</label>
@@ -457,6 +489,16 @@
                     Grand Total:
                     Rp <span id="grand-total">0</span>
 
+                </h5>
+
+                <h6 class="text-danger">
+                    Potongan PPh Final UMKM:
+                    Rp <span id="income-tax-amount">0</span>
+                </h6>
+
+                <h5 class="text-primary">
+                    Pembayaran Bersih:
+                    Rp <span id="net-receivable">0</span>
                 </h5>
 
                 <h5 class="text-success">
@@ -547,6 +589,8 @@ projectSelect.addEventListener('change', function(){
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    const incomeTaxRate = @json($company->usesUmkmFinal() ? (float) $company->income_tax_rate : 0);
+
     document.getElementById('invoice-date-today')
         .addEventListener('click', function () {
             document.getElementById('invoice-date').value = @json(now()->format('Y-m-d'));
@@ -603,6 +647,11 @@ document.addEventListener('DOMContentLoaded', function () {
         let grandTotal =
             subtotal + vat + serviceFee;
 
+        const incomeTaxWithheld = document.getElementById('income-tax-withheld')?.checked || false;
+        const incomeTaxAmount = incomeTaxWithheld
+            ? (subtotal + serviceFee) * incomeTaxRate / 100
+            : 0;
+
         let cashbackAmount =
             grandTotal * cashback / 100;
 
@@ -620,6 +669,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.getElementById('grand-total')
             .innerText = grandTotal.toLocaleString('id-ID');
+
+        document.getElementById('income-tax-amount')
+            .innerText = incomeTaxAmount.toLocaleString('id-ID');
+
+        document.getElementById('net-receivable')
+            .innerText = (grandTotal - incomeTaxAmount).toLocaleString('id-ID');
 
         document.getElementById('cashback-reward')
             .innerText =

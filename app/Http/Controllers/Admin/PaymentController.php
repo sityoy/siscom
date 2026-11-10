@@ -67,7 +67,7 @@ class PaymentController extends Controller
                     ->sum('amount');
 
             $remaining =
-                $invoice->calculateTotalDue($request->payment_date)
+                $invoice->calculateNetReceivable($request->payment_date)
                 - $totalPaid;
 
             if($request->amount > $remaining){
@@ -139,7 +139,7 @@ class PaymentController extends Controller
             ->sum('amount');
 
         // GRAND TOTAL
-        $grandTotal = $invoice->calculateTotalDue(
+        $grandTotal = $invoice->calculateNetReceivable(
             $request->payment_date
         );
 
@@ -225,7 +225,7 @@ class PaymentController extends Controller
                 ->sum('amount');
 
         $remaining =
-            $invoice->calculateTotalDue($request->payment_date)
+            $invoice->calculateNetReceivable($request->payment_date)
             - $totalPaid;
 
         if($request->amount > $remaining){
@@ -276,7 +276,7 @@ class PaymentController extends Controller
             ->sum('amount');
 
         // GRAND TOTAL
-        $grandTotal = $invoice->calculateTotalDue(
+        $grandTotal = $invoice->calculateNetReceivable(
             $request->payment_date
         );
 
@@ -334,7 +334,7 @@ class PaymentController extends Controller
             ->sum('amount');
 
         // UPDATE STATUS
-        if ($totalPaid >= $invoice->total_due) {
+        if ($totalPaid >= $invoice->net_receivable) {
 
             $invoice->update([
                 'status' => 'paid',

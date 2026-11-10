@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\CompanySetting;
 use App\Models\Invoice;
 use App\Models\ProcurementDocument;
 use App\Models\Project;
@@ -269,6 +270,77 @@ class ProcurementDocumentTest extends TestCase
         $response->assertRedirect();
         $this->assertDatabaseMissing('procurement_documents', ['project_id' => $project->id]);
         Storage::disk('public')->assertMissing($signedPath);
+    }
+
+    public function test_non_pkp_umkm_tax_profile_is_applied_to_invoice_and_spj(): void
+    {
+        [$admin, $project] = $this->createAdminAndProject();
+
+        CompanySetting::create([
+            'company_name' => 'SIS.COM',
+            'tax_status' => 'non_pkp',
+            'income_tax_scheme' => 'umkm_final',
+            'income_tax_rate' => 0.50,
+            'pp55_active' => true,
+        ]);
+
+        $invoice = $this->createProjectInvoice(
+            $project,
+            '2026-11-10',
+            '#INV-TAX-001',
+        );
+
+        $document = ProcurementDocument::create([
+            'project_id' => $project->id,
+            'invoice_id' => $invoice->id,
+            'created_by' => $admin->id,
+            'type' => 'payment_request',
+            'document_number' => '001/SPP/SIS/XI/2026',
+            'document_date' => '2026-11-10',
+            'status' => 'ready',
+            'amount' => 5000000,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('invoices.update', $invoice), [
+                'client_id' => $project->client_id,
+                'project_id' => $project->id,
+                'invoice_number' => $invoice->invoice_number,
+                'invoice_date' => '2026-11-10',
+                'due_date' => '2026-11-17',
+                'status' => 'unpaid',
+                'invoice_type' => 'project',
+                'vat_percent' => 11,
+                'service_fee' => 10000,
+                'cashback' => 0,
+                'income_tax_withheld' => 1,
+                'late_fee_active' => 0,
+                'description' => ['Biaya Project - '.$project->title],
+                'qty' => [1],
+                'price' => [5000000],
+                'duration' => [1],
+                'duration_type' => ['Hari'],
+                'start_date' => [null],
+                'end_date' => [null],
+                'notes' => 'Pengujian profil pajak',
+            ])
+            ->assertRedirect(route('invoices.index'));
+
+        $invoice->refresh();
+        $document->refresh();
+
+        $this->assertSame('non_pkp', $invoice->provider_tax_status);
+        $this->assertSame('umkm_final', $invoice->income_tax_scheme);
+        $this->assertEquals(0, $invoice->vat_percent);
+        $this->assertEquals(0, $invoice->vat);
+        $this->assertSame('5010000.00', $invoice->income_tax_base);
+        $this->assertSame('25050.00', $invoice->income_tax_amount);
+        $this->assertSame(4984950.0, $invoice->net_receivable);
+
+        $this->assertSame('umkm_final', $document->provider_tax_status);
+        $this->assertSame('5010000.00', $document->tax_base);
+        $this->assertEquals(0, $document->vat_amount);
+        $this->assertSame('25050.00', $document->income_tax_amount);
     }
 
     private function createAdminAndProject(bool $withClientUser = false): array

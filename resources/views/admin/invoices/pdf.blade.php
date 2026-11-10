@@ -49,7 +49,9 @@
         .bank-name { color: #17498f; font-size: 8px; font-weight: bold; margin-bottom: 7px; }
         .summary td { border: 1px solid #dbe2ea; padding: 6px; font-size: 8px; }
         .summary .late-fee { color: #dc2626; font-weight: bold; }
+        .summary .tax-deduction { color: #b91c1c; }
         .summary .total td { background: #17498f; color: #fff; font-size: 11px; font-weight: bold; }
+        .tax-note { margin-top: 5px; color: #475569; font-size: 7px; }
         .signatures { margin-top: 22px; page-break-inside: avoid; }
         .signatures td { width: 50%; border: none; vertical-align: top; text-align: center; padding: 0 18px; }
         .signature-space { height: 52px; }
@@ -90,6 +92,12 @@
             'subtotal' => 'Subtotal',
             'vat' => 'PPN',
             'service_fee' => 'Biaya Layanan',
+            'tax_status' => 'Status Pajak',
+            'non_pkp' => 'Non-PKP',
+            'non_pkp_note' => 'Penyedia berstatus Non-PKP sehingga tidak memungut PPN dan tidak menerbitkan Faktur Pajak.',
+            'gross_total' => 'Total Tagihan Bruto',
+            'income_tax' => 'PPh Final UMKM Dipotong',
+            'net_payment' => 'PEMBAYARAN BERSIH',
             'approved_by' => 'Disetujui oleh,',
             'thank_you' => 'Terima kasih atas kepercayaan Anda!',
             'default_note' => 'Terima kasih telah mempercayakan kebutuhan teknologi Anda kepada',
@@ -127,6 +135,12 @@
             'subtotal' => 'Subtotal',
             'vat' => 'VAT',
             'service_fee' => 'Service Fee',
+            'tax_status' => 'Tax Status',
+            'non_pkp' => 'Non-VAT Registered',
+            'non_pkp_note' => 'The provider is not VAT-registered; VAT is not charged and no VAT invoice is issued.',
+            'gross_total' => 'Gross Invoice Total',
+            'income_tax' => 'Final MSME Income Tax Withheld',
+            'net_payment' => 'NET PAYMENT',
             'approved_by' => 'Approved by,',
             'thank_you' => 'Thank you for your business!',
             'default_note' => 'Thank you for entrusting your technology needs to',
@@ -206,6 +220,7 @@
                 @if($invoice->late_fee_active)
                     <tr><td>{{ $labels['late_fee'] }}</td><td>: Rp {{ number_format($invoice->late_fee_per_month, 0, ',', '.') }} {{ $labels['per_30_days'] }}</td></tr>
                 @endif
+                <tr><td>{{ $labels['tax_status'] }}</td><td>: {{ $invoice->provider_tax_status === 'non_pkp' ? $labels['non_pkp'] : strtoupper($invoice->provider_tax_status) }}</td></tr>
                 <tr><td>{{ $labels['status'] }}</td><td>: <span class="badge {{ $isOverdue ? 'overdue' : $invoice->status }}">{{ $displayStatus }}</span></td></tr>
             </table>
         </td>
@@ -298,8 +313,17 @@
                 @if($invoice->late_fee_amount > 0)
                     <tr class="late-fee"><td>{{ $labels['late_fee'] }} ({{ $invoice->late_months }} {{ $labels['month'] }})</td><td class="text-right">Rp {{ number_format($invoice->late_fee_amount, 0, ',', '.') }}</td></tr>
                 @endif
-                <tr class="total"><td>TOTAL</td><td class="text-right">Rp {{ number_format($invoice->total_due, 0, ',', '.') }}</td></tr>
+                @if($invoice->income_tax_withheld && (float) $invoice->income_tax_amount > 0)
+                    <tr><td>{{ $labels['gross_total'] }}</td><td class="text-right">Rp {{ number_format($invoice->total_due, 0, ',', '.') }}</td></tr>
+                    <tr class="tax-deduction"><td>{{ $labels['income_tax'] }} {{ number_format($invoice->income_tax_rate, 2, ',', '.') }}%</td><td class="text-right">- Rp {{ number_format($invoice->income_tax_amount, 0, ',', '.') }}</td></tr>
+                    <tr class="total"><td>{{ $labels['net_payment'] }}</td><td class="text-right">Rp {{ number_format($invoice->net_receivable, 0, ',', '.') }}</td></tr>
+                @else
+                    <tr class="total"><td>TOTAL</td><td class="text-right">Rp {{ number_format($invoice->total_due, 0, ',', '.') }}</td></tr>
+                @endif
             </table>
+            @if($invoice->provider_tax_status === 'non_pkp')
+                <div class="tax-note">{{ $labels['non_pkp_note'] }}</div>
+            @endif
         </td>
     </tr>
 </table>

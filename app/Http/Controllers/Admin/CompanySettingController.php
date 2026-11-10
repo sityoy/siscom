@@ -63,6 +63,14 @@ class CompanySettingController extends Controller
 
             'nib' => 'nullable|max:50',
             'npwp' => 'nullable|max:50',
+            'tax_status' => 'required|in:pkp,non_pkp',
+            'income_tax_scheme' => 'required|in:umkm_final,normal',
+            'income_tax_rate' => 'required|numeric|min:0|max:100',
+            'pp55_active' => 'nullable|boolean',
+            'pp55_bpe_number' => 'nullable|max:100',
+            'pp55_case_number' => 'nullable|max:100',
+            'pp55_effective_date' => 'nullable|date',
+            'pp55_document' => 'nullable|file|mimes:pdf|max:5120',
             'director_name' => 'nullable|max:255',
             'director_title' => 'nullable|max:255',
             'city' => 'nullable|max:100',
@@ -95,6 +103,21 @@ class CompanySettingController extends Controller
                 );
         }
 
+        $pp55Document = $setting->pp55_document;
+
+        if ($request->hasFile('pp55_document')) {
+            if (
+                $setting->pp55_document
+                && Storage::disk('public')->exists($setting->pp55_document)
+            ) {
+                Storage::disk('public')->delete($setting->pp55_document);
+            }
+
+            $pp55Document = $request
+                ->file('pp55_document')
+                ->store('company/tax', 'public');
+        }
+
 
 
         $setting->update([
@@ -107,6 +130,14 @@ class CompanySettingController extends Controller
 
             'nib' => $request->nib,
             'npwp' => $request->npwp,
+            'tax_status' => $request->tax_status,
+            'income_tax_scheme' => $request->income_tax_scheme,
+            'income_tax_rate' => $request->income_tax_rate,
+            'pp55_active' => $request->boolean('pp55_active'),
+            'pp55_bpe_number' => $request->pp55_bpe_number,
+            'pp55_case_number' => $request->pp55_case_number,
+            'pp55_effective_date' => $request->pp55_effective_date,
+            'pp55_document' => $pp55Document,
             'director_name' => $request->director_name,
             'director_title' => $request->director_title,
             'city' => $request->city,

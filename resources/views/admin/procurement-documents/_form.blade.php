@@ -45,6 +45,10 @@
                             data-project="{{ $project->id }}"
                             data-invoice-date="{{ ($invoice->invoice_date ?? $invoice->created_at)->format('Y-m-d') }}"
                             data-total="{{ $invoice->total_due }}"
+                            data-tax-status="{{ $invoice->income_tax_scheme === 'umkm_final' ? 'umkm_final' : $invoice->provider_tax_status }}"
+                            data-tax-base="{{ $invoice->income_tax_base }}"
+                            data-vat="{{ $invoice->vat }}"
+                            data-income-tax="{{ $invoice->income_tax_amount }}"
                             @selected((string) $selectedInvoiceId === (string) $invoice->id)>
                         {{ $invoice->invoice_number }} — Rp {{ number_format($invoice->total_due, 0, ',', '.') }}
                     </option>
@@ -140,8 +144,8 @@
 <hr>
 <h5 class="font-weight-bold">Sumber Dana dan Perpajakan</h5>
 <div class="alert alert-light border">
-    Nilai pajak tidak dihitung otomatis karena perlakuannya bergantung pada SIPLah/non-SIPLah,
-    jenis transaksi, serta status pajak penyedia. Isikan sesuai bukti transaksi dan ketentuan yang berlaku.
+    Data pajak otomatis mengikuti invoice. Untuk penyedia Non-PKP, PPN bernilai 0.
+    PPh Final UMKM hanya tampil sebagai potongan apabila pada invoice dipilih dipotong oleh sekolah/client.
 </div>
 <div class="row">
     <div class="col-md-3 mb-3">
@@ -169,7 +173,7 @@
     </div>
     <div class="col-md-3 mb-3">
         <label>Status Pajak Penyedia</label>
-        <select name="provider_tax_status" class="form-control">
+        <select name="provider_tax_status" id="provider_tax_status" class="form-control">
             @foreach(['' => '-- Pilih --', 'pkp' => 'PKP', 'non_pkp' => 'Non-PKP', 'umkm_final' => 'UMKM Pajak Final', 'other' => 'Lainnya'] as $value => $label)
                 <option value="{{ $value }}" @selected(old('provider_tax_status', $document->provider_tax_status) === $value)>{{ $label }}</option>
             @endforeach
@@ -177,15 +181,15 @@
     </div>
     <div class="col-md-4 mb-3">
         <label>Dasar Pengenaan Pajak (DPP)</label>
-        <input type="number" name="tax_base" min="0" class="form-control" value="{{ old('tax_base', $document->tax_base ?? 0) }}">
+        <input type="number" name="tax_base" id="tax_base" min="0" class="form-control" value="{{ old('tax_base', $document->tax_base ?? 0) }}">
     </div>
     <div class="col-md-4 mb-3">
         <label>PPN</label>
-        <input type="number" name="vat_amount" min="0" class="form-control" value="{{ old('vat_amount', $document->vat_amount ?? 0) }}">
+        <input type="number" name="vat_amount" id="vat_amount" min="0" class="form-control" value="{{ old('vat_amount', $document->vat_amount ?? 0) }}">
     </div>
     <div class="col-md-4 mb-3">
         <label>PPh/Potongan Pajak</label>
-        <input type="number" name="income_tax_amount" min="0" class="form-control" value="{{ old('income_tax_amount', $document->income_tax_amount ?? 0) }}">
+        <input type="number" name="income_tax_amount" id="income_tax_amount" min="0" class="form-control" value="{{ old('income_tax_amount', $document->income_tax_amount ?? 0) }}">
     </div>
 </div>
 
@@ -208,6 +212,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const documentDate = document.getElementById('document_date');
     const schoolSignerName = document.getElementById('school_signer_name');
     const schoolSignerTitle = document.getElementById('school_signer_title');
+    const providerTaxStatus = document.getElementById('provider_tax_status');
+    const taxBase = document.getElementById('tax_base');
+    const vatAmount = document.getElementById('vat_amount');
+    const incomeTaxAmount = document.getElementById('income_tax_amount');
 
     function fillSchoolSigner(force) {
         const option = project.options[project.selectedIndex];
@@ -237,6 +245,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         documentDate.value = option.dataset.invoiceDate || documentDate.value;
         amount.value = option.dataset.total || amount.value;
+        providerTaxStatus.value = option.dataset.taxStatus || '';
+        taxBase.value = option.dataset.taxBase || 0;
+        vatAmount.value = option.dataset.vat || 0;
+        incomeTaxAmount.value = option.dataset.incomeTax || 0;
     }
 
     project.addEventListener('change', function () {

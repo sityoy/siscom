@@ -45,7 +45,10 @@ class ProjectInvoiceSyncService
                 $qty = max(1, (float) $item->qty);
                 $price = (float) ($project->budget ?? 0);
                 $subtotal = $qty * $price;
-                $vat = $subtotal * ((float) $invoice->vat_percent / 100);
+                $vatPercent = $invoice->provider_tax_status === 'pkp'
+                    ? (float) $invoice->vat_percent
+                    : 0;
+                $vat = $subtotal * ($vatPercent / 100);
 
                 $item->update([
                     'description' => 'Biaya Project - '.$project->title,
@@ -55,8 +58,14 @@ class ProjectInvoiceSyncService
 
                 $invoice->update([
                     'subtotal' => $subtotal,
+                    'vat_percent' => $vatPercent,
                     'vat' => $vat,
                     'grand_total' => $subtotal + $vat + (float) $invoice->service_fee,
+                    'income_tax_base' => $subtotal + (float) $invoice->service_fee,
+                    'income_tax_amount' => $invoice->income_tax_withheld
+                        ? ($subtotal + (float) $invoice->service_fee)
+                            * (float) $invoice->income_tax_rate / 100
+                        : 0,
                 ]);
             });
 
@@ -103,6 +112,12 @@ class ProjectInvoiceSyncService
             'document_date' => $invoiceDate->toDateString(),
             'subject' => $project->title,
             'amount' => $invoice->total_due,
+            'provider_tax_status' => $invoice->income_tax_scheme === 'umkm_final'
+                ? 'umkm_final'
+                : $invoice->provider_tax_status,
+            'tax_base' => $invoice->income_tax_base,
+            'vat_amount' => $invoice->vat,
+            'income_tax_amount' => $invoice->income_tax_amount,
         ]);
     }
 }

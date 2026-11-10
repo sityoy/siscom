@@ -46,6 +46,82 @@
 
             </div>
 
+            <hr>
+
+            <h5>Profil Perpajakan</h5>
+
+            <div class="alert alert-info">
+                Pengaturan ini menjadi sumber data otomatis untuk Invoice dan Paket SPJ.
+                Status Non-PKP membuat PPN selalu 0 dan aplikasi tidak menerbitkan Faktur Pajak.
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label>Status PKP</label>
+                    <select name="tax_status" class="form-control" required>
+                        <option value="non_pkp" @selected(old('tax_status', $setting->tax_status ?: 'non_pkp') === 'non_pkp')>Non-PKP</option>
+                        <option value="pkp" @selected(old('tax_status', $setting->tax_status) === 'pkp')>PKP</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label>Skema PPh</label>
+                    <select name="income_tax_scheme" class="form-control" required>
+                        <option value="umkm_final" @selected(old('income_tax_scheme', $setting->income_tax_scheme ?: 'umkm_final') === 'umkm_final')>PPh Final UMKM</option>
+                        <option value="normal" @selected(old('income_tax_scheme', $setting->income_tax_scheme) === 'normal')>PPh Normal/Lainnya</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label>Tarif PPh (%)</label>
+                    <input type="number" name="income_tax_rate" class="form-control"
+                           min="0" max="100" step="0.01"
+                           value="{{ old('income_tax_rate', $setting->income_tax_rate ?? 0.50) }}" required>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <input type="hidden" name="pp55_active" value="0">
+                    <div class="form-check mt-4 pt-2">
+                        <input type="checkbox" name="pp55_active" id="pp55-active"
+                               class="form-check-input" value="1"
+                               @checked(old('pp55_active', $setting->pp55_active ?? true))>
+                        <label class="form-check-label" for="pp55-active">
+                            Fasilitas PP 55 aktif
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label>Nomor BPE</label>
+                    <input type="text" name="pp55_bpe_number" class="form-control"
+                           value="{{ old('pp55_bpe_number', $setting->pp55_bpe_number) }}">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label>Nomor Kasus Coretax</label>
+                    <input type="text" name="pp55_case_number" class="form-control"
+                           value="{{ old('pp55_case_number', $setting->pp55_case_number) }}">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label>Tanggal Berlaku Fasilitas</label>
+                    <input type="date" name="pp55_effective_date" class="form-control"
+                           value="{{ old('pp55_effective_date', optional($setting->pp55_effective_date)->format('Y-m-d')) }}">
+                </div>
+
+                <div class="col-md-8 mb-3">
+                    <label>Dokumen PP 55/BPE (PDF)</label>
+                    <input type="file" name="pp55_document" class="form-control" accept="application/pdf">
+                    @if($setting->pp55_document)
+                        <a href="{{ asset('storage/'.$setting->pp55_document) }}"
+                           class="btn btn-sm btn-outline-primary mt-2" target="_blank">
+                            Lihat dokumen tersimpan
+                        </a>
+                    @endif
+                    <small class="form-text text-muted">Unggah BPE sekarang; dapat diganti dengan Surat Keterangan setelah tersedia.</small>
+                </div>
+            </div>
+
             <div class="mb-3">
 
                 <label>Nama Legal/Badan Usaha</label>

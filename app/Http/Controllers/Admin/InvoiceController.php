@@ -48,6 +48,8 @@ class InvoiceController extends Controller
     {
         $clients = Client::all();
 
+        $company = $this->companyTaxSetting();
+
         $projects = Project::withCount('invoices')->get();
 
         $selectedProject = null;
@@ -82,8 +84,9 @@ class InvoiceController extends Controller
             'duration_type' => 'Hari',
             'start_date' => null,
             'end_date' => null,
-            'vat_percent' => 11,
+            'vat_percent' => $company->isPkp() ? 11 : 0,
             'service_fee' => 10000,
+            'income_tax_withheld' => false,
             'late_fee_active' => (bool) ($selectedProject?->late_fee_active),
             'late_fee_per_month' => $selectedProject?->late_fee_per_month
                 ?? 100000,
@@ -97,7 +100,8 @@ class InvoiceController extends Controller
             compact(
                 'clients',
                 'projects',
-                'invoiceDefaults'
+                'invoiceDefaults',
+                'company'
             )
         );
     }
@@ -129,6 +133,8 @@ class InvoiceController extends Controller
             'late_fee_active' => 'nullable|boolean',
 
             'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
+
+            'income_tax_withheld' => 'nullable|boolean',
 
             'description' => 'required|array|min:1',
 
@@ -162,11 +168,21 @@ class InvoiceController extends Controller
             $subtotal += $qty * $price;
         }
 
-        $vatPercent = $request->vat_percent ?? 0;
-
-        $vat = ($subtotal * $vatPercent) / 100;
-
         $serviceFee = $request->service_fee ?? 0;
+
+        $company = $this->companyTaxSetting();
+
+        $tax = $this->taxSnapshot(
+            $company,
+            $subtotal,
+            $serviceFee,
+            $request->boolean('income_tax_withheld'),
+            (float) ($request->vat_percent ?? 0),
+        );
+
+        $vatPercent = $tax['vat_percent'];
+
+        $vat = $tax['vat'];
 
         $cashback = $request->cashback ?? 0;
 
@@ -195,6 +211,18 @@ class InvoiceController extends Controller
             'vat_percent' => $vatPercent,
 
             'vat' => $vat,
+
+            'provider_tax_status' => $tax['provider_tax_status'],
+
+            'income_tax_scheme' => $tax['income_tax_scheme'],
+
+            'income_tax_rate' => $tax['income_tax_rate'],
+
+            'income_tax_base' => $tax['income_tax_base'],
+
+            'income_tax_withheld' => $tax['income_tax_withheld'],
+
+            'income_tax_amount' => $tax['income_tax_amount'],
 
             'service_fee' => $serviceFee,
 
@@ -315,6 +343,8 @@ class InvoiceController extends Controller
     {
         $clients = Client::all();
 
+        $company = $this->companyTaxSetting();
+
         $projects = Project::withCount('invoices')->get();
 
         return view(
@@ -322,7 +352,8 @@ class InvoiceController extends Controller
             compact(
                 'invoice',
                 'clients',
-                'projects'
+                'projects',
+                'company'
             )
         );
     }
@@ -341,6 +372,7 @@ class InvoiceController extends Controller
                 'invoice_type' => 'required|in:project,renewal',
                 'late_fee_active' => 'nullable|boolean',
                 'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
+                'income_tax_withheld' => 'nullable|boolean',
             ]);
 
             $previousProjectId = $invoice->project_id;
@@ -366,11 +398,21 @@ class InvoiceController extends Controller
                 $subtotal += $qty * $price;
             }
 
-            $vatPercent = $request->vat_percent ?? 0;
-
-            $vat = ($subtotal * $vatPercent) / 100;
-
             $serviceFee = $request->service_fee ?? 0;
+
+            $company = $this->companyTaxSetting();
+
+            $tax = $this->taxSnapshot(
+                $company,
+                $subtotal,
+                $serviceFee,
+                $request->boolean('income_tax_withheld'),
+                (float) ($request->vat_percent ?? 0),
+            );
+
+            $vatPercent = $tax['vat_percent'];
+
+            $vat = $tax['vat'];
 
             $cashback = $request->cashback ?? 0;
 
@@ -399,6 +441,18 @@ class InvoiceController extends Controller
                 'vat_percent' => $vatPercent,
 
                 'vat' => $vat,
+
+                'provider_tax_status' => $tax['provider_tax_status'],
+
+                'income_tax_scheme' => $tax['income_tax_scheme'],
+
+                'income_tax_rate' => $tax['income_tax_rate'],
+
+                'income_tax_base' => $tax['income_tax_base'],
+
+                'income_tax_withheld' => $tax['income_tax_withheld'],
+
+                'income_tax_amount' => $tax['income_tax_amount'],
 
                 'service_fee' => $serviceFee,
 
@@ -538,6 +592,45 @@ class InvoiceController extends Controller
         return in_array($request->query('lang'), ['id', 'en'], true)
             ? $request->query('lang')
             : 'id';
+    }
+
+    private function companyTaxSetting(): CompanySetting
+    {
+        return CompanySetting::firstOrCreate([], [
+            'company_name' => 'SIS.COM',
+            'tax_status' => 'non_pkp',
+            'income_tax_scheme' => 'umkm_final',
+            'income_tax_rate' => 0.50,
+            'pp55_active' => true,
+        ]);
+    }
+
+    private function taxSnapshot(
+        CompanySetting $company,
+        float $subtotal,
+        float $serviceFee,
+        bool $withheld,
+        float $requestedVatPercent,
+    ): array {
+        $vatPercent = $company->isPkp() ? $requestedVatPercent : 0;
+        $incomeTaxBase = $subtotal + $serviceFee;
+        $incomeTaxRate = $company->usesUmkmFinal()
+            ? (float) $company->income_tax_rate
+            : 0;
+        $incomeTaxWithheld = $withheld && $incomeTaxRate > 0;
+
+        return [
+            'vat_percent' => $vatPercent,
+            'vat' => $subtotal * $vatPercent / 100,
+            'provider_tax_status' => $company->tax_status ?: 'non_pkp',
+            'income_tax_scheme' => $company->income_tax_scheme ?: 'umkm_final',
+            'income_tax_rate' => $incomeTaxRate,
+            'income_tax_base' => $incomeTaxBase,
+            'income_tax_withheld' => $incomeTaxWithheld,
+            'income_tax_amount' => $incomeTaxWithheld
+                ? $incomeTaxBase * $incomeTaxRate / 100
+                : 0,
+        ];
     }
 
 }

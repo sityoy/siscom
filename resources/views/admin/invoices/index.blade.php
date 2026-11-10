@@ -433,9 +433,15 @@
     {{-- TOTAL BAYAR --}}
    <div class="fw-bold text-success">
 
-        Total Bayar
+        {{ $invoice->income_tax_withheld ? 'Pembayaran Bersih' : 'Total Bayar' }}
         <br>
-        Rp {{ number_format($invoice->total_due,0,',','.') }}
+        Rp {{ number_format($invoice->net_receivable,0,',','.') }}
+
+        @if($invoice->income_tax_withheld && (float) $invoice->income_tax_amount > 0)
+            <div class="small text-danger font-weight-normal mt-1">
+                PPh dipotong Rp {{ number_format($invoice->income_tax_amount,0,',','.') }}
+            </div>
+        @endif
 
     </div>
 

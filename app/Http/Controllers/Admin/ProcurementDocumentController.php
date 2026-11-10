@@ -69,6 +69,7 @@ class ProcurementDocumentController extends Controller
             ? $projects->firstWhere('id', $request->integer('project_id'))
             : null;
         $selectedInvoice = $selectedProject?->invoices?->first();
+        $company = CompanySetting::first();
 
         return view('admin.procurement-documents.create', [
             'document' => new ProcurementDocument([
@@ -82,10 +83,16 @@ class ProcurementDocumentController extends Controller
                     ?? 0,
                 'school_signer_name' => $selectedProject?->client?->authorized_official_name,
                 'school_signer_title' => $selectedProject?->client?->authorized_official_title,
-                'provider_signer_name' => CompanySetting::first()?->director_name,
-                'provider_signer_title' => CompanySetting::first()?->director_title,
+                'provider_signer_name' => $company?->director_name,
+                'provider_signer_title' => $company?->director_title,
                 'status' => 'ready',
                 'transaction_method' => 'non_siplah',
+                'provider_tax_status' => $selectedInvoice?->income_tax_scheme === 'umkm_final'
+                    ? 'umkm_final'
+                    : ($selectedInvoice?->provider_tax_status ?? $company?->tax_status),
+                'tax_base' => $selectedInvoice?->income_tax_base ?? 0,
+                'vat_amount' => $selectedInvoice?->vat ?? 0,
+                'income_tax_amount' => $selectedInvoice?->income_tax_amount ?? 0,
             ]),
             'projects' => $projects,
             'selectedProject' => $selectedProject,
@@ -249,6 +256,12 @@ class ProcurementDocumentController extends Controller
                     'provider_signer_name' => $company?->director_name,
                     'provider_signer_title' => $company?->director_title,
                     'transaction_method' => 'non_siplah',
+                    'provider_tax_status' => $invoice->income_tax_scheme === 'umkm_final'
+                        ? 'umkm_final'
+                        : $invoice->provider_tax_status,
+                    'tax_base' => $invoice->income_tax_base,
+                    'vat_amount' => $invoice->vat,
+                    'income_tax_amount' => $invoice->income_tax_amount,
                     'terms' => $this->defaultTerms($type),
                 ]);
 
@@ -431,6 +444,12 @@ class ProcurementDocumentController extends Controller
 
         $data['document_date'] = $invoiceDate->toDateString();
         $data['amount'] = $invoice->total_due;
+        $data['provider_tax_status'] = $invoice->income_tax_scheme === 'umkm_final'
+            ? 'umkm_final'
+            : $invoice->provider_tax_status;
+        $data['tax_base'] = $invoice->income_tax_base;
+        $data['vat_amount'] = $invoice->vat;
+        $data['income_tax_amount'] = $invoice->income_tax_amount;
 
         return $data;
     }

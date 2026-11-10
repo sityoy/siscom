@@ -315,6 +315,16 @@
 
             <hr>
 
+            <div class="alert alert-info">
+                <strong>Profil pajak perusahaan:</strong> {{ $company->tax_status_label }}
+                @if($company->usesUmkmFinal())
+                    — PPh Final UMKM {{ number_format($company->income_tax_rate, 2, ',', '.') }}% (PP 55 aktif)
+                @endif
+                @if(!$company->isPkp())
+                    <br>PPN otomatis 0 karena perusahaan berstatus Non-PKP.
+                @endif
+            </div>
+
             <div class="row">
 
                 <div class="col-md-4">
@@ -328,7 +338,8 @@
                             name="vat_percent"
                             class="form-control"
                             id="vat-percent"
-                            value="{{ old('vat_percent', number_format($invoice->vat_percent,0)) }}">
+                            value="{{ old('vat_percent', number_format($invoice->vat_percent,0)) }}"
+                            @readonly(!$company->isPkp())>
 
                 </div>
 
@@ -386,6 +397,27 @@
     @error('late_fee_per_month')
         <div class="invalid-feedback">{{ $message }}</div>
     @enderror
+
+</div>
+
+<div class="col-md-4">
+
+    <label>PPh Final UMKM</label>
+
+    <input type="hidden" name="income_tax_withheld" value="0">
+
+    <div class="form-check mt-2">
+        <input type="checkbox"
+               name="income_tax_withheld"
+               id="income-tax-withheld"
+               class="form-check-input"
+               value="1"
+               @checked(old('income_tax_withheld', $invoice->income_tax_withheld))
+               @disabled(!$company->usesUmkmFinal())>
+        <label class="form-check-label" for="income-tax-withheld">
+            Dipotong oleh sekolah/client ({{ number_format($company->income_tax_rate, 2, ',', '.') }}%)
+        </label>
+    </div>
 
 </div>
 
@@ -485,14 +517,19 @@
 
         </h5>
 
+        <h6 class="text-danger">
+            Potongan PPh Final UMKM:
+            Rp <span id="income-tax-amount">{{ number_format($invoice->income_tax_amount,0,',','.') }}</span>
+        </h6>
+
     </div>
 
     <h3 class="text-primary">
 
-        Total Bayar:
+        Pembayaran Bersih:
         Rp <span id="final-total">
 
-            {{ number_format($invoice->grand_total,0,',','.') }}
+            {{ number_format($invoice->net_receivable,0,',','.') }}
 
         </span>
 
@@ -586,6 +623,8 @@ projectSelect.addEventListener('change', function(){
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    const incomeTaxRate = @json($company->usesUmkmFinal() ? (float) $company->income_tax_rate : 0);
+
     document.getElementById('invoice-date-today')
         .addEventListener('click', function () {
             document.getElementById('invoice-date').value = @json(now()->format('Y-m-d'));
@@ -639,6 +678,11 @@ document.addEventListener('DOMContentLoaded', function () {
         let vat = subtotal * vatPercent / 100;
 
         let grandTotal = subtotal + vat + serviceFee;
+
+        const incomeTaxWithheld = document.getElementById('income-tax-withheld')?.checked || false;
+        const incomeTaxAmount = incomeTaxWithheld
+            ? (subtotal + serviceFee) * incomeTaxRate / 100
+            : 0;
 
         let lateFee = 0;
 
@@ -697,6 +741,9 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('grand-total')
             .innerText = grandTotal.toLocaleString('id-ID');
 
+        document.getElementById('income-tax-amount')
+            .innerText = incomeTaxAmount.toLocaleString('id-ID');
+
         document.getElementById('late-months')
             .innerText = lateMonths;
 
@@ -705,7 +752,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.getElementById('final-total')
             .innerText =
-            (grandTotal + lateFee).toLocaleString('id-ID');
+            (grandTotal + lateFee - incomeTaxAmount).toLocaleString('id-ID');
     }
 
     function updateSummary(item) {

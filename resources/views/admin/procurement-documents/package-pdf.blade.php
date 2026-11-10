@@ -147,9 +147,18 @@
                     <td class="text-right"><strong>Rp {{ number_format($invoice->late_fee_amount, 0, ',', '.') }}</strong></td>
                 </tr>
             @endif
-            <tr><td colspan="3" class="text-right"><strong>Total Tagihan</strong></td><td class="text-right"><strong>Rp {{ number_format($invoice->total_due, 0, ',', '.') }}</strong></td></tr>
+            @if($invoice->income_tax_withheld && (float) $invoice->income_tax_amount > 0)
+                <tr><td colspan="3" class="text-right">Total Tagihan Bruto</td><td class="text-right">Rp {{ number_format($invoice->total_due, 0, ',', '.') }}</td></tr>
+                <tr><td colspan="3" class="text-right">PPh Final UMKM {{ number_format($invoice->income_tax_rate, 2, ',', '.') }}% Dipotong</td><td class="text-right">- Rp {{ number_format($invoice->income_tax_amount, 0, ',', '.') }}</td></tr>
+                <tr><td colspan="3" class="text-right"><strong>Pembayaran Bersih</strong></td><td class="text-right"><strong>Rp {{ number_format($invoice->net_receivable, 0, ',', '.') }}</strong></td></tr>
+            @else
+                <tr><td colspan="3" class="text-right"><strong>Total Tagihan</strong></td><td class="text-right"><strong>Rp {{ number_format($invoice->total_due, 0, ',', '.') }}</strong></td></tr>
+            @endif
         </tbody>
     </table>
+    @if($invoice->provider_tax_status === 'non_pkp')
+        <p class="muted">Penyedia berstatus Non-PKP sehingga tidak memungut PPN dan tidak menerbitkan Faktur Pajak.</p>
+    @endif
     <p class="muted">Perhitungan ringkasan ini menggunakan sumber data yang sama dengan PDF Invoice resmi.</p>
 @endforeach
 </body>
