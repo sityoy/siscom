@@ -12,6 +12,7 @@ use App\Services\ProjectInvoiceSyncService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -341,6 +342,70 @@ class ProcurementDocumentTest extends TestCase
         $this->assertSame('5010000.00', $document->tax_base);
         $this->assertEquals(0, $document->vat_amount);
         $this->assertSame('25050.00', $document->income_tax_amount);
+    }
+
+    public function test_admin_can_store_pp55_certificate_in_private_storage(): void
+    {
+        Storage::fake('local');
+        [$admin] = $this->createAdminAndProject();
+
+        CompanySetting::create([
+            'company_name' => 'SIS.COM',
+            'tax_status' => 'non_pkp',
+            'income_tax_scheme' => 'umkm_final',
+            'income_tax_rate' => 0.50,
+            'pp55_active' => true,
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->put(route('procurement-documents.tax-documents.update'), [
+                'tax_status' => 'non_pkp',
+                'income_tax_scheme' => 'umkm_final',
+                'income_tax_rate' => 0.50,
+                'pp55_active' => 1,
+                'pp55_certificate_number' => 'KET-TEST/PP55/2026',
+                'pp55_certificate_date' => '2026-11-10',
+                'pp55_certificate_document' => UploadedFile::fake()
+                    ->create('surat-keterangan-pp55.pdf', 100, 'application/pdf'),
+            ]);
+
+        $response->assertRedirect();
+
+        $company = CompanySetting::firstOrFail();
+        $this->assertSame('KET-TEST/PP55/2026', $company->pp55_certificate_number);
+        $this->assertSame('2026-11-10', $company->pp55_certificate_date->toDateString());
+        Storage::disk('local')->assertExists($company->pp55_certificate_document);
+    }
+
+    public function test_document_type_submenu_only_lists_the_selected_document_type(): void
+    {
+        [$admin, $project] = $this->createAdminAndProject();
+
+        ProcurementDocument::create([
+            'project_id' => $project->id,
+            'created_by' => $admin->id,
+            'type' => 'quotation',
+            'document_number' => '001/SPH/SIS/XI/2026',
+            'document_date' => '2026-11-10',
+            'status' => 'ready',
+            'amount' => 5000000,
+        ]);
+
+        ProcurementDocument::create([
+            'project_id' => $project->id,
+            'created_by' => $admin->id,
+            'type' => 'handover',
+            'document_number' => '001/BAST/SIS/XI/2026',
+            'document_date' => '2026-11-10',
+            'status' => 'ready',
+            'amount' => 5000000,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('procurement-documents.type', 'quotation'))
+            ->assertOk()
+            ->assertSee('001/SPH/SIS/XI/2026')
+            ->assertDontSee('001/BAST/SIS/XI/2026');
     }
 
     private function createAdminAndProject(bool $withClientUser = false): array

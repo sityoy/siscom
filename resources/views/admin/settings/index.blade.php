@@ -110,15 +110,15 @@
                 </div>
 
                 <div class="col-md-8 mb-3">
-                    <label>Dokumen PP 55/BPE (PDF)</label>
+                    <label>Dokumen BPE (PDF)</label>
                     <input type="file" name="pp55_document" class="form-control" accept="application/pdf">
                     @if($setting->pp55_document)
-                        <a href="{{ asset('storage/'.$setting->pp55_document) }}"
+                        <a href="{{ route('procurement-documents.tax-documents.download', 'bpe') }}"
                            class="btn btn-sm btn-outline-primary mt-2" target="_blank">
                             Lihat dokumen tersimpan
                         </a>
                     @endif
-                    <small class="form-text text-muted">Unggah BPE sekarang; dapat diganti dengan Surat Keterangan setelah tersedia.</small>
+                    <small class="form-text text-muted">Surat Keterangan PP 55 dikelola terpisah melalui menu Rekanan & SPJ → Dokumen Pajak & PP 55.</small>
                 </div>
             </div>
 

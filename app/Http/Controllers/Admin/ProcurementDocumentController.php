@@ -21,11 +21,17 @@ class ProcurementDocumentController extends Controller
 {
     public function index(Request $request)
     {
+        $activeType = $request->route('type') ?: $request->input('type');
+
+        if ($activeType && !array_key_exists($activeType, ProcurementDocument::TYPES)) {
+            abort(404);
+        }
+
         $documents = ProcurementDocument::with(['project.client', 'invoice'])
             ->when($request->filled('project_id'), fn ($query) =>
                 $query->where('project_id', $request->integer('project_id')))
-            ->when($request->filled('type'), fn ($query) =>
-                $query->where('type', (string) $request->string('type')))
+            ->when($activeType, fn ($query) =>
+                $query->where('type', $activeType))
             ->when($request->filled('status'), fn ($query) =>
                 $query->where('status', (string) $request->string('status')))
             ->latest('document_date')
@@ -41,11 +47,14 @@ class ProcurementDocumentController extends Controller
             ? $projects->firstWhere('id', $request->integer('project_id'))
             : null;
 
+        $summaryQuery = ProcurementDocument::query()
+            ->when($activeType, fn ($query) => $query->where('type', $activeType));
+
         $summary = [
-            'total' => ProcurementDocument::count(),
-            'ready' => ProcurementDocument::whereIn('status', ['ready', 'awaiting_signature'])->count(),
-            'signed' => ProcurementDocument::whereIn('status', ['signed', 'paid', 'archived'])->count(),
-            'projects' => ProcurementDocument::distinct('project_id')->count('project_id'),
+            'total' => (clone $summaryQuery)->count(),
+            'ready' => (clone $summaryQuery)->whereIn('status', ['ready', 'awaiting_signature'])->count(),
+            'signed' => (clone $summaryQuery)->whereIn('status', ['signed', 'paid', 'archived'])->count(),
+            'projects' => (clone $summaryQuery)->distinct('project_id')->count('project_id'),
         ];
 
         return view('admin.procurement-documents.index', compact(
@@ -53,7 +62,104 @@ class ProcurementDocumentController extends Controller
             'projects',
             'selectedProject',
             'summary',
+            'activeType',
         ));
+    }
+
+    public function packages()
+    {
+        $projects = Project::with([
+            'client',
+            'invoices' => fn ($query) => $query
+                ->where('status', '!=', 'cancelled')
+                ->orderByDesc('invoice_date')
+                ->orderByDesc('id'),
+            'procurementDocuments' => fn ($query) => $query
+                ->orderBy('document_date')
+                ->orderBy('id'),
+        ])
+            ->whereHas('invoices', fn ($query) =>
+                $query->where('status', '!=', 'cancelled'))
+            ->latest()
+            ->paginate(10);
+
+        return view('admin.procurement-documents.packages', [
+            'projects' => $projects,
+            'requiredDocumentCount' => count(ProcurementDocument::TYPES),
+        ]);
+    }
+
+    public function taxDocuments()
+    {
+        return view('admin.procurement-documents.tax-documents', [
+            'company' => CompanySetting::firstOrCreate([], [
+                'company_name' => 'SIS.COM',
+                'tax_status' => 'non_pkp',
+                'income_tax_scheme' => 'umkm_final',
+                'income_tax_rate' => 0.50,
+                'pp55_active' => true,
+            ]),
+        ]);
+    }
+
+    public function updateTaxDocuments(Request $request)
+    {
+        $company = CompanySetting::firstOrCreate([], ['company_name' => 'SIS.COM']);
+        $data = $request->validate([
+            'tax_status' => ['required', Rule::in(['pkp', 'non_pkp'])],
+            'income_tax_scheme' => ['required', Rule::in(['umkm_final', 'normal'])],
+            'income_tax_rate' => 'required|numeric|min:0|max:100',
+            'pp55_active' => 'nullable|boolean',
+            'pp55_case_number' => 'nullable|string|max:100',
+            'pp55_bpe_number' => 'nullable|string|max:100',
+            'pp55_effective_date' => 'nullable|date',
+            'pp55_certificate_number' => 'nullable|string|max:100',
+            'pp55_certificate_date' => 'nullable|date',
+            'pp55_notes' => 'nullable|string|max:2000',
+            'pp55_document' => 'nullable|file|mimes:pdf|max:5120',
+            'pp55_certificate_document' => 'nullable|file|mimes:pdf|max:5120',
+        ]);
+
+        $data['pp55_active'] = $request->boolean('pp55_active');
+
+        foreach (['pp55_document', 'pp55_certificate_document'] as $field) {
+            if (!$request->hasFile($field)) {
+                unset($data[$field]);
+                continue;
+            }
+
+            if ($company->{$field}) {
+                Storage::disk('local')->delete($company->{$field});
+                Storage::disk('public')->delete($company->{$field});
+            }
+
+            $data[$field] = $request->file($field)->store('company/tax');
+        }
+
+        $company->update($data);
+
+        return back()->with('success', 'Profil dan dokumen pajak rekanan berhasil diperbarui.');
+    }
+
+    public function downloadTaxDocument(string $kind)
+    {
+        $company = CompanySetting::firstOrFail();
+        $field = match ($kind) {
+            'bpe' => 'pp55_document',
+            'certificate' => 'pp55_certificate_document',
+            default => abort(404),
+        };
+        $path = $company->{$field};
+
+        abort_unless($path, 404);
+
+        if (Storage::disk('local')->exists($path)) {
+            return Storage::disk('local')->download($path);
+        }
+
+        abort_unless(Storage::disk('public')->exists($path), 404);
+
+        return Storage::disk('public')->download($path);
     }
 
     public function create(Request $request)
@@ -86,6 +192,9 @@ class ProcurementDocumentController extends Controller
                 'provider_signer_name' => $company?->director_name,
                 'provider_signer_title' => $company?->director_title,
                 'status' => 'ready',
+                'type' => array_key_exists((string) $request->query('type'), ProcurementDocument::TYPES)
+                    ? (string) $request->query('type')
+                    : 'quotation',
                 'transaction_method' => 'non_siplah',
                 'provider_tax_status' => $selectedInvoice?->income_tax_scheme === 'umkm_final'
                     ? 'umkm_final'

@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('page-title', 'Dokumen Rekanan & SPJ')
+@section('page-title', $activeType ? \App\Models\ProcurementDocument::TYPES[$activeType] : 'Dashboard Dokumen Rekanan')
 
 @section('admin-content')
 
@@ -34,10 +34,14 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <div>
-            <h4 class="mb-1 font-weight-bold">Administrasi Rekanan Sekolah</h4>
-            <small class="text-muted">Kelola surat, BAST, kwitansi, perpajakan, dan paket SPJ per project.</small>
+            <h4 class="mb-1 font-weight-bold">
+                {{ $activeType ? \App\Models\ProcurementDocument::TYPES[$activeType] : 'Administrasi Rekanan Sekolah' }}
+            </h4>
+            <small class="text-muted">
+                {{ $activeType ? 'Daftar dokumen dipisahkan berdasarkan jenis agar mudah diperiksa dan diarsipkan.' : 'Kelola surat, BAST, kwitansi, perpajakan, dan paket SPJ per project.' }}
+            </small>
         </div>
-        <a href="{{ route('procurement-documents.create', request()->only('project_id')) }}"
+        <a href="{{ route('procurement-documents.create', array_filter(['project_id' => request('project_id'), 'type' => $activeType])) }}"
            class="btn btn-primary">
             <i class="fas fa-plus mr-1"></i> Buat Dokumen
         </a>
@@ -60,15 +64,17 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3 mb-2">
-                <label>Jenis Dokumen</label>
-                <select name="type" class="form-control">
-                    <option value="">Semua jenis</option>
-                    @foreach(\App\Models\ProcurementDocument::TYPES as $value => $label)
-                        <option value="{{ $value }}" @selected(request('type') === $value)>{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
+            @if(!$activeType)
+                <div class="col-md-3 mb-2">
+                    <label>Jenis Dokumen</label>
+                    <select name="type" class="form-control">
+                        <option value="">Semua jenis</option>
+                        @foreach(\App\Models\ProcurementDocument::TYPES as $value => $label)
+                            <option value="{{ $value }}" @selected(request('type') === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
             <div class="col-md-2 mb-2">
                 <label>Status</label>
                 <select name="status" class="form-control">
@@ -89,7 +95,7 @@
                       onsubmit="return confirm('Buat seluruh draf dokumen yang belum tersedia untuk project ini?')">
                     @csrf
                     <button class="btn btn-outline-primary">
-                        <i class="fas fa-magic mr-1"></i> Buat Draf Paket Otomatis
+                        <i class="fas fa-magic mr-1"></i> Lengkapi Paket Otomatis
                     </button>
                 </form>
                 <a href="{{ route('procurement-documents.package', $selectedProject) }}"
@@ -168,7 +174,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="text-center text-muted py-5">Belum ada dokumen rekanan.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-5">Belum ada {{ $activeType ? strtolower(\App\Models\ProcurementDocument::TYPES[$activeType]) : 'dokumen rekanan' }}.</td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -313,6 +313,31 @@ Route::prefix('admin')
         )->name('procurement-documents.index');
 
         Route::get(
+            '/procurement-documents/type/{type}',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'index']
+        )->name('procurement-documents.type');
+
+        Route::get(
+            '/procurement-packages',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'packages']
+        )->name('procurement-documents.packages');
+
+        Route::get(
+            '/procurement-tax-documents',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'taxDocuments']
+        )->name('procurement-documents.tax-documents');
+
+        Route::put(
+            '/procurement-tax-documents',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'updateTaxDocuments']
+        )->name('procurement-documents.tax-documents.update');
+
+        Route::get(
+            '/procurement-tax-documents/{kind}/download',
+            [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'downloadTaxDocument']
+        )->name('procurement-documents.tax-documents.download');
+
+        Route::get(
             '/procurement-documents/create',
             [App\Http\Controllers\Admin\ProcurementDocumentController::class, 'create']
         )->name('procurement-documents.create');

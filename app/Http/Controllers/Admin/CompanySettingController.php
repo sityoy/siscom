@@ -108,14 +108,14 @@ class CompanySettingController extends Controller
         if ($request->hasFile('pp55_document')) {
             if (
                 $setting->pp55_document
-                && Storage::disk('public')->exists($setting->pp55_document)
             ) {
+                Storage::disk('local')->delete($setting->pp55_document);
                 Storage::disk('public')->delete($setting->pp55_document);
             }
 
             $pp55Document = $request
                 ->file('pp55_document')
-                ->store('company/tax', 'public');
+                ->store('company/tax');
         }
 
 
