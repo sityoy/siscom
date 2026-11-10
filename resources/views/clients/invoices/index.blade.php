@@ -28,6 +28,7 @@
 
                         <th>#</th>
                         <th>Invoice</th>
+                        <th>Jenis</th>
                         <th>Project</th>
                         <th>Total</th>
                         <th>Status</th>
@@ -47,6 +48,10 @@
 
                                 {{ $loop->iteration }}
 
+                            </td>
+
+                            <td>
+                                <span class="badge badge-info">{{ $invoice->type_label }}</span>
                             </td>
 
                             <td>
@@ -139,7 +144,7 @@
 
                         <tr>
 
-                            <td colspan="6"
+                            <td colspan="7"
                                 class="text-center text-muted py-5">
 
                                 Belum ada invoice 😄🔥

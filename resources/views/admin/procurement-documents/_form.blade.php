@@ -203,7 +203,6 @@
     <textarea name="notes" class="form-control" rows="3">{{ old('notes', $document->notes) }}</textarea>
 </div>
 
-@push('js')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const project = document.getElementById('project_id');
@@ -275,4 +274,3 @@ document.addEventListener('DOMContentLoaded', function () {
     fillSchoolSigner(false);
 });
 </script>
-@endpush

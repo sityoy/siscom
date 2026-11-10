@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Invoice extends Model
 {
+    public const TYPES = [
+        'general' => 'Invoice Umum',
+        'project' => 'Invoice Jasa/Sewa',
+        'spj' => 'Invoice SPJ/Rekanan',
+        'renewal' => 'Perpanjangan Paket',
+    ];
+
     protected $fillable = [
 
         'client_id',
@@ -168,5 +175,15 @@ class Invoice extends Model
     public function procurementDocuments()
     {
         return $this->hasMany(ProcurementDocument::class);
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return self::TYPES[$this->invoice_type] ?? ucfirst($this->invoice_type);
+    }
+
+    public function usesServicePeriod(): bool
+    {
+        return in_array($this->invoice_type, ['project', 'renewal'], true);
     }
 }

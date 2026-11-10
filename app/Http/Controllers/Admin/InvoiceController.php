@@ -23,7 +23,8 @@ class InvoiceController extends Controller
 {
     $query = Invoice::with([
         'client',
-        'project'
+        'project',
+        'items',
     ]);
 
     if ($request->type) {
@@ -70,28 +71,40 @@ class InvoiceController extends Controller
             }
         }
 
+        $requestedType = (string) $request->input('type');
+        $invoiceType = array_key_exists($requestedType, Invoice::TYPES)
+            ? $requestedType
+            : ($selectedProject ? 'project' : 'general');
+
         $invoiceDefaults = [
             'client_id' => $selectedProject?->client_id,
             'project_id' => $selectedProject?->id,
-            'invoice_type' => 'project',
+            'invoice_type' => $invoiceType,
             'invoice_date' => now()->format('Y-m-d'),
             'due_date' => now()->addDays(7)->format('Y-m-d'),
             'description' => $selectedProject
-                ? 'Biaya Project - ' . $selectedProject->title
+                ? ($invoiceType === 'spj' ? 'Pengadaan - ' : 'Biaya Project - ')
+                    . $selectedProject->title
                 : '',
+            'item_type' => $invoiceType === 'general' ? 'goods' : 'service',
+            'specification' => '',
+            'unit' => $invoiceType === 'general' ? 'Pcs' : 'Paket',
             'price' => $selectedProject?->budget,
             'duration' => 1,
             'duration_type' => 'Hari',
             'start_date' => null,
             'end_date' => null,
             'vat_percent' => $company->isPkp() ? 11 : 0,
-            'service_fee' => 10000,
+            'service_fee' => in_array($invoiceType, ['general', 'spj'], true)
+                ? 0
+                : 10000,
             'income_tax_withheld' => false,
             'late_fee_active' => (bool) ($selectedProject?->late_fee_active),
             'late_fee_per_month' => $selectedProject?->late_fee_per_month
                 ?? 100000,
             'notes' => $selectedProject
-                ? 'Invoice Project ' . $selectedProject->title
+                ? ($invoiceType === 'spj' ? 'Invoice SPJ/Rekanan - ' : 'Invoice Project ')
+                    . $selectedProject->title
                 : '',
         ];
 
@@ -112,9 +125,9 @@ class InvoiceController extends Controller
 
             'client_id' => 'required|exists:clients,id',
 
-            'project_id' => 'nullable|exists:projects,id',
+            'project_id' => 'nullable|required_if:invoice_type,spj|exists:projects,id',
 
-            'invoice_type' => 'required|in:project,renewal',
+            'invoice_type' => 'required|in:general,project,spj,renewal',
 
             'invoice_number' => 'required',
 
@@ -143,6 +156,18 @@ class InvoiceController extends Controller
             'qty' => 'required|array|min:1',
 
             'qty.*' => 'required|numeric|min:1',
+
+            'item_type' => 'required|array|min:1',
+
+            'item_type.*' => 'required|in:goods,service,rental,license,other',
+
+            'specification' => 'nullable|array',
+
+            'specification.*' => 'nullable|string|max:2000',
+
+            'unit' => 'required|array|min:1',
+
+            'unit.*' => 'required|string|max:30',
 
             'price' => 'required|array|min:1',
 
@@ -273,6 +298,14 @@ class InvoiceController extends Controller
 
             $price = $request->price[$index];
 
+            $itemType = $request->item_type[$index];
+
+            $usesPeriod = $request->invoice_type !== 'spj'
+                && (
+                    in_array($request->invoice_type, ['project', 'renewal'], true)
+                    || in_array($itemType, ['service', 'rental'], true)
+                );
+
             $total = $qty * $price;
 
             InvoiceItem::create([
@@ -281,19 +314,25 @@ class InvoiceController extends Controller
 
                 'description' => $description,
 
+                'item_type' => $itemType,
+
+                'specification' => $request->specification[$index] ?? null,
+
                 'qty' => $qty,
+
+                'unit' => $request->unit[$index],
 
                 'price' => $price,
 
                 'total' => $total,
 
-                'duration' => $request->duration[$index],
+                'duration' => $usesPeriod ? ($request->duration[$index] ?? null) : null,
 
-                'duration_type' => $request->duration_type[$index],
+                'duration_type' => $usesPeriod ? ($request->duration_type[$index] ?? null) : null,
 
-                'start_date' => $request->start_date[$index],
+                'start_date' => $usesPeriod ? ($request->start_date[$index] ?? null) : null,
 
-                'end_date' => $request->end_date[$index],
+                'end_date' => $usesPeriod ? ($request->end_date[$index] ?? null) : null,
 
             ]);
         }
@@ -362,17 +401,29 @@ class InvoiceController extends Controller
     {
             $request->validate([
                 'client_id' => 'required|exists:clients,id',
-                'project_id' => 'nullable|exists:projects,id',
+                'project_id' => 'nullable|required_if:invoice_type,spj|exists:projects,id',
                 'invoice_number' => 'required',
                 'invoice_date' => 'required|date',
                 'due_date' => 'required|date',
                 'status' => 'required',
                 'vat_percent' => 'required|numeric|min:0|max:100',
                 'cashback' => 'nullable|numeric|min:0|max:20',
-                'invoice_type' => 'required|in:project,renewal',
+                'invoice_type' => 'required|in:general,project,spj,renewal',
                 'late_fee_active' => 'nullable|boolean',
                 'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
                 'income_tax_withheld' => 'nullable|boolean',
+                'description' => 'required|array|min:1',
+                'description.*' => 'required|string|max:255',
+                'qty' => 'required|array|min:1',
+                'qty.*' => 'required|numeric|min:1',
+                'price' => 'required|array|min:1',
+                'price.*' => 'required|numeric|min:0',
+                'item_type' => 'required|array|min:1',
+                'item_type.*' => 'required|in:goods,service,rental,license,other',
+                'specification' => 'nullable|array',
+                'specification.*' => 'nullable|string|max:2000',
+                'unit' => 'required|array|min:1',
+                'unit.*' => 'required|string|max:30',
             ]);
 
             $previousProjectId = $invoice->project_id;
@@ -488,6 +539,14 @@ class InvoiceController extends Controller
 
                 $price = $request->price[$index];
 
+                $itemType = $request->item_type[$index];
+
+                $usesPeriod = $request->invoice_type !== 'spj'
+                    && (
+                        in_array($request->invoice_type, ['project', 'renewal'], true)
+                        || in_array($itemType, ['service', 'rental'], true)
+                    );
+
                 $total = $qty * $price;
 
 
@@ -497,19 +556,25 @@ class InvoiceController extends Controller
 
                     'description' => $description,
 
+                    'item_type' => $itemType,
+
+                    'specification' => $request->specification[$index] ?? null,
+
                     'qty' => $qty,
+
+                    'unit' => $request->unit[$index],
 
                     'price' => $price,
 
                     'total' => $total,
 
-                    'duration' => $request->duration[$index],
+                    'duration' => $usesPeriod ? ($request->duration[$index] ?? null) : null,
 
-                    'duration_type' => $request->duration_type[$index],
+                    'duration_type' => $usesPeriod ? ($request->duration_type[$index] ?? null) : null,
 
-                    'start_date' => $request->start_date[$index],
+                    'start_date' => $usesPeriod ? ($request->start_date[$index] ?? null) : null,
 
-                    'end_date' => $request->end_date[$index],
+                    'end_date' => $usesPeriod ? ($request->end_date[$index] ?? null) : null,
 
                 ]);
 

@@ -296,7 +296,6 @@
     </div>
 </div>
 
-@push('js')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const packageType = document.getElementById('package-type');
@@ -353,6 +352,5 @@ document.addEventListener('DOMContentLoaded', function () {
     toggleVendor();
 });
 </script>
-@endpush
 
 @endsection

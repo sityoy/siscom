@@ -70,6 +70,10 @@
             'invoice_type' => 'Jenis Invoice',
             'package_renewal' => 'Perpanjangan Paket',
             'project' => 'Proyek',
+            'general' => 'Invoice Umum',
+            'service_rental' => 'Jasa/Sewa',
+            'spj' => 'SPJ/Rekanan',
+            'invoice_details' => 'RINCIAN INVOICE',
             'due_date' => 'Jatuh Tempo',
             'late_fee' => 'Denda',
             'per_30_days' => '/ 30 hari',
@@ -78,6 +82,9 @@
             'description' => 'Deskripsi',
             'qty' => 'Jumlah',
             'price' => 'Harga',
+            'item_type' => 'Jenis',
+            'specification' => 'Spesifikasi',
+            'unit' => 'Satuan',
             'duration' => 'Durasi',
             'period' => 'Periode',
             'total' => 'Total',
@@ -113,6 +120,10 @@
             'invoice_type' => 'Invoice Type',
             'package_renewal' => 'Package Renewal',
             'project' => 'Project',
+            'general' => 'General Invoice',
+            'service_rental' => 'Service/Rental',
+            'spj' => 'Procurement/SPJ',
+            'invoice_details' => 'INVOICE DETAILS',
             'due_date' => 'Due Date',
             'late_fee' => 'Late Fee',
             'per_30_days' => '/ 30 days',
@@ -121,6 +132,9 @@
             'description' => 'Description',
             'qty' => 'Qty',
             'price' => 'Price',
+            'item_type' => 'Type',
+            'specification' => 'Specification',
+            'unit' => 'Unit',
             'duration' => 'Duration',
             'period' => 'Period',
             'total' => 'Total',
@@ -204,18 +218,34 @@
     $formatDate = fn ($date) => $language === 'id'
         ? $date->copy()->locale('id')->translatedFormat('d F Y')
         : $date->format('d M Y');
+    $invoiceTypeLabels = [
+        'general' => $labels['general'],
+        'project' => $labels['service_rental'],
+        'spj' => $labels['spj'],
+        'renewal' => $labels['package_renewal'],
+    ];
+    $detailedItems = in_array($invoice->invoice_type, ['general', 'spj'], true);
+    $itemTypeLabels = $language === 'id'
+        ? \App\Models\InvoiceItem::TYPES
+        : [
+            'goods' => 'Goods',
+            'service' => 'Service',
+            'rental' => 'Rental',
+            'license' => 'Software/License',
+            'other' => 'Other',
+        ];
 @endphp
 
 @include('admin.procurement-documents._company-letterhead')
 
 <table class="invoice-heading">
     <tr>
-        <td width="58%"><div class="invoice-title">INVOICE</div></td>
+        <td width="58%"><div class="invoice-title">{{ $invoice->invoice_type === 'spj' ? 'INVOICE SPJ' : 'INVOICE' }}</div></td>
         <td width="42%">
             <table class="invoice-meta">
                 <tr><td>{{ $labels['invoice_number'] }}</td><td>: {{ $invoice->invoice_number }}</td></tr>
                 <tr><td>{{ $labels['invoice_date'] }}</td><td>: {{ $formatDate($invoice->invoice_date ?? $invoice->created_at) }}</td></tr>
-                <tr><td>{{ $labels['invoice_type'] }}</td><td>: {{ $invoice->invoice_type === 'renewal' ? $labels['package_renewal'] : $labels['project'] }}</td></tr>
+                <tr><td>{{ $labels['invoice_type'] }}</td><td>: {{ $invoiceTypeLabels[$invoice->invoice_type] ?? ucfirst($invoice->invoice_type) }}</td></tr>
                 <tr><td>{{ $labels['due_date'] }}</td><td>: {{ $invoice->due_date ? $formatDate($invoice->due_date) : '-' }}</td></tr>
                 @if($invoice->late_fee_active)
                     <tr><td>{{ $labels['late_fee'] }}</td><td>: Rp {{ number_format($invoice->late_fee_per_month, 0, ',', '.') }} {{ $labels['per_30_days'] }}</td></tr>
@@ -239,8 +269,8 @@
         </td>
         <td>
             <div class="box">
-                <div class="section-title">{{ strtoupper($labels['project']) }}</div>
-                <strong>{{ $invoice->project?->title ?? $labels['package_renewal'] }}</strong>
+                <div class="section-title">{{ $invoice->project ? strtoupper($labels['project']) : $labels['invoice_details'] }}</div>
+                <strong>{{ $invoice->project?->title ?? ($invoiceTypeLabels[$invoice->invoice_type] ?? ucfirst($invoice->invoice_type)) }}</strong>
                 @if($invoice->project?->description)<br>{{ $invoice->project->description }}@endif
             </div>
         </td>
@@ -249,13 +279,32 @@
 
 <table class="items">
     <thead>
+        @if($detailedItems)
+        <tr>
+            <th width="4%">No.</th><th width="12%">{{ $labels['item_type'] }}</th><th width="25%">{{ $labels['description'] }}</th>
+            <th width="22%">{{ $labels['specification'] }}</th><th width="10%">{{ $labels['qty'] }}/{{ $labels['unit'] }}</th>
+            <th width="13%">{{ $labels['price'] }}</th><th width="14%">{{ $labels['total'] }}</th>
+        </tr>
+        @else
         <tr>
             <th width="5%">No.</th><th width="29%">{{ $labels['description'] }}</th><th width="7%">{{ $labels['qty'] }}</th>
             <th width="16%">{{ $labels['price'] }}</th><th width="12%">{{ $labels['duration'] }}</th><th width="15%">{{ $labels['period'] }}</th><th width="16%">{{ $labels['total'] }}</th>
         </tr>
+        @endif
     </thead>
     <tbody>
         @foreach($invoice->items as $item)
+            @if($detailedItems)
+            <tr>
+                <td class="text-center">{{ $loop->iteration }}</td>
+                <td class="text-center">{{ $itemTypeLabels[$item->item_type] ?? $item->type_label }}</td>
+                <td><strong>{{ $item->description }}</strong></td>
+                <td>{{ $item->specification ?: '-' }}</td>
+                <td class="text-center">{{ $item->qty }} {{ $item->unit ?: 'Paket' }}</td>
+                <td class="text-right">Rp {{ number_format($item->price, 0, ',', '.') }}</td>
+                <td class="text-right"><strong>Rp {{ number_format($item->total, 0, ',', '.') }}</strong></td>
+            </tr>
+            @else
             <tr>
                 <td class="text-center">{{ $loop->iteration }}</td>
                 <td><strong>{{ $item->description }}</strong></td>
@@ -277,6 +326,7 @@
                 </td>
                 <td class="text-right"><strong>Rp {{ number_format($item->total, 0, ',', '.') }}</strong></td>
             </tr>
+            @endif
         @endforeach
     </tbody>
 </table>

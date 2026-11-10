@@ -356,16 +356,54 @@ return [
     ],
 
     [
+        'header' => '──────── INVOICE & TAGIHAN ────────',
+        'can'    => 'super_admin',
+    ],
+
+    [
         'text' => 'Invoices',
-        'url'  => 'admin/invoices',
         'icon' => 'fas fa-file-invoice',
         'can'   => 'super_admin',
+        'classes' => 'border-top border-bottom border-secondary',
+        'submenu' => [
+            [
+                'text' => 'Semua Invoice',
+                'url'  => 'admin/invoices',
+                'icon' => 'fas fa-list',
+            ],
+            [
+                'text' => 'Invoice Umum',
+                'url'  => 'admin/invoices?type=general',
+                'icon' => 'fas fa-boxes',
+            ],
+            [
+                'text' => 'Invoice Jasa / Sewa',
+                'url'  => 'admin/invoices?type=project',
+                'icon' => 'fas fa-concierge-bell',
+            ],
+            [
+                'text' => 'Invoice SPJ / Rekanan',
+                'url'  => 'admin/invoices?type=spj',
+                'icon' => 'fas fa-file-contract',
+            ],
+            [
+                'text' => 'Perpanjangan Paket',
+                'url'  => 'admin/invoices?type=renewal',
+                'icon' => 'fas fa-sync-alt',
+            ],
+        ],
+    ],
+
+    [
+        'header' => '──────── REKANAN & SPJ ────────',
+        'can'    => 'super_admin',
     ],
 
     [
         'text' => 'Rekanan & SPJ',
         'icon' => 'fas fa-handshake',
         'can'  => 'super_admin',
+        'classes' => 'border-top border-bottom border-secondary',
         'submenu' => [
             [
                 'text' => 'Dashboard Dokumen',

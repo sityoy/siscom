@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Client;
 use App\Models\CompanySetting;
 use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\ProcurementDocument;
 use App\Models\ProcurementPackage;
 use App\Models\Project;
@@ -488,6 +489,86 @@ class ProcurementDocumentTest extends TestCase
         $this->actingAs($admin)
             ->get(route('procurement-documents.packages.files.download', $file))
             ->assertDownload('invoice-vendor.pdf');
+    }
+
+    public function test_admin_can_create_a_detailed_general_invoice(): void
+    {
+        [$admin, $project] = $this->createAdminAndProject();
+
+        $this->actingAs($admin)
+            ->post(route('invoices.store'), [
+                'client_id' => $project->client_id,
+                'invoice_type' => 'general',
+                'invoice_number' => '#INV-GENERAL-001',
+                'invoice_date' => '2026-11-10',
+                'due_date' => '2026-11-17',
+                'status' => 'unpaid',
+                'vat_percent' => 0,
+                'service_fee' => 0,
+                'late_fee_active' => 0,
+                'income_tax_withheld' => 0,
+                'description' => ['Laptop Laboratorium'],
+                'item_type' => ['goods'],
+                'specification' => ['RAM 16 GB, SSD 512 GB'],
+                'qty' => [2],
+                'unit' => ['Unit'],
+                'price' => [7500000],
+                'duration' => [1],
+                'duration_type' => ['Hari'],
+                'start_date' => [null],
+                'end_date' => [null],
+            ])
+            ->assertRedirect(route('invoices.index'));
+
+        $invoice = Invoice::where('invoice_number', '#INV-GENERAL-001')->firstOrFail();
+        $item = InvoiceItem::where('invoice_id', $invoice->id)->firstOrFail();
+
+        $this->assertSame('general', $invoice->invoice_type);
+        $this->assertSame('goods', $item->item_type);
+        $this->assertSame('Unit', $item->unit);
+        $this->assertSame('RAM 16 GB, SSD 512 GB', $item->specification);
+        $this->assertNull($item->duration);
+        $this->assertSame('15000000.00', $invoice->subtotal);
+    }
+
+    public function test_spj_invoice_requires_project_and_does_not_use_service_duration(): void
+    {
+        [$admin, $project] = $this->createAdminAndProject();
+
+        $this->actingAs($admin)
+            ->post(route('invoices.store'), [
+                'client_id' => $project->client_id,
+                'project_id' => $project->id,
+                'invoice_type' => 'spj',
+                'invoice_number' => '#INV-SPJ-001',
+                'invoice_date' => '2026-11-10',
+                'due_date' => '2026-11-17',
+                'status' => 'unpaid',
+                'vat_percent' => 0,
+                'service_fee' => 0,
+                'late_fee_active' => 0,
+                'income_tax_withheld' => 0,
+                'description' => ['Pengadaan Perangkat Jaringan'],
+                'item_type' => ['goods'],
+                'specification' => ['Access point dual band'],
+                'qty' => [5],
+                'unit' => ['Pcs'],
+                'price' => [1000000],
+                'duration' => [12],
+                'duration_type' => ['Bulan'],
+                'start_date' => ['2026-11-10'],
+                'end_date' => ['2027-11-09'],
+            ])
+            ->assertRedirect(route('invoices.index'));
+
+        $invoice = Invoice::where('invoice_number', '#INV-SPJ-001')->firstOrFail();
+        $item = $invoice->items()->firstOrFail();
+
+        $this->assertSame('spj', $invoice->invoice_type);
+        $this->assertSame($project->id, $invoice->project_id);
+        $this->assertNull($item->duration);
+        $this->assertNull($item->start_date);
+        $this->assertNull($item->end_date);
     }
 
     private function createAdminAndProject(bool $withClientUser = false): array

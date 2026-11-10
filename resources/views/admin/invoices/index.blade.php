@@ -32,17 +32,13 @@
 
             </div>
 
-            <div>
-
-                <a href="{{ route('invoices.create') }}"
-                   class="btn btn-primary rounded-pill px-4">
-
-                    <i class="bi bi-plus-circle me-1"></i>
-
-                    Tambah Invoice
-
+            <div class="btn-group">
+                <a href="{{ route('invoices.create', ['type' => 'general']) }}" class="btn btn-primary rounded-left px-3">
+                    <i class="fas fa-plus-circle mr-1"></i> Invoice Umum
                 </a>
-
+                <a href="{{ route('invoices.create', ['type' => 'spj']) }}" class="btn btn-warning rounded-right px-3">
+                    <i class="fas fa-file-contract mr-1"></i> Invoice SPJ
+                </a>
             </div>
 
         </div>
@@ -59,7 +55,17 @@
 
     <a href="{{ route('invoices.index', ['type' => 'project']) }}"
        class="btn btn-primary btn-sm">
-        Project
+        Jasa/Sewa
+    </a>
+
+    <a href="{{ route('invoices.index', ['type' => 'general']) }}"
+       class="btn btn-success btn-sm">
+        Umum
+    </a>
+
+    <a href="{{ route('invoices.index', ['type' => 'spj']) }}"
+       class="btn btn-warning btn-sm">
+        SPJ/Rekanan
     </a>
 
     <a href="{{ route('invoices.index', ['type' => 'renewal']) }}"
@@ -185,23 +191,10 @@
                             {{-- PROJECT --}}
                             <td>
 
-    @if($invoice->invoice_type == 'renewal')
-
-        <span class="badge bg-info">
-
-            Perpanjangan Paket
-
-        </span>
-
-    @else
-
-        <span class="badge bg-primary">
-
-            Project
-
-        </span>
-
-    @endif
+    @php($typeClasses = ['general' => 'success', 'project' => 'primary', 'spj' => 'warning', 'renewal' => 'info'])
+    <span class="badge badge-{{ $typeClasses[$invoice->invoice_type] ?? 'secondary' }}">
+        {{ $invoice->type_label }}
+    </span>
 
 </td>
 
@@ -243,8 +236,8 @@
 
                                             <div class="small text-muted">
 
-                                                Qty:
-                                                <b>{{ $item->qty }}</b>
+                                                {{ $item->type_label }} •
+                                                Qty: <b>{{ $item->qty }} {{ $item->unit ?: 'Paket' }}</b>
 
                                                 •
 
@@ -257,6 +250,13 @@
 
                                             </div>
 
+                                            @if($item->specification)
+                                                <div class="small text-secondary mt-1">
+                                                    <b>Spesifikasi:</b> {{ \Illuminate\Support\Str::limit($item->specification, 100) }}
+                                                </div>
+                                            @endif
+
+                                            @if($item->duration)
                                             <div class="small text-muted">
 
                                                 Durasi:
@@ -276,6 +276,7 @@
                                                 </b>
 
                                             </div>
+                                            @endif
 
                                             <div class="small text-secondary">
 
