@@ -218,7 +218,8 @@ php artisan queue:restart || true
 php artisan schedule:list >/dev/null
 
 if [[ -d storage && -d bootstrap/cache ]]; then
-    chmod -R ug+rwX storage bootstrap/cache || true
+    run_as_root chgrp -R www-data storage bootstrap/cache || true
+    run_as_root chmod -R ug+rwX storage bootstrap/cache || true
 fi
 
 configure_nginx
