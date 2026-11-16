@@ -134,7 +134,10 @@ configure_nginx() {
 }
 
 log "Memeriksa working tree..."
-[[ -z "$(git status --porcelain)" ]] || fail "Ada perubahan lokal di server. Simpan perubahan tersebut sebelum deploy."
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    git status --short --untracked-files=no
+    fail "Ada perubahan pada file Git di server. Simpan perubahan tersebut sebelum deploy."
+fi
 
 log "Mengambil branch ${DEPLOY_BRANCH} terbaru..."
 git fetch origin "$DEPLOY_BRANCH"
