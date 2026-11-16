@@ -10,23 +10,26 @@
 
         <h4 class="mb-0 font-weight-bold">
 
-            Tambah Pembayaran
+            {{ isset($payment) ? 'Edit Pembayaran' : 'Tambah Pembayaran' }}
 
         </h4>
 
         <small class="text-muted">
 
-            Tambahkan pembayaran invoice client
+            {{ isset($payment) ? 'Perbarui data pembayaran invoice client' : 'Tambahkan pembayaran invoice client' }}
 
         </small>
 
     </div>
 
-    <form action="{{ route('payments.store') }}"
+    <form action="{{ isset($payment) ? route('payments.update', $payment) : route('payments.store') }}"
       method="POST"
       enctype="multipart/form-data">
 
         @csrf
+        @isset($payment)
+            @method('PUT')
+        @endisset
 
         <div class="card-body">
 
@@ -49,7 +52,8 @@
 
                             <option value="{{ $invoice->id }}"
                                     data-total="{{ $invoice->net_receivable }}"
-                                    data-paid="{{ $invoice->payments->sum('amount') }}">
+                                    data-paid="{{ $invoice->payments->where('id', '!=', $payment->id ?? null)->sum('amount') }}"
+                                    @selected((string) old('invoice_id', $payment->invoice_id ?? '') === (string) $invoice->id)>
 
                                 {{ $invoice->invoice_number }}
 -
@@ -118,8 +122,8 @@
                     <input type="date"
                            name="payment_date"
                            class="form-control"
-                           value="{{ date('Y-m-d') }}"
-                           required required>
+                           value="{{ old('payment_date', isset($payment) ? \Carbon\Carbon::parse($payment->payment_date)->format('Y-m-d') : date('Y-m-d')) }}"
+                           required>
 
                     <div class="col-md-12 mb-3">
                         <br>
@@ -127,7 +131,15 @@
 
                         <input type="file"
                             name="proof"
-                            class="form-control" required>
+                            class="form-control"
+                            @required(!isset($payment))>
+
+                        @if(isset($payment) && $payment->proof)
+                            <small class="form-text text-muted">
+                                Bukti lama tetap digunakan jika tidak memilih file baru.
+                                <a href="{{ asset('storage/'.$payment->proof) }}" target="_blank">Lihat bukti</a>
+                            </small>
+                        @endif
 
                     </div>
 
@@ -147,6 +159,7 @@
                     <input type="number"
                            name="amount"
                            class="form-control"
+                           value="{{ old('amount', $payment->amount ?? '') }}"
                            placeholder="0"
                            required>
 
@@ -160,19 +173,19 @@
                     <select name="payment_method"
                             class="form-control" required>
 
-                        <option value="Transfer Bank">
+                        <option value="Transfer Bank" @selected(old('payment_method', $payment->payment_method ?? 'Transfer Bank') === 'Transfer Bank')>
                             Transfer Bank
                         </option>
 
-                        <option value="Cash">
+                        <option value="Cash" @selected(old('payment_method', $payment->payment_method ?? '') === 'Cash')>
                             Cash
                         </option>
 
-                        <option value="E-Wallet">
+                        <option value="E-Wallet" @selected(old('payment_method', $payment->payment_method ?? '') === 'E-Wallet')>
                             E-Wallet
                         </option>
 
-                        <option value="QRIS">
+                        <option value="QRIS" @selected(old('payment_method', $payment->payment_method ?? '') === 'QRIS')>
                             QRIS
                         </option>
 
@@ -190,7 +203,7 @@
                 <textarea name="notes"
                           class="form-control"
                           rows="4"
-                          placeholder="Catatan pembayaran"></textarea>
+                          placeholder="Catatan pembayaran">{{ old('notes', $payment->notes ?? '') }}</textarea>
 
             </div>
 
@@ -207,7 +220,7 @@
 
             <button class="btn btn-primary">
 
-                Simpan Pembayaran
+                {{ isset($payment) ? 'Simpan Perubahan' : 'Simpan Pembayaran' }}
 
             </button>
 
@@ -255,6 +268,10 @@ document
         remaining.toLocaleString('id-ID');
 
 });
+
+document
+    .querySelector('[name="invoice_id"]')
+    .dispatchEvent(new Event('change'));
 
 </script>
 

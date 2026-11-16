@@ -7,7 +7,6 @@ use App\Models\Client;
 use App\Models\Project;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
-use Illuminate\Support\Facades\DB;
 use App\Models\Invoice;
 use Carbon\Carbon;
 use App\Models\Ticket;
@@ -43,20 +42,17 @@ class DashboardController extends Controller
             'partial'
         )->count();
 
-        $monthlyPayments = Payment::select(
-
-            DB::raw(
-                "DATE_FORMAT(payment_date,'%Y-%m') as month"
-            ),
-
-            DB::raw(
-                "SUM(amount) as total"
-            )
-
-        )
-        ->groupBy('month')
-        ->orderBy('month')
-        ->get();
+        $monthlyPayments = Payment::query()
+            ->orderBy('payment_date')
+            ->get(['payment_date', 'amount'])
+            ->groupBy(fn (Payment $payment) => Carbon::parse(
+                $payment->payment_date,
+            )->format('Y-m'))
+            ->map(fn ($payments, string $month) => (object) [
+                'month' => $month,
+                'total' => $payments->sum('amount'),
+            ])
+            ->values();
 
         $completedProjects = Project::where(
             'status',

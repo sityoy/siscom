@@ -193,7 +193,7 @@ class PaymentController extends Controller
         ])->get();
 
         return view(
-            'admin.payments.edit',
+            'admin.payments.create',
             compact(
                 'payment',
                 'invoices'

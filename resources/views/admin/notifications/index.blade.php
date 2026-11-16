@@ -89,7 +89,7 @@
                             $notification->created_at->isToday()
                         )
 
-                            {{ $message->created_at->format('d M Y H:i') }}
+                            {{ $notification->created_at->format('d M Y H:i') }}
 
                         @else
 
