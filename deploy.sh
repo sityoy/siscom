@@ -108,10 +108,24 @@ configure_nginx() {
     run_as_root systemctl reload nginx
     log "Virtual host ${APP_DOMAIN} berhasil dipasang."
 
-    if command -v certbot >/dev/null 2>&1 && [[ ! -f "/etc/letsencrypt/live/${APP_DOMAIN}/fullchain.pem" ]]; then
-        log "Meminta sertifikat HTTPS untuk ${APP_DOMAIN}..."
-        if run_as_root certbot --nginx --non-interactive --agree-tos --redirect \
-            --email "$CERTBOT_EMAIL" -d "$APP_DOMAIN"; then
+    if command -v certbot >/dev/null 2>&1; then
+        local certbot_action="Meminta"
+        local certbot_options=(
+            --nginx
+            --non-interactive
+            --agree-tos
+            --redirect
+            --email "$CERTBOT_EMAIL"
+            -d "$APP_DOMAIN"
+        )
+
+        if [[ -f "/etc/letsencrypt/live/${APP_DOMAIN}/fullchain.pem" ]]; then
+            certbot_action="Memasang ulang"
+            certbot_options+=(--reinstall)
+        fi
+
+        log "${certbot_action} sertifikat HTTPS untuk ${APP_DOMAIN}..."
+        if run_as_root certbot "${certbot_options[@]}"; then
             log "HTTPS berhasil diaktifkan."
         else
             warn "Certbot belum berhasil. Pastikan DNS ${APP_DOMAIN} sudah mengarah ke VPS, lalu jalankan deploy kembali."
