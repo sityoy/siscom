@@ -46,13 +46,13 @@ jobs:
           composer validate --no-check-publish
           composer audit --locked --no-dev
 
-      - name: Run tests
-        run: php artisan test
-
       - name: Build frontend
         run: |
           npm ci --no-audit --no-fund
           npm run build
+
+      - name: Run tests
+        run: php artisan test
 
       - name: Verify deployment script
         run: bash -n deploy.sh
