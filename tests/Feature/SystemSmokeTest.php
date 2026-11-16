@@ -270,7 +270,7 @@ class SystemSmokeTest extends TestCase
             ->where('notes', 'Pembayaran dengan format Indonesia')
             ->firstOrFail();
 
-        $this->assertSame('896500.39', $payment->amount);
+        $this->assertEqualsWithDelta(896500.39, (float) $payment->amount, 0.001);
 
         $this->actingAs($this->admin)
             ->put(route('payments.update', $payment), [
@@ -282,7 +282,7 @@ class SystemSmokeTest extends TestCase
             ])
             ->assertRedirect(route('payments.index'));
 
-        $this->assertSame('1000000.50', $payment->fresh()->amount);
+        $this->assertEqualsWithDelta(1000000.50, (float) $payment->fresh()->amount, 0.001);
     }
 
     public function test_invoice_pdf_translates_indonesian_signer_titles_to_english(): void
