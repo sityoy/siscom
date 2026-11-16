@@ -122,6 +122,8 @@ class InvoiceController extends Controller
 
     public function store(Request $request)
     {
+        $this->normalizeLegacyItemDetails($request);
+
         $request->validate([
 
             'client_id' => 'required|exists:clients,id',
@@ -402,6 +404,8 @@ class InvoiceController extends Controller
 
     public function update(Request $request, Invoice $invoice)
     {
+            $this->normalizeLegacyItemDetails($request);
+
             $request->validate([
                 'client_id' => 'required|exists:clients,id',
                 'project_id' => 'nullable|required_if:invoice_type,spj|exists:projects,id',
@@ -718,6 +722,29 @@ class InvoiceController extends Controller
                     $field => 'Rincian item invoice tidak lengkap. Muat ulang halaman lalu periksa kembali setiap baris.',
                 ]);
             }
+        }
+    }
+
+    private function normalizeLegacyItemDetails(Request $request): void
+    {
+        $itemCount = count($request->input('description', []));
+
+        if ($itemCount === 0) {
+            return;
+        }
+
+        $defaults = [];
+
+        if (!$request->has('item_type')) {
+            $defaults['item_type'] = array_fill(0, $itemCount, 'service');
+        }
+
+        if (!$request->has('unit')) {
+            $defaults['unit'] = array_fill(0, $itemCount, 'Paket');
+        }
+
+        if ($defaults !== []) {
+            $request->merge($defaults);
         }
     }
 

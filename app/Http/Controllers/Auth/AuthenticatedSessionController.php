@@ -50,7 +50,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         // DEFAULT
-        return redirect('/');
+        return redirect()->route('dashboard');
     }
 
     /**

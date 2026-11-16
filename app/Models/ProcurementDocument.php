@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class ProcurementDocument extends Model
 {
@@ -67,7 +69,6 @@ class ProcurementDocument extends Model
     ];
 
     protected $casts = [
-        'document_date' => 'date',
         'work_start_date' => 'date',
         'work_end_date' => 'date',
         'amount' => 'decimal:2',
@@ -76,6 +77,18 @@ class ProcurementDocument extends Model
         'income_tax_amount' => 'decimal:2',
         'metadata' => 'array',
     ];
+
+    protected function documentDate(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => $value
+                ? Carbon::parse($value)->startOfDay()
+                : null,
+            set: fn ($value) => $value
+                ? Carbon::parse($value)->toDateString()
+                : null,
+        );
+    }
 
     public function project()
     {

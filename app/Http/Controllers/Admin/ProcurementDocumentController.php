@@ -414,7 +414,7 @@ class ProcurementDocumentController extends Controller
         $data = $this->applyDefaultSigners($data);
 
         $data['created_by'] = $request->user()->id;
-        $data['document_number'] = $data['document_number']
+        $data['document_number'] = ($data['document_number'] ?? null)
             ?: 'TEMP-'.Str::uuid();
 
         $document = ProcurementDocument::create($data);
