@@ -571,6 +571,24 @@ class ProcurementDocumentTest extends TestCase
         $this->assertNull($item->end_date);
     }
 
+    public function test_admin_invoice_index_renders_cashback_without_server_error(): void
+    {
+        [$admin, $project] = $this->createAdminAndProject();
+
+        $invoice = $this->createProjectInvoice(
+            $project,
+            '2026-11-16',
+            '#INV-INDEX-001',
+        );
+        $invoice->update(['cashback' => 5]);
+
+        $this->actingAs($admin)
+            ->get(route('invoices.index'))
+            ->assertOk()
+            ->assertSee('#INV-INDEX-001')
+            ->assertSee('Reward Rp 250.000');
+    }
+
     private function createAdminAndProject(bool $withClientUser = false): array
     {
         $adminRole = Role::create(['name' => 'super_admin']);
