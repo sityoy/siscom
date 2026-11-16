@@ -55,4 +55,3 @@ jobs:
 
       - name: Verify deployment script
         run: bash -n deploy.sh
-
