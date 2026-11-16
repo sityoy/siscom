@@ -152,6 +152,6 @@
     @endforelse
 </div>
 
-{{ $projects->links() }}
+@include('layouts.partials.pagination', ['paginator' => $projects])
 
 @endsection

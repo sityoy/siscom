@@ -16,6 +16,7 @@ use App\Models\Notification;
 use App\Models\CompanySetting;
 use App\Services\ProjectInvoiceSyncService;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rule;
 
 class InvoiceController extends Controller
 {
@@ -37,7 +38,7 @@ class InvoiceController extends Controller
 
     $invoices = $query
         ->latest()
-        ->paginate(10);
+        ->paginate(\App\Support\Pagination::perPage());
 
     return view(
         'admin.invoices.index',
@@ -129,13 +130,13 @@ class InvoiceController extends Controller
 
             'invoice_type' => 'required|in:general,project,spj,renewal',
 
-            'invoice_number' => 'required',
+            'invoice_number' => 'required|string|max:100|unique:invoices,invoice_number',
 
             'invoice_date' => 'required|date',
 
-            'due_date' => 'required|date',
+            'due_date' => 'required|date|after_or_equal:invoice_date',
 
-            'status' => 'required',
+            'status' => 'required|in:unpaid,partial,paid,cancelled',
 
             'vat_percent' => 'nullable|numeric|min:0|max:100',
 
@@ -173,6 +174,8 @@ class InvoiceController extends Controller
 
             'price.*' => 'required|numeric|min:0',
         ]);
+
+        $this->validateItemArrays($request);
 
         $project = $request->filled('project_id')
             ? Project::findOrFail($request->integer('project_id'))
@@ -402,10 +405,15 @@ class InvoiceController extends Controller
             $request->validate([
                 'client_id' => 'required|exists:clients,id',
                 'project_id' => 'nullable|required_if:invoice_type,spj|exists:projects,id',
-                'invoice_number' => 'required',
+                'invoice_number' => [
+                    'required',
+                    'string',
+                    'max:100',
+                    Rule::unique('invoices', 'invoice_number')->ignore($invoice->id),
+                ],
                 'invoice_date' => 'required|date',
-                'due_date' => 'required|date',
-                'status' => 'required',
+                'due_date' => 'required|date|after_or_equal:invoice_date',
+                'status' => 'required|in:unpaid,partial,paid,cancelled',
                 'vat_percent' => 'required|numeric|min:0|max:100',
                 'cashback' => 'nullable|numeric|min:0|max:20',
                 'invoice_type' => 'required|in:general,project,spj,renewal',
@@ -425,6 +433,8 @@ class InvoiceController extends Controller
                 'unit' => 'required|array|min:1',
                 'unit.*' => 'required|string|max:30',
             ]);
+
+            $this->validateItemArrays($request);
 
             $previousProjectId = $invoice->project_id;
             $project = $request->filled('project_id')
@@ -696,6 +706,19 @@ class InvoiceController extends Controller
                 ? $incomeTaxBase * $incomeTaxRate / 100
                 : 0,
         ];
+    }
+
+    private function validateItemArrays(Request $request): void
+    {
+        $expected = count($request->input('description', []));
+
+        foreach (['qty', 'item_type', 'unit', 'price'] as $field) {
+            if (count($request->input($field, [])) !== $expected) {
+                throw ValidationException::withMessages([
+                    $field => 'Rincian item invoice tidak lengkap. Muat ulang halaman lalu periksa kembali setiap baris.',
+                ]);
+            }
+        }
     }
 
 }

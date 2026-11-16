@@ -159,7 +159,7 @@
 
         <div class="mt-4">
 
-            {{ $notifications->links() }}
+            @include('layouts.partials.pagination', ['paginator' => $notifications])
 
         </div>
 

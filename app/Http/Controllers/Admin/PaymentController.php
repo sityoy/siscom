@@ -11,6 +11,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Notification;
 use Carbon\Carbon;
 use App\Models\Client;
+use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
 {
@@ -22,7 +23,7 @@ class PaymentController extends Controller
         ])
 
             ->latest()
-            ->paginate(10);
+            ->paginate(\App\Support\Pagination::perPage());
 
         return view(
             'admin.payments.index',
@@ -47,11 +48,11 @@ class PaymentController extends Controller
     {
         $request->validate([
 
-            'invoice_id' => 'required',
+            'invoice_id' => 'required|exists:invoices,id',
 
-            'amount' => 'required|numeric',
+            'amount' => 'required|numeric|min:0.01',
 
-            'payment_date' => 'required',
+            'payment_date' => 'required|date',
 
             'proof' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
 
@@ -143,6 +144,8 @@ class PaymentController extends Controller
             $request->payment_date
         );
 
+        $previousStatus = $invoice->status;
+
         // UPDATE STATUS OTOMATIS
         if ($totalPaid >= $grandTotal) {
 
@@ -151,7 +154,9 @@ class PaymentController extends Controller
                 'paid_at' => $request->payment_date,
             ]);
 
-            $this->processRenewalInvoice($invoice);
+            if ($previousStatus !== 'paid') {
+                $this->processRenewalInvoice($invoice);
+            }
 
         } elseif ($totalPaid > 0) {
 
@@ -203,11 +208,13 @@ class PaymentController extends Controller
 
         $request->validate([
 
-            'invoice_id' => 'required',
+            'invoice_id' => 'required|exists:invoices,id',
 
-            'amount' => 'required|numeric',
+            'amount' => 'required|numeric|min:0.01',
 
-            'payment_date' => 'required',
+            'payment_date' => 'required|date',
+
+            'proof' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
 
         ]);
 
@@ -242,6 +249,10 @@ class PaymentController extends Controller
         $proof = $payment->proof;
 
         if($request->hasFile('proof')){
+
+            if ($proof) {
+                Storage::disk('public')->delete($proof);
+            }
 
             $proof = $request->file('proof')
                 ->store(
@@ -280,6 +291,8 @@ class PaymentController extends Controller
             $request->payment_date
         );
 
+        $previousStatus = $invoice->status;
+
         // UPDATE STATUS
         if ($totalPaid >= $grandTotal) {
 
@@ -288,7 +301,9 @@ class PaymentController extends Controller
                 'paid_at' => $request->payment_date,
             ]);
 
-            $this->processRenewalInvoice($invoice);
+            if ($previousStatus !== 'paid') {
+                $this->processRenewalInvoice($invoice);
+            }
 
         } elseif ($totalPaid > 0) {
 
@@ -320,6 +335,10 @@ class PaymentController extends Controller
     public function destroy(Payment $payment)
     {
         $invoice = $payment->invoice;
+
+        if ($payment->proof) {
+            Storage::disk('public')->delete($payment->proof);
+        }
 
         $payment->delete();
 

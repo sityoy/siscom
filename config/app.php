@@ -13,7 +13,12 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'SIS.COM'),
+
+    'public_registration' => (bool) env(
+        'ALLOW_PUBLIC_REGISTRATION',
+        env('APP_ENV', 'production') !== 'production'
+    ),
 
 
 

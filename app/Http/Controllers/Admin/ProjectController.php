@@ -17,7 +17,7 @@ class ProjectController extends Controller
         $projects = Project::with(['client', 'latestInvoice'])
             ->withCount(['files', 'procurementDocuments', 'invoices'])
             ->latest()
-            ->paginate(10);
+            ->paginate(\App\Support\Pagination::perPage());
 
         return view(
             'admin.projects.index',

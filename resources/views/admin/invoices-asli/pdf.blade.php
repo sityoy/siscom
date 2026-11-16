@@ -320,7 +320,7 @@
 
             <td width="50%" class="company-info">
 
-                <h1><a href="https://sis.com">SIS.COM</a></h1>
+                <h1><a href="https://siscom.sityoyitsolutions.com">SIS.COM</a></h1>
 
                 <p>Software House & IT Solutions</p>
 
@@ -836,7 +836,7 @@
 
         </h3>
 
-        <a href="https://sis.com"> SIS.COM </a> - Software House & IT Solutions
+        <a href="https://siscom.sityoyitsolutions.com"> SIS.COM </a> - Software House & IT Solutions
 
         <div class="footer-line"></div>
 

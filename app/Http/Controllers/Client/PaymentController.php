@@ -27,7 +27,7 @@ class PaymentController extends Controller
                 );
 
             }
-        )->latest()->paginate(10);
+        )->latest()->paginate(\App\Support\Pagination::perPage());
 
         return view(
             'clients.payments.index',

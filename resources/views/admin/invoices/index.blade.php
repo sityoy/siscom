@@ -582,7 +582,7 @@
 
             <div class="d-flex justify-content-end">
 
-                {{ $invoices->links() }}
+                @include('layouts.partials.pagination', ['paginator' => $invoices])
 
             </div>
 

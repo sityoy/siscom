@@ -22,7 +22,7 @@ class ProcurementDocumentController extends Controller
             ->whereHas('project', fn ($query) => $query->where('client_id', $client->id))
             ->whereNot('status', 'draft')
             ->latest('document_date')
-            ->paginate(10);
+            ->paginate(\App\Support\Pagination::perPage());
 
         return view('clients.procurement-documents.index', compact('documents'));
     }

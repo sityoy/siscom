@@ -18,7 +18,7 @@ class NotificationController extends Controller
 
         $notifications = $client->notifications()
             ->latest()
-            ->paginate(10);
+            ->paginate(\App\Support\Pagination::perPage());
 
         $client->notifications()
             ->where('is_read', false)

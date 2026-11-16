@@ -38,7 +38,7 @@ class ProcurementDocumentController extends Controller
                 $query->where('status', (string) $request->string('status')))
             ->latest('document_date')
             ->latest('id')
-            ->paginate(10)
+            ->paginate(\App\Support\Pagination::perPage())
             ->withQueryString();
 
         $projects = Project::with('client')
@@ -99,7 +99,7 @@ class ProcurementDocumentController extends Controller
                 $query->whereHas('procurementPackage', fn ($package) =>
                     $package->where('package_type', 'third_party')))
             ->latest()
-            ->paginate(10);
+            ->paginate(\App\Support\Pagination::perPage());
 
         return view('admin.procurement-documents.packages', [
             'projects' => $projects,

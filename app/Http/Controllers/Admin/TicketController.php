@@ -17,7 +17,7 @@ class TicketController extends Controller
             'client',
             'project'
 
-        ])->latest()->paginate(10);
+        ])->latest()->paginate(\App\Support\Pagination::perPage());
 
         return view(
 

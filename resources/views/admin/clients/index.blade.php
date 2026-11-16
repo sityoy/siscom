@@ -353,7 +353,7 @@
 
         <div class="mt-4">
 
-            {{ $clients->links() }}
+            @include('layouts.partials.pagination', ['paginator' => $clients])
 
         </div>
 

@@ -4,6 +4,7 @@
         ?: 'Jl. Cendana II, Blok C1 No. 28, Sukamantri, Pasar Kemis, Kabupaten Tangerang, Banten 15560';
     $letterheadEmail = $company?->company_email ?: 'sityoyitsolutions@gmail.com';
     $letterheadPhone = $company?->company_phone ?: '0813-8320-5359';
+    $letterheadWebsite = $company?->website ?: 'siscom.sityoyitsolutions.com';
 @endphp
 
 <table class="letterhead">
@@ -25,6 +26,7 @@
             <div class="letterhead-contact">
                 {{ $letterheadEmail }}
                 <span class="letterhead-separator">|</span> {{ $letterheadPhone }}
+                <span class="letterhead-separator">|</span> {{ $letterheadWebsite }}
             </div>
         </td>
     </tr>

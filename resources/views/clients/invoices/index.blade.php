@@ -163,7 +163,7 @@
 
         <div class="mt-4">
 
-            {{ $invoices->links() }}
+            @include('layouts.partials.pagination', ['paginator' => $invoices])
 
         </div>
 

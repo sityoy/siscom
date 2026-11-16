@@ -59,7 +59,7 @@
                 </tbody>
             </table>
         </div>
-        {{ $documents->links() }}
+        @include('layouts.partials.pagination', ['paginator' => $documents])
     </div>
 </div>
 @endsection

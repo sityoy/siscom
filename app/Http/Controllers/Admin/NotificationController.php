@@ -15,7 +15,7 @@ class NotificationController extends Controller
         )->count();
 
         $notifications = AdminNotification::latest()
-            ->paginate(10);
+            ->paginate(\App\Support\Pagination::perPage());
 
         // AdminNotification::where(
         //     'is_read',

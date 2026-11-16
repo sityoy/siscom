@@ -151,6 +151,8 @@
 
     </div>
 
+    @include('layouts.partials.pagination', ['paginator' => $tickets])
+
 </div>
 
 @endsection

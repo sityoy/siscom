@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'title' => 'SIS.COM',
+    'title' => 'SIS.COM — Sityoy IT Solutions',
     'title_prefix' => '',
     'title_postfix' => '',
 
@@ -156,8 +156,8 @@ return [
 
     'layout_topnav' => null,
     'layout_boxed' => null,
-    'layout_fixed_sidebar' => null,
-    'layout_fixed_navbar' => null,
+    'layout_fixed_sidebar' => true,
+    'layout_fixed_navbar' => true,
     'layout_fixed_footer' => null,
     'layout_dark_mode' => null,
 
@@ -323,48 +323,47 @@ return [
     */
 
     [
-        'header' => 'ADMIN PANEL',
-        'can'   => 'super_admin',
+        'header' => 'MANAJEMEN UTAMA',
+        'can'   => 'admin_panel',
     ],
 
     [
         'text' => 'Dashboard',
         'url'  => 'admin/dashboard',
         'icon' => 'fas fa-chart-line',
-        'can'   => 'super_admin',
+        'can'   => 'admin_panel',
     ],
 
     [
-        'text' => 'Users',
+        'text' => 'Pengguna',
         'url'  => 'admin/users',
         'icon' => 'fas fa-users',
         'can'   => 'super_admin',
     ],
 
     [
-        'text' => 'Clients',
+        'text' => 'Client',
         'url'  => 'admin/clients',
         'icon' => 'fas fa-user-tie',
         'can'   => 'super_admin',
     ],
 
     [
-        'text' => 'Projects',
+        'text' => 'Project',
         'url'  => 'admin/projects',
         'icon' => 'fas fa-project-diagram',
         'can'   => 'super_admin',
     ],
 
     [
-        'header' => '──────── INVOICE & TAGIHAN ────────',
+        'header' => 'INVOICE & TAGIHAN',
         'can'    => 'super_admin',
     ],
 
     [
-        'text' => 'Invoices',
+        'text' => 'Invoice',
         'icon' => 'fas fa-file-invoice',
         'can'   => 'super_admin',
-        'classes' => 'border-top border-bottom border-secondary',
         'submenu' => [
             [
                 'text' => 'Semua Invoice',
@@ -395,15 +394,14 @@ return [
     ],
 
     [
-        'header' => '──────── REKANAN & SPJ ────────',
-        'can'    => 'super_admin',
+        'header' => 'REKANAN & SPJ',
+        'can'    => 'admin_panel',
     ],
 
     [
         'text' => 'Rekanan & SPJ',
         'icon' => 'fas fa-handshake',
-        'can'  => 'super_admin',
-        'classes' => 'border-top border-bottom border-secondary',
+        'can'  => 'admin_panel',
         'submenu' => [
             [
                 'text' => 'Dashboard Dokumen',
@@ -475,27 +473,27 @@ return [
     ],
 
     [
-        'text' => 'Payments',
+        'text' => 'Pembayaran',
         'url'  => 'admin/payments',
         'icon' => 'fas fa-wallet',
         'can'   => 'super_admin',
     ],
 
     [
-        'text' => 'Support Tickets',
+        'text' => 'Tiket Dukungan',
         'url'  => 'admin/tickets',
         'icon' => 'fas fa-headset',
-        'can'   => 'super_admin',
+        'can'   => 'admin_panel',
     ],
 
     [
-        'text' => 'Notifications',
+        'text' => 'Notifikasi',
         'url'  => 'admin/notifications',
         'icon' => 'fas fa-bell',
         // 'label' => $adminNotificationCount ?? 0,
         // 'label_color' => 'danger',
 
-        'can' => 'super_admin',
+        'can' => 'admin_panel',
     ],
 
     // [
@@ -504,10 +502,10 @@ return [
     // ],
 
     [
-        'text' => 'Company Settings',
+        'text' => 'Pengaturan Perusahaan',
         'url'  => 'admin/settings',
         'icon' => 'fas fa-cogs',
-        'can'   => 'super_admin',
+        'can'   => 'admin_panel',
     ],
 
     /*
@@ -517,16 +515,16 @@ return [
     */
 
     [
-        'header' => 'ACCOUNT',
-        'can'   => 'super_admin',
+        'header' => 'AKUN',
+        'can'   => 'admin_panel',
     ],
 
     [
-        'text' => 'Logout',
+        'text' => 'Keluar',
         'url'  => 'logout',
         'method' => 'post',
         'icon' => 'fas fa-sign-out-alt',
-        'can'   => 'super_admin',
+        'can'   => 'admin_panel',
     ],
 
 
@@ -538,7 +536,7 @@ return [
 
 
     [
-        'header' => 'CLIENT PANEL',
+        'header' => 'PORTAL CLIENT',
         'can' => 'client',
     ],
 
@@ -582,7 +580,7 @@ return [
     ],
 
     [
-        'text' => 'Support Ticket',
+        'text' => 'Tiket Dukungan',
         'url'  => 'client/tickets',
         'icon' => 'fas fa-comments',
 
@@ -590,7 +588,7 @@ return [
     ],
 
     [
-        'text' => 'Notifications',
+        'text' => 'Notifikasi',
         'url'  => 'client/notifications',
         'icon' => 'fas fa-bell',
         // 'label' => $clientNotificationCount ?? 0,
@@ -613,13 +611,13 @@ return [
     */
 
     [
-        'header' => 'ACCOUNT',
+        'header' => 'AKUN',
 
         'can' => 'client',
     ],
 
     [
-        'text' => 'Logout',
+        'text' => 'Keluar',
         'url'  => 'logout',
         'method' => 'post',
         'icon' => 'fas fa-sign-out-alt',

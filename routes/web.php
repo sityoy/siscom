@@ -10,6 +10,7 @@ use App\Http\Controllers\Client\TicketController as ClientTicketController;
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Client\NotificationController as ClientNotificationController;
 use App\Http\Controllers\Admin\CompanySettingController;
+use App\Http\Controllers\DashboardRedirectController;
 
 Route::redirect('/', '/login');
 
@@ -18,9 +19,9 @@ Route::get(
     [App\Http\Controllers\Admin\InvoiceController::class, 'whatsappPdf']
 )->middleware('signed')->name('invoice.whatsapp.pdf');
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', DashboardRedirectController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -33,7 +34,7 @@ Route::resource(
 )->middleware([
     'auth',
     'role:super_admin'
-])->names('users');
+])->except(['show'])->names('users');
 
 Route::resource(
     '/admin/clients',
@@ -41,7 +42,7 @@ Route::resource(
 )->middleware([
     'auth',
     'role:super_admin'
-])->names('clients');
+])->except(['show'])->names('clients');
 
 Route::post(
     '/admin/clients/{client}/renew',
@@ -57,7 +58,7 @@ Route::resource(
 )->middleware([
     'auth',
     'role:super_admin'
-])->names('projects');
+])->except(['show'])->names('projects');
 
 Route::resource(
     '/admin/invoices',
@@ -65,7 +66,7 @@ Route::resource(
 )->middleware([
     'auth',
     'role:super_admin'
-])->names('invoices');
+])->except(['show'])->names('invoices');
 
 Route::get(
     '/admin/payments/export',
@@ -81,7 +82,7 @@ Route::resource(
 )->middleware([
     'auth',
     'role:super_admin'
-])->names('payments');
+])->except(['show'])->names('payments');
 
 Route::get(
     '/admin/invoices/{invoice}/pdf',

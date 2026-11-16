@@ -20,7 +20,7 @@ class ProjectController extends Controller
         $projects = Project::where(
             'client_id',
             $client->id
-        )->latest()->paginate(10);
+        )->latest()->paginate(\App\Support\Pagination::perPage());
 
         return view(
             'clients.projects.index',

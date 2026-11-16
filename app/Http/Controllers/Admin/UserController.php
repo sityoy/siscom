@@ -15,7 +15,7 @@ class UserController extends Controller
     {
         $users = User::with('roles')
             ->latest()
-            ->paginate(10);
+            ->paginate(\App\Support\Pagination::perPage());
 
         return view(
             'admin.users.index',
@@ -41,9 +41,9 @@ class UserController extends Controller
 
             'email' => 'required|email|unique:users,email',
 
-            'password' => 'required|min:6',
+            'password' => 'required|string|min:8',
 
-            'role' => 'required',
+            'role' => ['required', Rule::exists('roles', 'name')],
 
         ]);
 
@@ -95,9 +95,20 @@ class UserController extends Controller
                                 ->ignore($user->id),
                         ],
 
-            'role' => 'required',
+            'role' => ['required', Rule::exists('roles', 'name')],
 
         ]);
+
+        if (
+            $user->hasRole('super_admin')
+            && $request->role !== 'super_admin'
+            && User::role('super_admin')->count() <= 1
+        ) {
+            return back()->withInput()->with(
+                'error',
+                'Minimal satu akun Super Admin harus tetap tersedia.'
+            );
+        }
 
         $data = [
 

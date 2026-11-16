@@ -204,4 +204,6 @@
 
 </div>
 
+@include('layouts.partials.pagination', ['paginator' => $projects])
+
 @endsection

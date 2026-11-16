@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\TicketMessage;
 use App\Models\AdminNotification;
 use App\Models\Notification;
+use Illuminate\Validation\Rule;
 
 class TicketController extends Controller
 {
@@ -28,7 +29,7 @@ class TicketController extends Controller
 
             $client->id
 
-        )->latest()->paginate(10);
+        )->latest()->paginate(\App\Support\Pagination::perPage());
 
         return view(
 
@@ -78,9 +79,15 @@ class TicketController extends Controller
 
         $request->validate([
 
-            'subject' => 'required',
+            'subject' => 'required|string|max:255',
 
-            'message' => 'required',
+            'message' => 'required|string|max:5000',
+
+            'project_id' => [
+                'nullable',
+                Rule::exists('projects', 'id')
+                    ->where(fn ($query) => $query->where('client_id', $client->id)),
+            ],
 
         ]);
 
@@ -165,17 +172,6 @@ class TicketController extends Controller
 
     {
         $client = auth()->user()->client;
-            if ($ticket->status == 'closed') {
-
-            return back()->with(
-
-                'error',
-
-                'Ticket sudah ditutup'
-
-            );
-
-        }
 
         if (
             !$client ||
@@ -186,9 +182,13 @@ class TicketController extends Controller
 
         }
 
+        if ($ticket->status == 'closed') {
+            return back()->with('error', 'Ticket sudah ditutup');
+        }
+
         $request->validate([
 
-            'message' => 'required'
+            'message' => 'required|string|max:5000'
 
         ]);
 

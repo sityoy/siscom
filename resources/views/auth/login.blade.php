@@ -1,209 +1,110 @@
 <x-guest-layout>
+    <main class="min-h-screen flex items-center justify-center px-4 py-8 sm:px-6">
+        <div class="w-full max-w-6xl overflow-hidden rounded-3xl bg-white shadow-2xl lg:grid lg:grid-cols-2">
+            <section class="relative hidden min-h-[650px] overflow-hidden bg-slate-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+                <div class="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-cyan-400/20 blur-3xl"></div>
+                <div class="absolute -bottom-32 -left-20 h-96 w-96 rounded-full bg-blue-500/25 blur-3xl"></div>
 
-<div class="min-h-screen flex items-center justify-center px-6">
-
-    <div class="w-full max-w-6xl grid lg:grid-cols-2 gap-10 items-center">
-
-        {{-- LEFT --}}
-        <div class="hidden lg:block text-white">
-
-            <h1 class="text-6xl font-bold mb-6">
-
-                SIS.COM
-
-            </h1>
-
-            <h2 class="text-3xl font-semibold mb-6">
-
-                Software House Management System
-
-            </h2>
-
-            <p class="text-lg text-gray-200 leading-relaxed">
-
-                Kelola client, project,
-                invoice, payment,
-                support ticket,
-                dan workflow software house
-                dalam satu sistem modern.
-
-            </p>
-
-            <div class="mt-10 space-y-4 text-lg">
-
-                <div>✅ Client Portal</div>
-
-                <div>✅ Invoice Management</div>
-
-                <div>✅ Support Ticket CRM</div>
-
-                <div>✅ Project Workflow</div>
-
-            </div>
-
-        </div>
-
-        {{-- RIGHT --}}
-        <div>
-
-            <div class="bg-white rounded-3xl shadow-2xl p-10">
-
-                <div class="text-center mb-8">
-
-                    <h2 class="text-4xl font-bold text-gray-800">
-
-                        Welcome Back 👋
-
-                    </h2>
-
-                    <p class="text-gray-500 mt-3">
-
-                        Login ke dashboard SIS.COM
-
+                <div class="relative z-10">
+                    <img src="{{ asset('siscombg2.png') }}" alt="Logo SIS.COM" class="mb-8 h-28 w-28 object-contain drop-shadow-2xl">
+                    <p class="mb-3 text-xs font-bold uppercase tracking-[.28em] text-cyan-300">Sityoy IT Solutions</p>
+                    <h1 class="max-w-md text-4xl font-extrabold leading-tight">
+                        Satu pusat kendali untuk layanan dan administrasi bisnis.
+                    </h1>
+                    <p class="mt-5 max-w-lg text-base leading-relaxed text-slate-300">
+                        Kelola client, project, invoice, pembayaran, support, dan dokumen SPJ secara aman serta terintegrasi.
                     </p>
-
                 </div>
 
-                <x-auth-session-status
-                    class="mb-4"
-                    :status="session('status')" />
+                <div class="relative z-10 grid grid-cols-2 gap-4 text-sm">
+                    <div class="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                        <span class="mb-2 block text-2xl">📊</span>
+                        <strong class="block">Monitoring Real-time</strong>
+                        <small class="text-slate-400">Data bisnis lebih mudah dipantau.</small>
+                    </div>
+                    <div class="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                        <span class="mb-2 block text-2xl">🛡️</span>
+                        <strong class="block">Dokumen Terpusat</strong>
+                        <small class="text-slate-400">Invoice dan SPJ lebih tertata.</small>
+                    </div>
+                </div>
+            </section>
 
-                <form method="POST"
-                      action="{{ route('login') }}">
-
-                    @csrf
-
-                    {{-- EMAIL --}}
-                    <div class="mb-5">
-
-                        <label class="block mb-2
-                                     text-sm
-                                     font-semibold
-                                     text-gray-700">
-
-                            Email Address
-
-                        </label>
-
-                        <input type="email"
-                               name="email"
-                               value="{{ old('email') }}"
-                               class="
-                                    w-full
-                                    rounded-2xl
-                                    border-gray-300
-                                    shadow-sm
-                                    focus:ring-blue-500
-                                    focus:border-blue-500
-                                    px-5
-                                    py-4
-                               "
-                               placeholder="Masukkan email"
-                               required>
-
-                        <x-input-error
-                            :messages="$errors->get('email')"
-                            class="mt-2 text-red-500" />
-
+            <section class="flex min-h-[650px] items-center bg-white p-7 sm:p-12 lg:p-16">
+                <div class="mx-auto w-full max-w-md">
+                    <div class="mb-9 lg:hidden">
+                        <img src="{{ asset('siscombg2.png') }}" alt="Logo SIS.COM" class="h-24 w-24 object-contain">
                     </div>
 
-                    {{-- PASSWORD --}}
-                    <div class="mb-5">
-
-                        <label class="block mb-2
-                                     text-sm
-                                     font-semibold
-                                     text-gray-700">
-
-                            Password
-
-                        </label>
-
-                        <input type="password"
-                               name="password"
-                               class="
-                                    w-full
-                                    rounded-2xl
-                                    border-gray-300
-                                    shadow-sm
-                                    focus:ring-blue-500
-                                    focus:border-blue-500
-                                    px-5
-                                    py-4
-                               "
-                               placeholder="Masukkan password"
-                               required>
-
-                        <x-input-error
-                            :messages="$errors->get('password')"
-                            class="mt-2 text-red-500" />
-
+                    <div class="mb-8">
+                        <span class="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-700">
+                            Portal Resmi SIS.COM
+                        </span>
+                        <h2 class="mt-4 text-3xl font-extrabold text-slate-900">Selamat datang kembali</h2>
+                        <p class="mt-2 text-sm text-slate-500">Masuk menggunakan akun yang telah terdaftar.</p>
                     </div>
 
-                    {{-- REMEMBER --}}
-                    <div class="
-                        flex
-                        items-center
-                        justify-between
-                        mb-6
-                    ">
+                    <x-auth-session-status class="mb-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-700" :status="session('status')" />
 
-                        <label class="flex items-center">
+                    <form method="POST" action="{{ route('login') }}" class="space-y-5">
+                        @csrf
 
-                            <input type="checkbox"
-                                   name="remember"
-                                   class="rounded border-gray-300">
+                        <div>
+                            <label for="email" class="mb-2 block text-sm font-bold text-slate-700">Alamat email</label>
+                            <input id="email" type="email" name="email" value="{{ old('email') }}"
+                                   autocomplete="username" autofocus required
+                                   class="w-full rounded-xl border-slate-300 px-4 py-3.5 text-slate-900 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                   placeholder="nama@email.com">
+                            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+                        </div>
 
-                            <span class="ml-2 text-sm text-gray-600">
+                        <div>
+                            <div class="mb-2 flex items-center justify-between">
+                                <label for="password" class="text-sm font-bold text-slate-700">Password</label>
+                                @if (Route::has('password.request'))
+                                    <a href="{{ route('password.request') }}" class="text-xs font-semibold text-blue-700 hover:text-blue-900">
+                                        Lupa password?
+                                    </a>
+                                @endif
+                            </div>
+                            <div class="relative">
+                                <input id="password" type="password" name="password" autocomplete="current-password" required
+                                       class="w-full rounded-xl border-slate-300 px-4 py-3.5 pr-14 text-slate-900 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                       placeholder="Masukkan password">
+                                <button type="button" data-password-toggle
+                                        class="absolute inset-y-0 right-0 px-4 text-xs font-bold text-slate-500 hover:text-blue-700"
+                                        aria-label="Tampilkan password">Lihat</button>
+                            </div>
+                            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+                        </div>
 
-                                Remember me
-
-                            </span>
-
+                        <label class="flex items-center gap-2 text-sm text-slate-600">
+                            <input type="checkbox" name="remember" class="rounded border-slate-300 text-blue-700 focus:ring-blue-500">
+                            Ingat saya di perangkat ini
                         </label>
 
-                        @if (Route::has('password.request'))
+                        <button type="submit"
+                                class="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-700 to-blue-600 px-5 py-4 font-bold text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:from-blue-800 hover:to-blue-700">
+                            Masuk ke Dashboard
+                        </button>
+                    </form>
 
-                            <a href="{{ route('password.request') }}"
-                               class="
-                                    text-sm
-                                    text-blue-600
-                                    hover:underline
-                               ">
-
-                                Forgot password?
-
-                            </a>
-
-                        @endif
-
+                    <div class="mt-8 border-t border-slate-200 pt-6 text-center text-xs text-slate-500">
+                        <p class="font-semibold text-slate-700">siscom.sityoyitsolutions.com</p>
+                        <p class="mt-1">&copy; {{ now()->year }} PT Sityoy IT Solutions &bull; Upgrade Your System</p>
                     </div>
-
-                    {{-- BUTTON --}}
-                    <button type="submit"
-                            class="
-                                w-full
-                                bg-blue-700
-                                hover:bg-blue-800
-                                text-white
-                                font-semibold
-                                py-4
-                                rounded-2xl
-                                transition
-                            ">
-
-                        Login Dashboard
-
-                    </button>
-
-                </form>
-
-            </div>
-
+                </div>
+            </section>
         </div>
+    </main>
 
-    </div>
-
-</div>
-
+    <script>
+        document.querySelector('[data-password-toggle]')?.addEventListener('click', function () {
+            const input = document.getElementById('password');
+            const visible = input.type === 'text';
+            input.type = visible ? 'password' : 'text';
+            this.textContent = visible ? 'Lihat' : 'Sembunyikan';
+            this.setAttribute('aria-label', visible ? 'Tampilkan password' : 'Sembunyikan password');
+        });
+    </script>
 </x-guest-layout>

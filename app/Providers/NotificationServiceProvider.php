@@ -11,7 +11,10 @@ class NotificationServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        View::composer('*', function ($view) {
+        View::composer([
+            'layouts.admin',
+            'layouts.client',
+        ], function ($view) {
 
             $clientNotificationCount = 0;
             $adminNotificationCount = 0;

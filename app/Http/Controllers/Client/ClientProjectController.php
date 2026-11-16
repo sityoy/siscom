@@ -23,7 +23,7 @@ class ClientProjectController extends Controller
 
             $client->id
 
-        )->latest()->paginate(10);
+        )->latest()->paginate(\App\Support\Pagination::perPage());
 
         return view(
 

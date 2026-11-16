@@ -23,7 +23,7 @@ public function index(Request $request)
 
     $clients = $clients
         ->latest()
-        ->paginate(10);
+        ->paginate(\App\Support\Pagination::perPage());
 
     return view(
         'admin.clients.index',
@@ -53,7 +53,11 @@ public function index(Request $request)
     {
         $request->validate([
 
-        'user_id' => 'required|exists:users,id',
+        'user_id' => [
+            'required',
+            Rule::exists('users', 'id'),
+            Rule::unique('clients', 'user_id'),
+        ],
         'phone' => [
             'nullable',
             'string',
@@ -75,13 +79,13 @@ public function index(Request $request)
 
         'package_name' => 'nullable|string|max:100',
 
-        'package_price' => 'nullable|numeric',
+        'package_price' => 'nullable|numeric|min:0',
 
         'subscription_start' => 'nullable|date',
 
-        'subscription_end' => 'nullable|date',
+        'subscription_end' => 'nullable|date|after_or_equal:subscription_start',
 
-        'grace_period_days' => 'nullable|integer|min:0',
+        'grace_period_days' => 'nullable|integer|min:0|max:365',
 
         'authorized_official_name' => 'nullable|string|max:255',
 
@@ -157,7 +161,11 @@ public function index(Request $request)
 
         $request->validate([
 
-            'user_id' => 'required|exists:users,id',
+            'user_id' => [
+                'required',
+                Rule::exists('users', 'id'),
+                Rule::unique('clients', 'user_id')->ignore($client->id),
+            ],
             'phone' => [
                 'nullable',
                 'string',
@@ -180,6 +188,16 @@ public function index(Request $request)
             'authorized_official_name' => 'nullable|string|max:255',
 
             'authorized_official_title' => 'nullable|string|max:255',
+
+            'package_name' => 'nullable|string|max:100',
+
+            'package_price' => 'nullable|numeric|min:0',
+
+            'subscription_start' => 'nullable|date',
+
+            'subscription_end' => 'nullable|date|after_or_equal:subscription_start',
+
+            'grace_period_days' => 'nullable|integer|min:0|max:365',
 
         ]);
 

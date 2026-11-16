@@ -244,7 +244,7 @@
 
         <div class="mt-4">
 
-            {{ $payments->links() }}
+            @include('layouts.partials.pagination', ['paginator' => $payments])
 
         </div>
 
