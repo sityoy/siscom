@@ -1,7 +1,7 @@
 name: SIS.COM Quality Check
 
 permissions:
-  contents: write
+  contents: read
 
 on:
   push:
@@ -42,7 +42,6 @@ jobs:
 
       - name: Validate Composer
         run: |
-          composer update --with-all-dependencies --no-interaction --no-progress
           composer validate --no-check-publish
           composer audit --locked --no-dev
 
@@ -57,14 +56,3 @@ jobs:
       - name: Verify deployment script
         run: bash -n deploy.sh
 
-      - name: Commit patched dependency lock
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: |
-          if git diff --quiet -- composer.lock; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add composer.lock
-          git commit -m "Update Composer security patches"
-          git push
