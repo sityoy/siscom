@@ -27,7 +27,8 @@ done
 mkdir -p storage/framework/{cache,sessions,views} storage/logs
 
 if command -v flock >/dev/null 2>&1; then
-    exec 9>storage/framework/siscom-deploy.lock
+    deploy_lock="${TMPDIR:-/tmp}/siscom-deploy-${UID}.lock"
+    exec 9>"$deploy_lock"
     flock -n 9 || fail "Deploy lain masih berjalan."
 fi
 
