@@ -175,6 +175,9 @@
                     <input type="text" name="director_title" class="form-control"
                            value="{{ old('director_title', $setting->director_title) }}"
                            placeholder="Direktur/Pimpinan">
+                    <small class="form-text text-muted">
+                        Simpan dalam Bahasa Indonesia. Pada Invoice PDF English, jabatan umum otomatis diterjemahkan.
+                    </small>
                 </div>
 
                 <div class="col-md-3 mb-3">

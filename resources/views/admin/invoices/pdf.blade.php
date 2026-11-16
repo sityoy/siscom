@@ -189,15 +189,28 @@
         'direktur utama' => 'Direktur Utama',
         'pimpinan' => 'Pimpinan',
         'direktur/pimpinan' => 'Direktur/Pimpinan',
+        'operations director' => 'Direktur Operasional',
+        'managing director' => 'Direktur Pelaksana',
+        'chief executive officer' => 'Direktur Utama',
+        'ceo' => 'Direktur Utama',
+        'owner' => 'Pemilik',
     ] : [
         'kepala sekolah' => 'Principal',
+        'kepala smk' => 'Principal',
+        'kepala smp' => 'Principal',
+        'kepala madrasah' => 'Principal',
         'wakil kepala sekolah' => 'Vice Principal',
         'bendahara' => 'Treasurer',
         'ketua yayasan' => 'Foundation Chairperson',
         'direktur' => 'Director',
         'direktur utama' => 'President Director',
+        'direktur operasional' => 'Operations Director',
+        'direktur pelaksana' => 'Managing Director',
         'pimpinan' => 'Director',
         'direktur/pimpinan' => 'Director',
+        'pemilik' => 'Owner',
+        'pemilik usaha' => 'Owner',
+        'ceo' => 'Chief Executive Officer',
     ];
     $schoolSignerName = $invoice->client->authorized_official_name;
     $schoolSignerTitleSource = $invoice->client->authorized_official_title

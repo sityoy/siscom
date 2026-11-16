@@ -22,7 +22,8 @@
 
     </div>
 
-    <form action="{{ isset($payment) ? route('payments.update', $payment) : route('payments.store') }}"
+    <form id="payment-form"
+      action="{{ isset($payment) ? route('payments.update', $payment) : route('payments.store') }}"
       method="POST"
       enctype="multipart/form-data">
 
@@ -156,12 +157,25 @@
 
                     <label>Nominal Pembayaran</label>
 
-                    <input type="number"
-                           name="amount"
+                    <input type="text"
+                           id="amount-display"
                            class="form-control"
-                           value="{{ old('amount', $payment->amount ?? '') }}"
-                           placeholder="0"
+                           inputmode="decimal"
+                           autocomplete="off"
+                           value="{{ old('amount') !== null
+                               ? number_format((float) old('amount'), 2, ',', '.')
+                               : (isset($payment) ? number_format((float) $payment->amount, 2, ',', '.') : '') }}"
+                           placeholder="Contoh: 896.500,39"
                            required>
+
+                    <input type="hidden"
+                           id="amount-value"
+                           name="amount"
+                           value="{{ old('amount', $payment->amount ?? '') }}">
+
+                    <small class="form-text text-muted">
+                        Gunakan format Rupiah Indonesia, misalnya 896.500,39.
+                    </small>
 
                 </div>
 
@@ -232,6 +246,59 @@
 
 <script>
 
+const paymentForm = document.getElementById('payment-form');
+const amountDisplay = document.getElementById('amount-display');
+const amountValue = document.getElementById('amount-value');
+
+function normalizeCurrency(value) {
+    value = String(value || '').replace(/[^0-9,.-]/g, '');
+
+    const lastComma = value.lastIndexOf(',');
+    const lastDot = value.lastIndexOf('.');
+
+    if (lastComma !== -1 && lastDot !== -1) {
+        return lastComma > lastDot
+            ? value.replace(/\./g, '').replace(',', '.')
+            : value.replace(/,/g, '');
+    }
+
+    if (lastComma !== -1) {
+        return value.replace(/\./g, '').replace(',', '.');
+    }
+
+    if (lastDot !== -1) {
+        const dotCount = (value.match(/\./g) || []).length;
+        const decimalDigits = value.length - lastDot - 1;
+
+        if (dotCount > 1 || decimalDigits === 3) {
+            return value.replace(/\./g, '');
+        }
+    }
+
+    return value;
+}
+
+function syncAmountValue() {
+    amountValue.value = normalizeCurrency(amountDisplay.value);
+}
+
+function formatAmountDisplay() {
+    syncAmountValue();
+
+    const amount = Number(amountValue.value);
+
+    if (Number.isFinite(amount)) {
+        amountDisplay.value = amount.toLocaleString('id-ID', {
+            minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+            maximumFractionDigits: 2,
+        });
+    }
+}
+
+amountDisplay.addEventListener('input', syncAmountValue);
+amountDisplay.addEventListener('blur', formatAmountDisplay);
+paymentForm.addEventListener('submit', syncAmountValue);
+
 document
 .querySelector('[name="invoice_id"]')
 .addEventListener('change', function(){
@@ -272,6 +339,8 @@ document
 document
     .querySelector('[name="invoice_id"]')
     .dispatchEvent(new Event('change'));
+
+formatAmountDisplay();
 
 </script>
 

@@ -46,6 +46,10 @@ class PaymentController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge([
+            'amount' => $this->normalizeCurrencyInput($request->input('amount')),
+        ]);
+
         $request->validate([
 
             'invoice_id' => 'required|exists:invoices,id',
@@ -205,6 +209,9 @@ class PaymentController extends Controller
         Request $request,
         Payment $payment
     ) {
+        $request->merge([
+            'amount' => $this->normalizeCurrencyInput($request->input('amount')),
+        ]);
 
         $request->validate([
 
@@ -379,6 +386,43 @@ class PaymentController extends Controller
             'success',
             'Pembayaran berhasil dihapus'
         );
+    }
+
+    private function normalizeCurrencyInput(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $value = preg_replace('/[^0-9,.-]/', '', trim($value));
+
+        if ($value === '' || $value === null) {
+            return $value;
+        }
+
+        $lastComma = strrpos($value, ',');
+        $lastDot = strrpos($value, '.');
+
+        if ($lastComma !== false && $lastDot !== false) {
+            return $lastComma > $lastDot
+                ? str_replace(',', '.', str_replace('.', '', $value))
+                : str_replace(',', '', $value);
+        }
+
+        if ($lastComma !== false) {
+            return str_replace(',', '.', str_replace('.', '', $value));
+        }
+
+        if ($lastDot !== false) {
+            $dotCount = substr_count($value, '.');
+            $decimalDigits = strlen($value) - $lastDot - 1;
+
+            if ($dotCount > 1 || $decimalDigits === 3) {
+                return str_replace('.', '', $value);
+            }
+        }
+
+        return $value;
     }
 
     private function processRenewalInvoice($invoice)

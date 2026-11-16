@@ -254,6 +254,60 @@ class SystemSmokeTest extends TestCase
         $this->assertRoutesDoNotReturnServerErrors($routes);
     }
 
+    public function test_payment_accepts_indonesian_currency_format(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('payments.store'), [
+                'invoice_id' => $this->invoice->id,
+                'amount' => '896.500,39',
+                'payment_date' => '2026-11-16',
+                'payment_method' => 'Transfer Bank',
+                'notes' => 'Pembayaran dengan format Indonesia',
+            ])
+            ->assertRedirect(route('payments.index'));
+
+        $payment = Payment::query()
+            ->where('notes', 'Pembayaran dengan format Indonesia')
+            ->firstOrFail();
+
+        $this->assertSame('896500.39', $payment->amount);
+
+        $this->actingAs($this->admin)
+            ->put(route('payments.update', $payment), [
+                'invoice_id' => $this->invoice->id,
+                'amount' => '1.000.000,50',
+                'payment_date' => '2026-11-16',
+                'payment_method' => 'Transfer Bank',
+                'notes' => 'Pembayaran diperbarui',
+            ])
+            ->assertRedirect(route('payments.index'));
+
+        $this->assertSame('1000000.50', $payment->fresh()->amount);
+    }
+
+    public function test_invoice_pdf_translates_indonesian_signer_titles_to_english(): void
+    {
+        $invoice = $this->invoice->load(['client.user', 'project', 'items']);
+        $company = CompanySetting::firstOrFail();
+
+        $indonesianHtml = view('admin.invoices.pdf', [
+            'invoice' => $invoice,
+            'company' => $company,
+            'language' => 'id',
+        ])->render();
+
+        $englishHtml = view('admin.invoices.pdf', [
+            'invoice' => $invoice,
+            'company' => $company,
+            'language' => 'en',
+        ])->render();
+
+        $this->assertStringContainsString('<strong>Kepala Sekolah</strong>', $indonesianHtml);
+        $this->assertStringContainsString('<strong>Direktur</strong>', $indonesianHtml);
+        $this->assertStringContainsString('<strong>Principal</strong>', $englishHtml);
+        $this->assertStringContainsString('<strong>Director</strong>', $englishHtml);
+    }
+
     /**
      * @param  array<string, string>  $routes
      */
