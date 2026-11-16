@@ -191,8 +191,12 @@
                             {{-- PROJECT --}}
                             <td>
 
-    @php($typeClasses = ['general' => 'success', 'project' => 'primary', 'spj' => 'warning', 'renewal' => 'info'])
-    <span class="badge badge-{{ $typeClasses[$invoice->invoice_type] ?? 'secondary' }}">
+    <span class="badge badge-{{ [
+        'general' => 'success',
+        'project' => 'primary',
+        'spj' => 'warning',
+        'renewal' => 'info',
+    ][$invoice->invoice_type] ?? 'secondary' }}">
         {{ $invoice->type_label }}
     </span>
 
@@ -450,18 +454,12 @@
                             {{-- STATUS --}}
                             <td class="text-center">
 
-                                @php
-
-                                    $badgeClass = match($invoice->status) {
-                                        'paid' => 'success',
-                                        'partial' => 'warning',
-                                        'unpaid' => 'danger',
-                                        default => 'secondary'
-                                    };
-
-                                @endphp
-
-                                <span class="badge bg-{{ $badgeClass }} rounded-pill px-3 py-2">
+                                <span class="badge bg-{{ match($invoice->status) {
+                                    'paid' => 'success',
+                                    'partial' => 'warning',
+                                    'unpaid' => 'danger',
+                                    default => 'secondary',
+                                } }} rounded-pill px-3 py-2">
 
                                     {{ ucfirst($invoice->status) }}
 
