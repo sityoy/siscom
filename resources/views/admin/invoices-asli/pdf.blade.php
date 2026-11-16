@@ -702,20 +702,6 @@
 <td width="42%"
     style="vertical-align:top; border:none;">
 
-    @php
-
-        $cashbackAmount =
-            ($invoice->grand_total * $invoice->cashback) / 100;
-
-
-        $finalTotal =
-            $invoice->grand_total;
-
-        // $finalTotal =
-        //     $invoice->grand_total - $cashbackAmount;
-
-    @endphp
-
     <table class="summary">
 
         <tr>
@@ -793,7 +779,12 @@
             <td class="text-right"
                 style="color:green; font-weight:bold;">
 
-                Rp {{ number_format($cashbackAmount,0,',','.') }}
+                Rp {{ number_format(
+                    ((float) $invoice->grand_total * (float) $invoice->cashback) / 100,
+                    0,
+                    ',',
+                    '.',
+                ) }}
 
             </td>
 
@@ -814,7 +805,7 @@
 
             <td class="text-right">
 
-                Rp {{ number_format($finalTotal,0,',','.') }}
+                Rp {{ number_format($invoice->grand_total,0,',','.') }}
 
             </td>
 

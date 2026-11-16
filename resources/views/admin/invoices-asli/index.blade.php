@@ -305,13 +305,6 @@
 
                            {{-- TOTAL --}}
 
-@php
-
-    $cashbackAmount =
-        ($invoice->grand_total * $invoice->cashback) / 100;
-
-@endphp
-
 <td>
 
     {{-- SUBTOTAL --}}
@@ -396,7 +389,7 @@
 
         <span class="text-muted">
 
-            Cashback {{ number_format($invoice->cashback),0 }}%
+            Cashback {{ number_format((float) $invoice->cashback, 0) }}%
 
         </span>
 
@@ -404,7 +397,12 @@
 
         <span class="fw-semibold text-success">
 
-            Reward Rp {{ number_format($cashbackAmount,0,',','.') }}
+            Reward Rp {{ number_format(
+                ((float) $invoice->grand_total * (float) $invoice->cashback) / 100,
+                0,
+                ',',
+                '.',
+            ) }}
 
         </span>
 
@@ -427,18 +425,12 @@
                             {{-- STATUS --}}
                             <td class="text-center">
 
-                                @php
-
-                                    $badgeClass = match($invoice->status) {
-                                        'paid' => 'success',
-                                        'partial' => 'warning',
-                                        'unpaid' => 'danger',
-                                        default => 'secondary'
-                                    };
-
-                                @endphp
-
-                                <span class="badge bg-{{ $badgeClass }} rounded-pill px-3 py-2">
+                                <span class="badge bg-{{ match($invoice->status) {
+                                    'paid' => 'success',
+                                    'partial' => 'warning',
+                                    'unpaid' => 'danger',
+                                    default => 'secondary',
+                                } }} rounded-pill px-3 py-2">
 
                                     {{ ucfirst($invoice->status) }}
 

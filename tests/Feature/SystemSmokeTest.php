@@ -264,7 +264,7 @@ class SystemSmokeTest extends TestCase
         foreach ($routes as $name => $url) {
             $response = $this->get($url);
 
-            if ($response->getStatusCode() >= 500) {
+            if (! $response->isSuccessful()) {
                 $exception = $response->exception;
                 $failures[] = sprintf(
                     '%s [%d]: %s',
