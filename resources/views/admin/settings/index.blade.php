@@ -176,7 +176,8 @@
                            value="{{ old('director_title', $setting->director_title) }}"
                            placeholder="Direktur/Pimpinan">
                     <small class="form-text text-muted">
-                        Simpan dalam Bahasa Indonesia. Pada Invoice PDF English, jabatan umum otomatis diterjemahkan.
+                        Simpan dalam Bahasa Indonesia. Jabatan perusahaan dan sekolah seperti Direktur, Manajer,
+                        Komisaris, Kepala Sekolah, Wakasek, serta Bendahara otomatis diterjemahkan pada Invoice PDF English.
                     </small>
                 </div>
 

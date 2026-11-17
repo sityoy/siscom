@@ -105,6 +105,7 @@
             'gross_total' => 'Total Tagihan Bruto',
             'income_tax' => 'PPh Final UMKM Dipotong',
             'net_payment' => 'PEMBAYARAN BERSIH',
+            'issued_by' => 'Dibuat oleh,',
             'approved_by' => 'Disetujui oleh,',
             'thank_you' => 'Terima kasih atas kepercayaan Anda!',
             'default_note' => 'Terima kasih telah mempercayakan kebutuhan teknologi Anda kepada',
@@ -155,6 +156,7 @@
             'gross_total' => 'Gross Invoice Total',
             'income_tax' => 'Final MSME Income Tax Withheld',
             'net_payment' => 'NET PAYMENT',
+            'issued_by' => 'Issued by,',
             'approved_by' => 'Approved by,',
             'thank_you' => 'Thank you for your business!',
             'default_note' => 'Thank you for entrusting your technology needs to',
@@ -173,55 +175,20 @@
         ['name' => 'BANK MANDIRI', 'number' => $company?->bank_mandiri, 'holder' => $company?->bank_mandiri_name],
         ['name' => 'BANK BCA', 'number' => $company?->bank_bca, 'holder' => $company?->bank_bca_name],
     ])->filter(fn (array $bank) => filled($bank['number']))->values();
-    $titleTranslations = $language === 'id' ? [
-        'principal' => 'Kepala Sekolah',
-        'vice principal' => 'Wakil Kepala Sekolah',
-        'treasurer' => 'Bendahara',
-        'foundation chairperson' => 'Ketua Yayasan',
-        'director' => 'Direktur',
-        'president director' => 'Direktur Utama',
-        'leader' => 'Pimpinan',
-        'kepala sekolah' => 'Kepala Sekolah',
-        'wakil kepala sekolah' => 'Wakil Kepala Sekolah',
-        'bendahara' => 'Bendahara',
-        'ketua yayasan' => 'Ketua Yayasan',
-        'direktur' => 'Direktur',
-        'direktur utama' => 'Direktur Utama',
-        'pimpinan' => 'Pimpinan',
-        'direktur/pimpinan' => 'Direktur/Pimpinan',
-        'operations director' => 'Direktur Operasional',
-        'managing director' => 'Direktur Pelaksana',
-        'chief executive officer' => 'Direktur Utama',
-        'ceo' => 'Direktur Utama',
-        'owner' => 'Pemilik',
-    ] : [
-        'kepala sekolah' => 'Principal',
-        'kepala smk' => 'Principal',
-        'kepala smp' => 'Principal',
-        'kepala madrasah' => 'Principal',
-        'wakil kepala sekolah' => 'Vice Principal',
-        'bendahara' => 'Treasurer',
-        'ketua yayasan' => 'Foundation Chairperson',
-        'direktur' => 'Director',
-        'direktur utama' => 'President Director',
-        'direktur operasional' => 'Operations Director',
-        'direktur pelaksana' => 'Managing Director',
-        'pimpinan' => 'Director',
-        'direktur/pimpinan' => 'Director',
-        'pemilik' => 'Owner',
-        'pemilik usaha' => 'Owner',
-        'ceo' => 'Chief Executive Officer',
-    ];
     $schoolSignerName = $invoice->client->authorized_official_name;
     $schoolSignerTitleSource = $invoice->client->authorized_official_title
         ?: ($language === 'id' ? 'Kepala Sekolah' : 'Principal');
-    $schoolSignerTitle = $titleTranslations[strtolower(trim($schoolSignerTitleSource))]
-        ?? $schoolSignerTitleSource;
+    $schoolSignerTitle = \App\Support\JobTitleTranslator::translate(
+        $schoolSignerTitleSource,
+        $language,
+    );
     $directorName = $company?->director_name;
     $directorTitleSource = $company?->director_title
         ?: ($language === 'id' ? 'Direktur' : 'Director');
-    $directorTitle = $titleTranslations[strtolower(trim($directorTitleSource))]
-        ?? $directorTitleSource;
+    $directorTitle = \App\Support\JobTitleTranslator::translate(
+        $directorTitleSource,
+        $language,
+    );
     $companyName = $company?->legal_name ?: ($company?->company_name ?: 'SIS.COM');
     $city = $company?->city ?: 'Tangerang';
     $isOverdue = $invoice->late_months > 0 && $invoice->status !== 'paid';
@@ -394,16 +361,18 @@
 <table class="signatures">
     <tr>
         <td>
+            {{ $city }}, {{ $formatDate($invoice->invoice_date ?? $invoice->created_at) }}<br>
+            {{ $labels['issued_by'] }}<br><strong>{{ $directorTitle }}</strong>
+            <div class="signature-space"></div>
+            <span class="signer-name">{{ $directorName ?: '(...................................)' }}</span>
+            {{ $companyName }}
+        </td>
+        <td>
+            &nbsp;<br>
             {{ $labels['approved_by'] }}<br><strong>{{ $schoolSignerTitle }}</strong>
             <div class="signature-space"></div>
             <span class="signer-name">{{ $schoolSignerName ?: '(...................................)' }}</span>
             {{ $invoice->client->name }}
-        </td>
-        <td>
-            {{ $city }}, {{ $formatDate($invoice->invoice_date ?? $invoice->created_at) }}<br><strong>{{ $directorTitle }}</strong>
-            <div class="signature-space"></div>
-            <span class="signer-name">{{ $directorName ?: '(...................................)' }}</span>
-            {{ $companyName }}
         </td>
     </tr>
 </table>

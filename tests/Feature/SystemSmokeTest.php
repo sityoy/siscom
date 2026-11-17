@@ -15,6 +15,7 @@ use App\Models\Project;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Models\User;
+use App\Support\JobTitleTranslator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -306,6 +307,48 @@ class SystemSmokeTest extends TestCase
         $this->assertStringContainsString('<strong>Direktur</strong>', $indonesianHtml);
         $this->assertStringContainsString('<strong>Principal</strong>', $englishHtml);
         $this->assertStringContainsString('<strong>Director</strong>', $englishHtml);
+        $this->assertStringContainsString('Issued by,', $englishHtml);
+        $this->assertStringContainsString('Approved by,', $englishHtml);
+
+        $issuedByPosition = strpos($englishHtml, 'Issued by,');
+        $approvedByPosition = strpos($englishHtml, 'Approved by,');
+
+        $this->assertIsInt($issuedByPosition);
+        $this->assertIsInt($approvedByPosition);
+        $this->assertLessThan($approvedByPosition, $issuedByPosition);
+    }
+
+    public function test_common_company_and_school_job_titles_are_translated(): void
+    {
+        $translations = [
+            'Manajer' => 'Manager',
+            'Manajer Operasional' => 'Operations Manager',
+            'Manajer Keuangan' => 'Finance Manager',
+            'Manajer Proyek' => 'Project Manager',
+            'Komisaris Utama' => 'President Commissioner',
+            'Direktur Operasional' => 'Operations Director',
+            'Kepala Divisi' => 'Division Head',
+            'Kepala Cabang' => 'Branch Manager',
+            'Kepala Tata Usaha' => 'Head of Administration',
+            'Wakasek Kurikulum' => 'Vice Principal for Curriculum',
+            'Wakasek Kesiswaan' => 'Vice Principal for Student Affairs',
+            'Operator Sekolah' => 'School Operator',
+            'Pelanggan' => 'Customer',
+            'Perwakilan Client' => 'Client Representative',
+            'Pejabat Pembuat Komitmen' => 'Commitment-Making Officer',
+        ];
+
+        foreach ($translations as $indonesian => $english) {
+            $this->assertSame(
+                $english,
+                JobTitleTranslator::translate($indonesian, 'en'),
+            );
+        }
+
+        $this->assertSame(
+            'Jabatan Khusus Sekolah',
+            JobTitleTranslator::translate('Jabatan Khusus Sekolah', 'en'),
+        );
     }
 
     /**
