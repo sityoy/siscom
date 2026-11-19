@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Invoice extends Model
 {
@@ -161,6 +162,11 @@ class Invoice extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function capitalContributions(): HasMany
+    {
+        return $this->hasMany(CapitalContribution::class);
     }
 
     public function items()
