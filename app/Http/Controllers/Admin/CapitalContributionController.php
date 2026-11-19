@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CapitalContributionController extends Controller
@@ -73,7 +75,7 @@ class CapitalContributionController extends Controller
         return view('admin.capital.index', [
             'month' => $month,
             'invoiceId' => $invoiceId,
-            'invoices' => $this->invoiceQuery()->get(),
+            'invoices' => $this->invoiceOptions()->get(),
             'invoiceBalances' => $invoiceBalances,
             'capitalTotal' => (string) $capitalTotal,
             'paymentsTotal' => (string) $paymentsTotal,
@@ -85,9 +87,13 @@ class CapitalContributionController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        CapitalContribution::create($this->validatedContribution($request) + [
-            'created_by' => $request->user()->id,
-        ]);
+        $data = $this->validatedContribution($request);
+
+        DB::transaction(function () use ($request, $data): void {
+            CapitalContribution::create($this->attachAvailableInvoice($data) + [
+                'created_by' => $request->user()->id,
+            ]);
+        }, 3);
 
         return to_route('capital.index')->with('success', 'Setoran modal berhasil dicatat.');
     }
@@ -98,18 +104,32 @@ class CapitalContributionController extends Controller
 
         return view('admin.capital.edit', [
             'contribution' => $contribution,
-            'invoices' => $this->invoiceQuery()->get(),
+            'invoices' => $this->invoiceOptions()->get(),
         ]);
     }
 
     public function update(Request $request, CapitalContribution $contribution): RedirectResponse
     {
-        $data = $this->validatedContribution($request, $contribution);
-        $activeContribution = CapitalContribution::whereKey($contribution->id)->whereNull('voided_at');
+        $data = $this->validatedContribution($request);
 
-        if (! $activeContribution->update($data)) {
-            abort_unless($activeContribution->exists(), 404);
-        }
+        DB::transaction(function () use ($contribution, $data): void {
+            $activeContribution = CapitalContribution::whereKey($contribution->id)
+                ->whereNull('voided_at')->lockForUpdate()->firstOrFail();
+
+            if ($activeContribution->invoice_id || $activeContribution->invoice_reference) {
+                if (array_key_exists('invoice_id', $data) && (string) $data['invoice_id'] !== (string) $activeContribution->invoice_id) {
+                    throw ValidationException::withMessages([
+                        'invoice_id' => 'Invoice pada setoran ini sudah terkunci. Batalkan setoran jika ingin menautkannya kembali.',
+                    ]);
+                }
+
+                unset($data['invoice_id']);
+            } else {
+                $data = $this->attachAvailableInvoice($data);
+            }
+
+            $activeContribution->update($data);
+        }, 3);
 
         return to_route('capital.index')->with('success', 'Setoran modal berhasil diperbarui.');
     }
@@ -137,7 +157,34 @@ class CapitalContributionController extends Controller
         return BigDecimal::of((string) ($amount ?? 0))->toScale(2, RoundingMode::HalfUp);
     }
 
-    private function validatedContribution(Request $request, ?CapitalContribution $contribution = null): array
+    private function invoiceOptions(): Builder
+    {
+        return $this->invoiceQuery()->withExists([
+            'capitalContributions as has_active_capital' => fn (Builder $query) => $query->whereNull('voided_at'),
+        ]);
+    }
+
+    private function attachAvailableInvoice(array $data): array
+    {
+        if (empty($data['invoice_id'])) {
+            return $data;
+        }
+
+        // Serialize submissions for the same invoice, even when no contribution exists yet.
+        $invoice = Invoice::query()->lockForUpdate()->findOrFail($data['invoice_id'], ['id', 'invoice_number']);
+
+        if ($invoice->capitalContributions()->whereNull('voided_at')->exists()) {
+            throw ValidationException::withMessages([
+                'invoice_id' => 'Invoice ini sudah memiliki setoran modal aktif. Edit nominalnya atau batalkan setoran lama untuk mencatat ulang.',
+            ]);
+        }
+
+        $data['invoice_reference'] = $invoice->invoice_number;
+
+        return $data;
+    }
+
+    private function validatedContribution(Request $request): array
     {
         $amount = $request->input('amount');
 
@@ -151,7 +198,7 @@ class CapitalContributionController extends Controller
             $request->merge(['amount' => str_replace(',', '.', $amount)]);
         }
 
-        $data = $request->validate([
+        return $request->validate([
             'contribution_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.today()->toDateString()],
             'source' => ['required', 'string', 'max:120'],
             'amount' => ['bail', 'required', 'regex:/\A[0-9]{1,13}(?:\.[0-9]{1,2})?\z/', 'numeric', 'min:0.01'],
@@ -168,16 +215,5 @@ class CapitalContributionController extends Controller
             'notes' => 'catatan',
             'invoice_id' => 'invoice',
         ]);
-
-        if (! array_key_exists('invoice_id', $data)) {
-            return $data;
-        }
-
-        // Preserve the original reference when the linked invoice has been deleted.
-        $data['invoice_reference'] = $data['invoice_id']
-            ? Invoice::query()->findOrFail($data['invoice_id'], ['invoice_number'])->invoice_number
-            : ($contribution?->invoice_id === null ? $contribution?->invoice_reference : null);
-
-        return $data;
     }
 }

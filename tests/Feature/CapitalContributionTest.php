@@ -114,18 +114,56 @@ class CapitalContributionTest extends TestCase
             ->assertSee('−Rp 100.000,25')
             ->assertDontSee('Setoran umum');
 
-        $this->put(route('capital.update', $contribution), $setoran + ['invoice_id' => $otherInvoice->id])
-            ->assertSessionHasNoErrors()->assertRedirect(route('capital.index'));
-        $this->get($november)->assertOk()->assertViewHas('capitalTotal', '0.00');
-        $this->assertSame($otherInvoice->id, $contribution->fresh()->invoice_id);
-
         $this->delete(route('capital.destroy', $contribution))->assertRedirect(route('capital.index'));
+        $this->get($november)->assertOk()->assertViewHas('capitalTotal', '0.00');
         $this->get(route('capital.index', ['invoice_id' => $otherInvoice->id]))->assertOk()
             ->assertViewHas('capitalTotal', '500000.50');
 
-        $otherInvoice->delete();
+        $invoice->delete();
         $this->assertNull($contribution->fresh()->invoice_id);
-        $this->get(route('capital.index'))->assertOk()->assertSee('INV-MATCH-002')->assertSee('(invoice dihapus)');
+        $this->get(route('capital.index'))->assertOk()->assertSee('INV-MATCH-001')->assertSee('(invoice dihapus)');
+    }
+
+    public function test_an_invoice_can_be_recorded_again_only_after_its_active_contribution_is_voided(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 20));
+        $admin = User::factory()->create()->assignRole(Role::create(['name' => 'super_admin']));
+        $client = Client::create(['name' => 'Client Pengujian']);
+        $invoice = $client->invoices()->create(['invoice_number' => 'INV-LOCK-001']);
+        $otherInvoice = $client->invoices()->create(['invoice_number' => 'INV-LOCK-002']);
+        $setoran = [
+            'contribution_date' => '2026-11-01',
+            'source' => 'Pemilik',
+            'amount' => '500000.50',
+            'invoice_id' => $invoice->id,
+        ];
+
+        $this->actingAs($admin)->post(route('capital.store'), $setoran)->assertRedirect(route('capital.index'));
+        $contribution = CapitalContribution::sole();
+
+        $this->get(route('capital.index', ['month' => '2026-10']))->assertOk()->assertSee('(sudah tercatat)');
+        $this->from(route('capital.index'))->post(route('capital.store'), array_replace($setoran, [
+            'contribution_date' => '2026-10-01',
+        ]))->assertSessionHasErrors('invoice_id');
+        $this->assertDatabaseCount('capital_contributions', 1);
+
+        $editPage = route('capital.edit', $contribution);
+        $this->get($editPage)->assertOk()->assertSee('Untuk mengganti invoice, batalkan setoran ini');
+        $this->from($editPage)->put(route('capital.update', $contribution), array_replace($setoran, [
+            'invoice_id' => $otherInvoice->id,
+        ]))->assertSessionHasErrors('invoice_id');
+        $this->assertSame($invoice->id, $contribution->fresh()->invoice_id);
+
+        $this->put(route('capital.update', $contribution), array_replace($setoran, ['amount' => '600000.25']))
+            ->assertRedirect(route('capital.index'));
+        $this->assertSame('600000.25', $contribution->fresh()->amount);
+
+        $this->delete(route('capital.destroy', $contribution))->assertRedirect(route('capital.index'));
+        $this->get(route('capital.index'))->assertOk()->assertDontSee('(sudah tercatat)');
+        $this->post(route('capital.store'), $setoran)->assertSessionHasNoErrors()->assertRedirect(route('capital.index'));
+
+        $this->assertDatabaseCount('capital_contributions', 2);
+        $this->assertSame(1, $invoice->capitalContributions()->whereNull('voided_at')->count());
     }
 
     public function test_clients_cannot_view_or_record_capital(): void
