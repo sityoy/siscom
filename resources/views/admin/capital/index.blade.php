@@ -9,11 +9,20 @@
     </div>
     <div class="card-body">
         <form method="GET" action="{{ route('capital.index') }}" class="form-inline mb-3">
-            <label for="capital-month" class="mr-2">Bulan</label>
-            <input type="month" id="capital-month" name="month" value="{{ $month }}" class="form-control mr-2">
-            <button class="btn btn-primary mr-2" type="submit">Tampilkan</button>
-            @if($month)
-                <a href="{{ route('capital.index') }}" class="btn btn-outline-secondary">Semua periode</a>
+            <label for="capital-month" class="mr-2 mb-2">Bulan</label>
+            <input type="month" id="capital-month" name="month" value="{{ $month }}" class="form-control mr-2 mb-2">
+            <label for="capital-filter-invoice" class="mr-2 mb-2">Invoice</label>
+            <select id="capital-filter-invoice" name="invoice_id" class="custom-select mr-2 mb-2">
+                <option value="">Semua invoice dan modal umum</option>
+                @foreach($invoices as $invoice)
+                    <option value="{{ $invoice->id }}" @selected((string) $invoiceId === (string) $invoice->id)>
+                        {{ $invoice->invoice_number }} — {{ $invoice->client?->name ?? 'Client' }}
+                    </option>
+                @endforeach
+            </select>
+            <button class="btn btn-primary mr-2 mb-2" type="submit">Tampilkan</button>
+            @if($month || $invoiceId)
+                <a href="{{ route('capital.index') }}" class="btn btn-outline-secondary mb-2">Reset filter</a>
             @endif
         </form>
         <div class="row">
@@ -44,6 +53,49 @@
 
 <div class="card">
     <div class="card-header">
+        <h2 class="card-title font-weight-bold">Pencocokan Modal per Invoice</h2>
+    </div>
+    <div class="card-body">
+        <p class="text-muted small">Selisih dihitung dari pembayaran client dikurangi modal yang dialokasikan dalam periode terpilih. Angka negatif menunjukkan pembayaran yang tercatat masih di bawah modal.</p>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Invoice dan Client</th>
+                        <th scope="col" class="text-right">Nilai Invoice (Bruto)</th>
+                        <th scope="col" class="text-right">Modal Teralokasi</th>
+                        <th scope="col" class="text-right">Pembayaran Tercatat</th>
+                        <th scope="col" class="text-right">Selisih</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($invoiceBalances as $balance)
+                        <tr>
+                            <td>
+                                <a href="{{ route('capital.index', ['invoice_id' => $balance['invoice']->id, 'month' => $month]) }}">
+                                    {{ $balance['invoice']->invoice_number }}
+                                </a>
+                                <small class="d-block text-muted">{{ $balance['invoice']->client?->name ?? 'Client' }}</small>
+                            </td>
+                            <td class="text-right text-nowrap">Rp {{ number_format((float) $balance['invoice']->grand_total, 2, ',', '.') }}</td>
+                            <td class="text-right text-nowrap">Rp {{ number_format((float) $balance['capital'], 2, ',', '.') }}</td>
+                            <td class="text-right text-nowrap">Rp {{ number_format((float) $balance['payments'], 2, ',', '.') }}</td>
+                            <td class="text-right text-nowrap font-weight-bold {{ $balance['difference'] < 0 ? 'text-danger' : '' }}">
+                                {{ $balance['difference'] < 0 ? '−' : '' }}Rp {{ number_format(abs((float) $balance['difference']), 2, ',', '.') }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="text-center text-muted py-4">Belum ada invoice.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        {{ $invoiceBalances->withQueryString()->onEachSide(1)->links() }}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
         <h2 class="card-title font-weight-bold">Catat Setoran Modal</h2>
     </div>
     <div class="card-body">
@@ -67,6 +119,7 @@
                     <tr>
                         <th scope="col">Tanggal</th>
                         <th scope="col">Sumber dan Catatan</th>
+                        <th scope="col">Invoice</th>
                         <th scope="col" class="text-right">Nominal</th>
                         <th scope="col">Status</th>
                         <th scope="col" class="text-right">Aksi</th>
@@ -80,6 +133,17 @@
                                 <strong>{{ $contribution->source }}</strong>
                                 @if($contribution->notes)
                                     <small class="d-block text-muted">{{ $contribution->notes }}</small>
+                                @endif
+                            </td>
+                            <td>
+                                @if($contribution->invoice)
+                                    <a href="{{ route('capital.index', ['invoice_id' => $contribution->invoice_id, 'month' => $month]) }}">
+                                        {{ $contribution->invoice->invoice_number }}
+                                    </a>
+                                @elseif($contribution->invoice_reference)
+                                    {{ $contribution->invoice_reference }} <small class="text-muted">(invoice dihapus)</small>
+                                @else
+                                    <span class="text-muted">Modal umum</span>
                                 @endif
                             </td>
                             <td class="text-right text-nowrap">Rp {{ number_format((float) $contribution->amount, 2, ',', '.') }}</td>
@@ -104,7 +168,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="text-center text-muted py-4">Belum ada setoran modal dalam periode ini.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-4">Belum ada setoran modal untuk filter ini.</td></tr>
                     @endforelse
                 </tbody>
             </table>

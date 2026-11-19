@@ -77,9 +77,55 @@ class CapitalContributionTest extends TestCase
             'contribution_date' => today()->addDay()->toDateString(),
             'source' => 'Setoran pemilik',
             'amount' => '1..500,00',
-        ])->assertSessionHasErrors(['amount', 'contribution_date']);
+            'invoice_id' => 999,
+        ])->assertSessionHasErrors(['amount', 'contribution_date', 'invoice_id']);
 
         $this->assertDatabaseCount('capital_contributions', 0);
+    }
+
+    public function test_invoice_balance_uses_only_its_active_capital_and_payments_for_the_selected_period(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 19));
+        $admin = User::factory()->create()->assignRole(Role::create(['name' => 'super_admin']));
+        $client = Client::create(['name' => 'Client Pengujian']);
+        $invoice = $client->invoices()->create(['invoice_number' => 'INV-MATCH-001', 'grand_total' => 1000000]);
+        $otherInvoice = $client->invoices()->create(['invoice_number' => 'INV-MATCH-002', 'grand_total' => 2000000]);
+
+        $invoice->payments()->createMany([
+            ['amount' => '400000.25', 'payment_date' => '2026-11-10'],
+            ['amount' => '200000.00', 'payment_date' => '2026-10-22'],
+        ]);
+        $otherInvoice->payments()->create(['amount' => '500000.00', 'payment_date' => '2026-11-10']);
+
+        $setoran = ['contribution_date' => '2026-11-01', 'source' => 'Pemilik', 'amount' => '500.000,50'];
+        $this->actingAs($admin)->post(route('capital.store'), $setoran + ['invoice_id' => $invoice->id])
+            ->assertSessionHasNoErrors()->assertRedirect(route('capital.index'));
+        $contribution = CapitalContribution::sole();
+        $this->assertSame($invoice->id, $contribution->invoice_id);
+
+        CapitalContribution::create(array_replace($setoran, ['invoice_id' => $otherInvoice->id, 'amount' => '500000.50']));
+        CapitalContribution::create(array_replace($setoran, ['amount' => '500000.50', 'source' => 'Setoran umum']));
+
+        $november = route('capital.index', ['invoice_id' => $invoice->id, 'month' => '2026-11']);
+        $this->get($november)->assertOk()
+            ->assertViewHas('capitalTotal', '500000.50')
+            ->assertViewHas('paymentsTotal', '400000.25')
+            ->assertViewHas('invoiceBalances', fn ($rows) => $rows->count() === 1 && $rows[0]['difference'] === '-100000.25')
+            ->assertSee('−Rp 100.000,25')
+            ->assertDontSee('Setoran umum');
+
+        $this->put(route('capital.update', $contribution), $setoran + ['invoice_id' => $otherInvoice->id])
+            ->assertSessionHasNoErrors()->assertRedirect(route('capital.index'));
+        $this->get($november)->assertOk()->assertViewHas('capitalTotal', '0.00');
+        $this->assertSame($otherInvoice->id, $contribution->fresh()->invoice_id);
+
+        $this->delete(route('capital.destroy', $contribution))->assertRedirect(route('capital.index'));
+        $this->get(route('capital.index', ['invoice_id' => $otherInvoice->id]))->assertOk()
+            ->assertViewHas('capitalTotal', '500000.50');
+
+        $otherInvoice->delete();
+        $this->assertNull($contribution->fresh()->invoice_id);
+        $this->get(route('capital.index'))->assertOk()->assertSee('INV-MATCH-002')->assertSee('(invoice dihapus)');
     }
 
     public function test_clients_cannot_view_or_record_capital(): void
