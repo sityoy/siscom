@@ -10,6 +10,7 @@ use App\Http\Controllers\Client\TicketController as ClientTicketController;
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Client\NotificationController as ClientNotificationController;
 use App\Http\Controllers\Admin\CompanySettingController;
+use App\Http\Controllers\Admin\CapitalContributionController;
 use App\Http\Controllers\DashboardRedirectController;
 
 Route::redirect('/', '/login');
@@ -83,6 +84,12 @@ Route::resource(
     'auth',
     'role:super_admin'
 ])->except(['show'])->names('payments');
+
+Route::resource('/admin/modal-usaha', CapitalContributionController::class)
+    ->parameters(['modal-usaha' => 'contribution'])
+    ->only(['index', 'store', 'edit', 'update', 'destroy'])
+    ->middleware(['auth', 'role:super_admin'])
+    ->names('capital');
 
 Route::get(
     '/admin/invoices/{invoice}/pdf',
