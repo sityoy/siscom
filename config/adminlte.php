@@ -480,6 +480,14 @@ return [
     ],
 
     [
+        'text' => 'Modal Usaha',
+        'route' => 'capital.index',
+        'active' => ['admin/modal-usaha*'],
+        'icon' => 'fas fa-coins',
+        'can' => 'super_admin',
+    ],
+
+    [
         'text' => 'Tiket Dukungan',
         'url'  => 'admin/tickets',
         'icon' => 'fas fa-headset',
