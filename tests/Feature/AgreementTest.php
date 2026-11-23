@@ -44,8 +44,7 @@ class AgreementTest extends TestCase
 
         $pdfRoute = route('agreements.pdf', $agreement);
         $filename = str_replace('/', '-', $agreement->number).'.pdf';
-        $draft = $this->get($pdfRoute)->assertOk()->assertHeader('content-type', 'application/pdf')->assertDownload('Draf-MoU-'.$filename);
-        fwrite(STDOUT, "MOU_PDF_SAMPLE:".base64_encode($draft->getContent()).PHP_EOL);
+        $this->get($pdfRoute)->assertOk()->assertHeader('content-type', 'application/pdf')->assertDownload('Draf-MoU-'.$filename);
 
         $this->put(route('agreements.update', $agreement), array_replace($this->terms(), ['scope' => 'Layanan revisi']))
             ->assertSessionHasNoErrors()->assertRedirect($details);
