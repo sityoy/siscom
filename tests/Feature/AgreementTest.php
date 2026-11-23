@@ -128,8 +128,7 @@ class AgreementTest extends TestCase
         $this->get(route('client.invoices'))->assertOk()->assertSee('Lihat MoU');
         $this->get($show)->assertOk()->assertSee('Rp3.000.000 per periode')->assertSee('Pasal 10. Ketentuan Tambahan')
             ->assertSee('Kerahasiaan dan Data')->assertSee('Jakarta')->assertDontSee('Simpan Draf');
-        $response = $this->get($pdf)->assertOk()->assertDownload('MoU-'.str_replace('/', '-', $agreement->number).'.pdf');
-        fwrite(STDOUT, 'MOU_DETAIL_PDF:'.base64_encode($response->getContent()).PHP_EOL);
+        $this->get($pdf)->assertOk()->assertDownload('MoU-'.str_replace('/', '-', $agreement->number).'.pdf');
 
         $invoice->update(['client_id' => $otherClient->id]);
         $this->actingAs($other)->get($index)->assertOk()->assertDontSee($agreement->title);

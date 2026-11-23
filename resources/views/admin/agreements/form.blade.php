@@ -84,7 +84,7 @@
                                value="{{ old('details.fee_per_student', $agreement->details['fee_per_student'] ?? null) }}">
                     </div>
                 </div>
-                <p class="small text-muted">Isi kedua kolom untuk mencantumkan biaya CBT. Kosongkan keduanya jika tarif per siswa tidak berlaku.</p>
+                <p class="small text-muted">Isi kedua kolom untuk mencantumkan biaya CBT per periode, lalu cocokkan hasilnya dengan invoice sumber di PDF draf. Kosongkan keduanya jika tarif per siswa tidak berlaku.</p>
 
                 <h3 class="h5 mt-4">Pasal Kerja Sama</h3>
                 @foreach(\App\Models\Agreement::CLAUSES as $key => $label)
