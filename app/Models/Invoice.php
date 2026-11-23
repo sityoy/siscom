@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Invoice extends Model
 {
@@ -167,6 +168,11 @@ class Invoice extends Model
     public function capitalContributions(): HasMany
     {
         return $this->hasMany(CapitalContribution::class);
+    }
+
+    public function agreement(): HasOne
+    {
+        return $this->hasOne(Agreement::class);
     }
 
     public function items()

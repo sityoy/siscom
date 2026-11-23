@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\NotificationController as AdminNotificationContro
 use App\Http\Controllers\Client\NotificationController as ClientNotificationController;
 use App\Http\Controllers\Admin\CompanySettingController;
 use App\Http\Controllers\Admin\CapitalContributionController;
+use App\Http\Controllers\Admin\AgreementController;
 use App\Http\Controllers\DashboardRedirectController;
 
 Route::redirect('/', '/login');
@@ -68,6 +69,16 @@ Route::resource(
     'auth',
     'role:super_admin'
 ])->except(['show'])->names('invoices');
+
+Route::prefix('admin')->middleware(['auth', 'role:super_admin'])->group(function () {
+    Route::get('mou', [AgreementController::class, 'index'])->name('agreements.index');
+    Route::get('invoices/{invoice}/mou', [AgreementController::class, 'create'])->name('agreements.create');
+    Route::post('invoices/{invoice}/mou', [AgreementController::class, 'store'])->name('agreements.store');
+    Route::get('mou/{agreement}', [AgreementController::class, 'show'])->name('agreements.show');
+    Route::put('mou/{agreement}', [AgreementController::class, 'update'])->name('agreements.update');
+    Route::post('mou/{agreement}/finalize', [AgreementController::class, 'finalize'])->name('agreements.finalize');
+    Route::get('mou/{agreement}/pdf', [AgreementController::class, 'pdf'])->name('agreements.pdf');
+});
 
 Route::get(
     '/admin/payments/export',

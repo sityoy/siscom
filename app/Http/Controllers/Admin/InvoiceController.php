@@ -26,7 +26,7 @@ class InvoiceController extends Controller
         'client',
         'project',
         'items',
-    ]);
+    ])->withExists('agreement');
 
     if ($request->type) {
 

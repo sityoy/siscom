@@ -526,6 +526,13 @@
 
                                     </a>
 
+                                    @if($invoice->status !== 'cancelled' || $invoice->agreement_exists)
+                                        <a href="{{ route('agreements.create', $invoice) }}" class="btn btn-outline-primary btn-sm rounded-pill">
+                                            <i class="fas fa-handshake mr-1" aria-hidden="true"></i>
+                                            {{ $invoice->agreement_exists ? 'Lihat MoU' : 'Buat MoU' }}
+                                        </a>
+                                    @endif
+
                                     <form action="{{ route('invoices.destroy', $invoice->id) }}"
                                           method="POST">
 

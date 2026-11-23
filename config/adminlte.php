@@ -394,6 +394,14 @@ return [
     ],
 
     [
+        'text' => 'MoU Kerja Sama',
+        'route' => 'agreements.index',
+        'active' => ['admin/mou*', 'admin/invoices/*/mou'],
+        'icon' => 'fas fa-handshake',
+        'can' => 'super_admin',
+    ],
+
+    [
         'header' => 'REKANAN & SPJ',
         'can'    => 'admin_panel',
     ],
