@@ -180,6 +180,10 @@ Route::prefix('client')
             [App\Http\Controllers\Client\InvoiceController::class, 'pdf']
         )->name('client.invoices.pdf');
 
+        Route::get('/mou', [App\Http\Controllers\Client\AgreementController::class, 'index'])->name('client.agreements.index');
+        Route::get('/mou/{agreementId}', [App\Http\Controllers\Client\AgreementController::class, 'show'])->whereNumber('agreementId')->name('client.agreements.show');
+        Route::get('/mou/{agreementId}/pdf', [App\Http\Controllers\Client\AgreementController::class, 'pdf'])->whereNumber('agreementId')->name('client.agreements.pdf');
+
         // Payments
         Route::get(
             '/payments',

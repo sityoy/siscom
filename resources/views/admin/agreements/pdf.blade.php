@@ -43,6 +43,13 @@
     <p>Dokumen kerja sama antara <strong>{{ $agreement->provider_name }}</strong> sebagai Pihak Pertama dan
         <strong>{{ $agreement->client_name }}</strong> sebagai Pihak Kedua.</p>
 
+    @if(filled($agreement->details['provider_address'] ?? null) || filled($agreement->details['client_address'] ?? null))
+        <p class="details">
+            @if(filled($agreement->details['provider_address'] ?? null))<strong>Alamat Pihak Pertama</strong> {{ $agreement->details['provider_address'] }}<br>@endif
+            @if(filled($agreement->details['client_address'] ?? null))<strong>Alamat Pihak Kedua</strong> {{ $agreement->details['client_address'] }}@endif
+        </p>
+    @endif
+
     <table class="meta">
         <tr><td>Tempat dan tanggal MoU</td><td>{{ $agreement->city }}, {{ $agreement->document_date->translatedFormat('d F Y') }}</td></tr>
         <tr><td>Invoice sumber</td><td>{{ $agreement->invoice_reference }}{{ $agreement->invoice_date ? ' • '.$agreement->invoice_date->translatedFormat('d F Y') : '' }}</td></tr>
@@ -50,16 +57,10 @@
         <tr><td>Masa berlaku</td><td>{{ $agreement->starts_on->translatedFormat('d F Y') }} s.d. {{ $agreement->ends_on->translatedFormat('d F Y') }}</td></tr>
     </table>
 
-    <h2>1. Ruang Lingkup</h2>
-    <p class="details">{!! nl2br(e($agreement->scope)) !!}</p>
-
-    <h2>2. Ketentuan Pembayaran</h2>
-    <p class="details">{!! nl2br(e($agreement->payment_terms)) !!}</p>
-
-    @if($agreement->additional_terms)
-        <h2>3. Ketentuan Tambahan</h2>
-        <p class="details">{!! nl2br(e($agreement->additional_terms)) !!}</p>
-    @endif
+    @foreach($agreement->articles() as $heading => $body)
+        <h2>{{ $agreement->details ? 'Pasal ' : '' }}{{ $loop->iteration }}. {{ $heading }}</h2>
+        <p class="details">{!! nl2br(e($body)) !!}</p>
+    @endforeach
 
     <table class="signatures">
         <tr><td><strong>Pihak Pertama</strong></td><td><strong>Pihak Kedua</strong></td></tr>
