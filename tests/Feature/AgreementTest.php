@@ -82,6 +82,62 @@ class AgreementTest extends TestCase
         $this->get(route('agreements.index'))->assertForbidden();
     }
 
+    public function test_detailed_cbt_agreement_is_shared_only_with_its_client_after_finalization(): void
+    {
+        $admin = User::factory()->create()->assignRole(Role::create(['name' => 'super_admin']));
+        $role = Role::create(['name' => 'client']);
+        $owner = User::factory()->create()->assignRole($role);
+        $other = User::factory()->create()->assignRole($role);
+        $otherClient = Client::create(['name' => 'Sekolah Lain', 'user_id' => $other->id]);
+        $invoice = $this->createInvoice();
+        $invoice->client->update(['user_id' => $owner->id]);
+        CompanySetting::create([
+            'company_name' => 'SIS.COM', 'legal_name' => 'PT SITYOY IT SOLUTIONS',
+            'bank_jakarta' => '000-TEST-001', 'bank_jakarta_name' => 'PT SITYOY IT SOLUTIONS',
+        ]);
+
+        $this->actingAs($admin)->get(route('agreements.create', ['invoice' => $invoice, 'template' => 'cbt']))
+            ->assertOk()->assertSee('15000')->assertSee('Hak dan Kewajiban Pihak Pertama')->assertSee('000-TEST-001');
+
+        $terms = $this->terms() + ['details' => ['fee_per_student' => 15000]];
+        $this->from(route('agreements.create', $invoice))->post(route('agreements.store', $invoice), $terms)
+            ->assertSessionHasErrors('details.student_count');
+        $terms['details'] += [
+            'student_count' => 200,
+            'provider_address' => 'Tangerang, Banten', 'client_address' => 'Jakarta',
+            'provider_obligations' => 'Penyedia menyediakan akses ujian dan mendampingi persiapan teknis sesuai jadwal yang disepakati.',
+            'client_obligations' => 'Sekolah menyiapkan peserta, perangkat, jaringan, dan petugas ujian.',
+            'support' => 'Laporan gangguan disampaikan melalui kontak teknis kedua pihak.',
+            'confidentiality' => 'Akses data peserta dan soal dibatasi kepada petugas yang berwenang.',
+            'disputes' => 'Perselisihan dibahas melalui musyawarah kedua pihak.',
+        ];
+        $this->post(route('agreements.store', $invoice), $terms)->assertRedirect();
+        $agreement = Agreement::sole();
+        $this->assertSame($invoice->client_id, $agreement->client_id);
+
+        $index = route('client.agreements.index');
+        $show = route('client.agreements.show', $agreement->id);
+        $pdf = route('client.agreements.pdf', $agreement->id);
+        $this->actingAs($owner)->get($index)->assertOk()->assertDontSee($agreement->title);
+        $this->get($show)->assertNotFound();
+        $this->get($pdf)->assertNotFound();
+        $this->get(route('client.invoices'))->assertOk()->assertDontSee('Lihat MoU');
+
+        $this->actingAs($admin)->post(route('agreements.finalize', $agreement))->assertSessionHas('success');
+        $this->actingAs($owner)->get($index)->assertOk()->assertSee($agreement->title);
+        $this->get(route('client.invoices'))->assertOk()->assertSee('Lihat MoU');
+        $this->get($show)->assertOk()->assertSee('Rp3.000.000 per periode')->assertSee('Pasal 10. Ketentuan Tambahan')
+            ->assertSee('Kerahasiaan dan Data')->assertSee('Jakarta')->assertDontSee('Simpan Draf');
+        $this->get($pdf)->assertOk()->assertDownload('MoU-'.str_replace('/', '-', $agreement->number).'.pdf');
+
+        $invoice->update(['client_id' => $otherClient->id]);
+        $this->actingAs($other)->get($index)->assertOk()->assertDontSee($agreement->title);
+        $this->get(route('client.invoices'))->assertOk()->assertDontSee('Lihat MoU');
+        $this->get($show)->assertNotFound();
+        $this->get($pdf)->assertNotFound();
+        $this->actingAs($owner)->get($show)->assertOk();
+    }
+
     private function createInvoice(): Invoice
     {
         $client = Client::create([

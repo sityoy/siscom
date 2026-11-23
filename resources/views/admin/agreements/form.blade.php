@@ -28,6 +28,17 @@
             <dd class="col-sm-8">Rp {{ number_format((float) ($agreement->invoice_total ?? $invoice->grand_total), 2, ',', '.') }}</dd>
         </dl>
 
+        @unless($agreement->exists)
+            <div class="mb-3">
+                <span class="mr-2">Format draf</span>
+                <a href="{{ route('agreements.create', $invoice) }}" class="btn btn-sm {{ $cbtTemplate ? 'btn-outline-primary' : 'btn-primary' }}">Umum</a>
+                <a href="{{ route('agreements.create', ['invoice' => $invoice, 'template' => 'cbt']) }}" class="btn btn-sm {{ $cbtTemplate ? 'btn-primary' : 'btn-outline-primary' }}">Template CBT</a>
+                @if($cbtTemplate)
+                    <small class="d-block text-muted mt-1">Isi jumlah peserta untuk menghitung biaya per periode. Periksa ketentuan dan rekening sebelum menyimpan.</small>
+                @endif
+            </div>
+        @endunless
+
         <form method="POST" action="{{ $agreement->exists ? route('agreements.update', $agreement) : route('agreements.store', $invoice) }}">
             @csrf
             @if($agreement->exists)
@@ -62,9 +73,36 @@
                     </div>
                 @endforeach
                 <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="mou-student-count">Jumlah Peserta CBT per Periode</label>
+                        <input type="number" name="details[student_count]" id="mou-student-count" class="form-control" min="1" max="1000000"
+                               value="{{ old('details.student_count', $agreement->details['student_count'] ?? null) }}">
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="mou-student-rate">Tarif per Siswa (Rp)</label>
+                        <input type="number" name="details[fee_per_student]" id="mou-student-rate" class="form-control" min="1" max="1000000000"
+                               value="{{ old('details.fee_per_student', $agreement->details['fee_per_student'] ?? null) }}">
+                    </div>
+                </div>
+                <p class="small text-muted">Isi kedua kolom untuk mencantumkan biaya CBT per periode, lalu cocokkan hasilnya dengan invoice sumber di PDF draf. Kosongkan keduanya jika tarif per siswa tidak berlaku.</p>
+
+                <h3 class="h5 mt-4">Pasal Kerja Sama</h3>
+                @foreach(\App\Models\Agreement::CLAUSES as $key => $label)
+                    <div class="form-group">
+                        <label for="mou-detail-{{ $key }}">{{ $label }}</label>
+                        <textarea id="mou-detail-{{ $key }}" name="details[{{ $key }}]" class="form-control" rows="3"
+                                  maxlength="2400">{{ old('details.'.$key, $agreement->details[$key] ?? null) }}</textarea>
+                    </div>
+                @endforeach
+
+                <h3 class="h5 mt-4">Identitas dan Penandatangan</h3>
+                <div class="form-row">
                     @foreach(['provider' => 'Penyedia', 'client' => 'Client'] as $side => $label)
                         <div class="form-group col-md-6">
-                            <label for="mou-{{ $side }}-signer">Nama Penandatangan {{ $label }}</label>
+                            <label for="mou-{{ $side }}-address">Alamat {{ $label }}</label>
+                            <input id="mou-{{ $side }}-address" name="details[{{ $side }}_address]" class="form-control" maxlength="350"
+                                   value="{{ old('details.'.$side.'_address', $agreement->details[$side.'_address'] ?? null) }}">
+                            <label for="mou-{{ $side }}-signer" class="mt-2">Nama Penandatangan {{ $label }}</label>
                             <input id="mou-{{ $side }}-signer" name="{{ $side }}_signer" class="form-control" maxlength="150" required
                                    value="{{ old($side.'_signer', $agreement->{$side.'_signer'}) }}">
                             <label for="mou-{{ $side }}-title" class="mt-2">Jabatan {{ $label }}</label>
@@ -80,7 +118,7 @@
         </form>
         @if($agreement->exists && !$agreement->finalized_at)
             <form class="mt-3" method="POST" action="{{ route('agreements.finalize', $agreement) }}"
-                  onsubmit="return confirm('Finalkan draf terakhir yang sudah disimpan? Isinya akan terkunci.')">
+                  onsubmit="return confirm('Finalkan draf terakhir yang sudah disimpan? MoU akan terkunci dan tampil di portal client.')">
                 @csrf
                 <p class="small text-muted mb-2">Simpan perubahan dan periksa PDF draf sebelum finalisasi.</p>
                 <button type="submit" class="btn btn-outline-success">Finalkan MoU</button>

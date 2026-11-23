@@ -136,6 +136,12 @@
 
                                 </a>
 
+                                @if($invoice->agreement)
+                                    <a href="{{ route('client.agreements.show', $invoice->agreement->id) }}" class="btn btn-outline-primary btn-sm">
+                                        Lihat MoU
+                                    </a>
+                                @endif
+
                             </td>
 
                         </tr>

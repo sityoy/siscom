@@ -581,6 +581,14 @@ return [
     ],
 
     [
+        'text' => 'MoU Kerja Sama',
+        'route' => 'client.agreements.index',
+        'active' => ['client/mou*'],
+        'icon' => 'fas fa-handshake',
+        'can' => 'client',
+    ],
+
+    [
         'text' => 'Dokumen Rekanan',
         'url'  => 'client/procurement-documents',
         'icon' => 'fas fa-file-contract',

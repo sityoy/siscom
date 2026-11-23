@@ -26,7 +26,8 @@ class InvoiceController extends Controller
 
             $client->id
 
-        )->latest()->paginate(\App\Support\Pagination::perPage());
+        )->with(['agreement' => fn ($query) => $query->visibleToClient($client->id)])
+            ->latest()->paginate(\App\Support\Pagination::perPage());
 
         return view(
 
