@@ -7,20 +7,51 @@
 @else
     @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
     @if($errors->any()) <div class="alert alert-danger">{{ $errors->first() }}</div> @endif
+    <section class="card" id="hubungkan"><div class="card-body">
+        <h2 class="h5">Hubungkan pengguna SISCOM ke sekolah</h2>
+        <p>Pilih penanggung jawab yang berhak mendapatkan akses Kepala Sekolah. Cocokkan NPSN dengan dokumen sekolah. Jika sekolah sudah punya kode portal, masukkan kode tersebut untuk mempertahankan data dan masa aktifnya.</p>
+        <form method="post" action="{{ route('school-registrations.link') }}">@csrf
+            <label for="owner">Pengguna SISCOM</label>
+            <select class="form-control mb-2" id="owner" name="user_id" required>
+                <option value="">Pilih pengguna klien</option>
+                @foreach($users as $owner)
+                    <option value="{{ $owner->id }}" @selected((string) old('user_id', request('pengguna')) === (string) $owner->id)>{{ $owner->name }} · {{ $owner->email }}</option>
+                @endforeach
+            </select>
+            <label>NPSN <input class="form-control" name="npsn" value="{{ old('npsn') }}" pattern="[A-Za-z0-9]{8}" maxlength="8" required></label>
+            <label>Kode portal aktif, jika sudah ada <input class="form-control" name="code" value="{{ old('code') }}" maxlength="32"></label>
+            <fieldset><legend class="h6 mt-3">Untuk sekolah yang belum memiliki kode portal</legend>
+                <label>Nama sekolah <input class="form-control" name="name" value="{{ old('name') }}" maxlength="160"></label>
+                <label>Masa aktif sampai <input class="form-control" name="until_date" type="date" min="{{ now('Asia/Jakarta')->toDateString() }}"></label>
+                <div>@foreach($modules as $key => $label)
+                    <label class="mr-3"><input type="checkbox" name="modules[]" value="{{ $key }}"> {{ $label }}</label>
+                @endforeach</div>
+            </fieldset>
+            <button class="btn btn-primary">Hubungkan pengguna</button>
+        </form>
+    </div></section>
     <div class="card"><div class="card-body">
         <h2 class="h5">Menunggu verifikasi ({{ $pending->total() }})</h2>
-        <p>Cocokkan sekolah dan kontak pendaftar dengan pesanan klien sebelum mengaktifkan layanan. Untuk sekolah baru, <a href="{{ route('clients.create') }}">tambahkan klien</a> terlebih dahulu.</p>
+        <p>Verifikasi NPSN dan pastikan pendaftar berwenang mewakili sekolah sebelum memberikan akses Kepala Sekolah.</p>
         @forelse($pending as $school)
             <details class="border rounded p-3 mb-2">
                 <summary><strong>{{ $school->name }}</strong> · {{ strtoupper($school->code) }}</summary>
                 <p class="mt-3">Kontak pendaftar: {{ $school->contact }}</p>
                 <form method="POST" action="{{ route('school-registrations.approve', $school->id) }}">
                     @csrf
+                    <label>NPSN terverifikasi <input class="form-control" name="npsn" value="{{ $school->npsn }}" pattern="[A-Za-z0-9]{8}" maxlength="8" @readonly($school->npsn) required></label>
                     <label for="c-{{ $school->id }}">Klien SISCOM sesuai kontrak</label>
-                    <select class="form-control mb-3" name="client_id" id="c-{{ $school->id }}" required>
-                        <option value="">Pilih klien</option>
+                    <select class="form-control mb-3" name="client_id" id="c-{{ $school->id }}">
+                        <option value="">Sekolah baru · gunakan akun portal pendaftar</option>
                         @foreach($clients as $client)
                             <option value="{{ $client->id }}">{{ $client->company }} · {{ $client->name }} (#{{ $client->id }}) @if($client->package_name) · {{ $client->package_name }} @endif @if($client->subscription_end) · s.d. {{ $client->subscription_end->format('d/m/Y') }} @endif</option>
+                        @endforeach
+                    </select>
+                    <label for="p-{{ $school->id }}">Pengguna SISCOM jika sudah ada</label>
+                    <select class="form-control mb-3" name="user_id" id="p-{{ $school->id }}">
+                        <option value="">Gunakan akun klien yang dipilih atau akun portal pendaftar</option>
+                        @foreach($users as $owner)
+                            <option value="{{ $owner->id }}">{{ $owner->name }} · {{ $owner->email }}</option>
                         @endforeach
                     </select>
                     <label for="u-{{ $school->id }}">Masa aktif portal sampai</label>
@@ -30,7 +61,7 @@
                             <label class="mr-3"><input type="checkbox" name="modules[]" value="{{ $key }}"> {{ $label }}</label>
                         @endforeach
                     </fieldset>
-                    <button class="btn btn-primary mt-2" @disabled($clients->isEmpty())>Konfirmasi dan aktifkan sekolah</button>
+                    <button class="btn btn-primary mt-2">Konfirmasi dan aktifkan sekolah</button>
                 </form>
             </details>
         @empty

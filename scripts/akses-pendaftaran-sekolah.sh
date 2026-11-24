@@ -15,8 +15,10 @@ if ($identity->dbname !== 'sis_com') {
     exit(1);
 }
 try {
-    $db->select('SELECT id, code, name, contact, active, until_date, modules FROM db_portalsiscom.schools LIMIT 0');
-    $db->update('UPDATE db_portalsiscom.schools SET active=active,until_date=until_date,modules=modules WHERE 1=0');
+    $db->select('SELECT id, code, name, npsn, siscom_user_id, contact, active, until_date, modules FROM db_portalsiscom.schools LIMIT 0');
+    $db->update('UPDATE db_portalsiscom.schools SET npsn=npsn,siscom_user_id=siscom_user_id,active=active,until_date=until_date,modules=modules WHERE 1=0');
+    $db->statement("INSERT INTO db_portalsiscom.schools (code,name,npsn,siscom_user_id,contact,active,until_date,modules) SELECT '', '', NULL, NULL, '', 0, NULL, '' WHERE 1=0");
+    $db->statement("INSERT INTO db_portalsiscom.siscom_login_tickets (digest,state_hash,school_id,siscom_user_id,name,expires_at) SELECT '', '', 0, 0, '', 0 WHERE 1=0");
     exit(0);
 } catch (Illuminate\Database\QueryException $e) {
     if (!in_array((int) ($e->errorInfo[1] ?? 0), [1044,1142,1143], true)) {
@@ -28,7 +30,8 @@ if (!preg_match('/^([a-zA-Z0-9_.-]+)@([a-zA-Z0-9.%:_\/-]+)$/D', $identity->accou
     file_put_contents("php://stderr", "Mintalah DBA memberi akses terbatas untuk akun MySQL aplikasi SISCOM.\n");
     exit(1);
 }
-echo "GRANT SELECT, UPDATE (active, until_date, modules) ON db_portalsiscom.schools TO '{$parts[1]}'@'{$parts[2]}';";
+echo "GRANT SELECT, INSERT (code,name,npsn,siscom_user_id,contact,active,until_date,modules), UPDATE (npsn,siscom_user_id,active,until_date,modules) ON db_portalsiscom.schools TO '{$parts[1]}'@'{$parts[2]}';";
+echo "\nGRANT INSERT ON db_portalsiscom.siscom_login_tickets TO '{$parts[1]}'@'{$parts[2]}';";
 PHP
 )"
 if [[ -n "$grant_sql" ]]; then

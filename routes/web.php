@@ -15,9 +15,15 @@ use App\Http\Controllers\Admin\AgreementController;
 use App\Http\Controllers\Admin\SchoolRegistrationController;
 use App\Http\Controllers\DashboardRedirectController;
 
+Route::get('/portal-sekolah', [\App\Http\Controllers\PortalLoginController::class, 'choose'])
+    ->middleware('throttle:30,1')->name('portal-login.choose');
+Route::post('/portal-sekolah', [\App\Http\Controllers\PortalLoginController::class, 'issue'])
+    ->middleware(['auth','role:client','throttle:20,1'])->name('portal-login.issue');
+
 Route::prefix('admin/pendaftaran-sekolah')->name('school-registrations.')
     ->middleware(['auth', 'role:super_admin'])->group(function () {
         Route::get('/', [SchoolRegistrationController::class, 'index'])->name('index');
+        Route::post('/hubungkan', [SchoolRegistrationController::class, 'link'])->name('link');
         Route::post('/{school}/aktifkan', [SchoolRegistrationController::class, 'approve'])
             ->whereNumber('school')->name('approve');
     });

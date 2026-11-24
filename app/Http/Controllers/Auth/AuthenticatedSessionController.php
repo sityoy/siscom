@@ -30,6 +30,11 @@ class AuthenticatedSessionController extends Controller
 
         $user = auth()->user();
 
+        if ($request->session()->has('portal_login_state') && $user->hasRole('client')) {
+            return redirect()->route('portal-login.choose', ['state' => $request->session()->get('portal_login_state')]);
+        }
+        $request->session()->forget('portal_login_state');
+
         // ADMIN
         if (
             $user->hasRole('super_admin') ||
