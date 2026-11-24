@@ -172,6 +172,19 @@ class AgreementController extends Controller
         return $pdf->download($agreement);
     }
 
+    public function destroy(Agreement $agreement): RedirectResponse
+    {
+        $invoiceId = $agreement->invoice_id;
+        $agreement->deleteOrFail();
+
+        if ($invoiceId && Invoice::whereKey($invoiceId)->where('status', '!=', 'cancelled')->exists()) {
+            return to_route('agreements.create', $invoiceId)
+                ->with('success', 'MoU dihapus permanen. Bapak dapat membuat draf baru dari invoice ini.');
+        }
+
+        return to_route('agreements.index')->with('success', 'MoU dihapus permanen.');
+    }
+
     private function validatedTerms(Request $request): array
     {
         $clauseRules = array_fill_keys(array_map(fn ($key) => 'details.'.$key, array_keys(Agreement::CLAUSES)), ['nullable', 'string', 'max:2400']);

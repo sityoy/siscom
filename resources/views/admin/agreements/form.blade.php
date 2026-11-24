@@ -125,6 +125,16 @@
             </form>
         @endif
     </div>
-    <div class="card-footer"><a href="{{ route($agreement->exists ? 'agreements.index' : 'invoices.index') }}" class="btn btn-outline-secondary">Kembali</a></div>
+    <div class="card-footer d-flex align-items-center flex-wrap">
+        <a href="{{ route($agreement->exists ? 'agreements.index' : 'invoices.index') }}" class="btn btn-outline-secondary">Kembali</a>
+        @if($agreement->exists)
+            <form method="POST" action="{{ route('agreements.destroy', $agreement) }}" class="ml-auto pl-2"
+                  onsubmit="return confirm('Hapus permanen MoU ini? Dokumen akan hilang dari portal client dan tidak dapat dipulihkan melalui SIS.COM. Invoice sumber tetap tersimpan.')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-outline-danger">Hapus MoU Permanen</button>
+            </form>
+        @endif
+    </div>
 </div>
 @endsection

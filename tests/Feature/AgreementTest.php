@@ -82,6 +82,43 @@ class AgreementTest extends TestCase
         $this->get(route('agreements.index'))->assertForbidden();
     }
 
+    public function test_super_admin_can_permanently_delete_an_agreement_and_start_over_from_the_invoice(): void
+    {
+        $admin = User::factory()->create()->assignRole(Role::create(['name' => 'super_admin']));
+        $owner = User::factory()->create()->assignRole(Role::create(['name' => 'client']));
+        $invoice = $this->createInvoice();
+        $invoice->client->update(['user_id' => $owner->id]);
+        $create = route('agreements.create', $invoice);
+        $store = route('agreements.store', $invoice);
+
+        $this->actingAs($admin)->post($store, $this->terms())->assertRedirect();
+        $original = Agreement::sole();
+        $this->get(route('agreements.show', $original))->assertOk()->assertSee('Hapus MoU Permanen');
+        $this->post(route('agreements.finalize', $original))->assertSessionHas('success');
+
+        $remove = route('agreements.destroy', $original);
+        $clientDetail = route('client.agreements.show', $original->id);
+        $clientPdf = route('client.agreements.pdf', $original->id);
+        $this->actingAs($owner)->get($clientDetail)->assertOk();
+        $this->delete($remove)->assertForbidden();
+        $this->assertDatabaseHas('agreements', ['id' => $original->id]);
+
+        $this->actingAs($admin)->delete($remove)->assertRedirect($create);
+        $this->assertModelMissing($original);
+        $this->assertModelExists($invoice);
+        $this->get($create)->assertOk()->assertSee('Draf MoU Baru')->assertDontSee('Hapus MoU Permanen');
+
+        $this->actingAs($owner)->get($clientDetail)->assertNotFound();
+        $this->get($clientPdf)->assertNotFound();
+        $this->get(route('client.invoices'))->assertOk()->assertDontSee('Lihat MoU');
+
+        $this->actingAs($admin)->post($store, $this->terms())->assertRedirect();
+        $replacement = Agreement::sole();
+        $this->assertSame($invoice->id, $replacement->invoice_id);
+        $this->assertNull($replacement->finalized_at);
+        $this->assertNotSame($original->number, $replacement->number);
+    }
+
     public function test_detailed_cbt_agreement_is_shared_only_with_its_client_after_finalization(): void
     {
         $admin = User::factory()->create()->assignRole(Role::create(['name' => 'super_admin']));
