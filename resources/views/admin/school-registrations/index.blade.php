@@ -2,6 +2,7 @@
 @section('page-title', 'Pendaftaran Sekolah')
 @section('admin-content')
 <h1 class="h3">Pendaftaran Sekolah</h1>
+<a class="btn btn-outline-primary mb-3" href="{{ route('school-registrations.proposal') }}">Buat proposal paket</a>
 @if($unavailable ?? false)
     <div class="alert alert-warning">Daftar belum dapat dibuka. Periksa migrasi SISCOM dan akses baca ke db_portalsiscom.schools.</div>
 @else
@@ -30,11 +31,14 @@
             <button class="btn btn-primary">Hubungkan pengguna</button>
         </form>
     </div></section>
-    <details class="card p-3 mb-3"><summary>Tambahkan CBT untuk sekolah aktif</summary>
-        <form class="mt-3" method="post" action="{{ route('school-registrations.cbt') }}">@csrf
+    <details class="card p-3 mb-3"><summary>Tambahkan CBT atau modul pendamping untuk sekolah aktif</summary>
+        <form class="mt-3" method="post" action="{{ route('school-registrations.modules') }}">@csrf
             <label>Kode sekolah <input class="form-control" name="code" maxlength="32" required></label>
             <label>NPSN <input class="form-control" name="npsn" pattern="[A-Za-z0-9]{8}" required></label>
-            <button class="btn btn-primary">Aktifkan layanan CBT</button>
+            <fieldset><legend class="h6">Layanan tambahan</legend>@foreach($modules as $key=>$label)
+                <label class="mr-3"><input type="checkbox" name="modules[]" value="{{ $key }}"> {{ $label }}</label>
+            @endforeach</fieldset>
+            <button class="btn btn-primary">Tambahkan modul</button>
         </form></details>
     <div class="card"><div class="card-body">
         <h2 class="h5">Menunggu verifikasi ({{ $pending->total() }})</h2>
@@ -42,7 +46,7 @@
         @forelse($pending as $school)
             <details class="border rounded p-3 mb-2">
                 <summary><strong>{{ $school->name }}</strong> · {{ strtoupper($school->code) }}</summary>
-                <p class="mt-3">Kontak pendaftar: {{ $school->contact }} · Paket yang diminta: {{ ['cbt'=>'CBT saja','portal'=>'Portal Sekolah','lengkap'=>'Portal + CBT'][$school->requested_package] ?? $school->requested_package }}</p>
+                <p class="mt-3">Kontak pendaftar: {{ $school->contact }} · Paket yang diminta: {{ ['cbt'=>'CBT saja','portal'=>'Portal Sekolah','lengkap'=>'Portal + CBT','pilihan'=>'CBT + modul pilihan'][$school->requested_package] ?? $school->requested_package }}</p>
                 <form method="POST" action="{{ route('school-registrations.approve', $school->id) }}">
                     @csrf
                     <label>NPSN terverifikasi <input class="form-control" name="npsn" value="{{ $school->npsn }}" pattern="[A-Za-z0-9]{8}" maxlength="8" @readonly($school->npsn) required></label>
@@ -64,7 +68,7 @@
                     <input class="form-control mb-3" id="u-{{ $school->id }}" type="date" name="until_date" min="{{ now('Asia/Jakarta')->toDateString() }}" required>
                     <fieldset><legend class="h6">Modul sesuai pesanan</legend>
                         @foreach($modules as $key => $label)
-                            <label class="mr-3"><input type="checkbox" name="modules[]" value="{{ $key }}" @checked($school->requested_package === 'lengkap' || ($school->requested_package === 'cbt' && $key === 'cbt'))> {{ $label }}</label>
+                            <label class="mr-3"><input type="checkbox" name="modules[]" value="{{ $key }}" @checked($school->requested_package === 'lengkap' || ($school->requested_package === 'portal' && $key !== 'cbt') || (in_array($school->requested_package,['cbt','pilihan'],true) && $key === 'cbt') || ($school->requested_package === 'pilihan' && in_array($key,explode(',', $school->requested_modules ?? ''),true)))> {{ $label }}</label>
                         @endforeach
                     </fieldset>
                     <button class="btn btn-primary mt-2">Konfirmasi dan aktifkan sekolah</button>
@@ -77,9 +81,9 @@
     </div></div>
     <div class="card"><div class="card-body">
         <h2 class="h5">Riwayat konfirmasi melalui SISCOM</h2>
-        <div class="table-responsive"><table class="table"><thead><tr><th>Kode sekolah</th><th>Klien</th><th>Modul disetujui</th><th>Status CBT</th><th>Masa aktif disetujui</th><th>Dikonfirmasi oleh</th><th>Waktu</th></tr></thead><tbody>
+        <div class="table-responsive"><table class="table"><thead><tr><th>Kode sekolah</th><th>Klien</th><th>Modul aktif</th><th>Status CBT</th><th>Masa aktif disetujui</th><th>Dikonfirmasi oleh</th><th>Waktu</th></tr></thead><tbody>
             @forelse($history as $item)
-                <tr><td>{{ strtoupper($item->school_code) }}</td><td>{{ $item->client }}</td><td>{{ implode(', ', array_intersect_key($modules, array_flip(explode(',', $item->modules)))) }}</td><td>@if(in_array('cbt', explode(',', $item->current_modules ?? ''), true)){{ ['ready'=>'Siap', 'legacy'=>'CBT lama', 'error'=>'Perlu diperiksa'][$item->cbt_status] ?? 'Menunggu penyiapan' }}@else — @endif</td><td>{{ $item->until_date }}</td><td>{{ $item->operator ?? 'Akun sudah dihapus' }}</td><td>{{ $item->approved_at }}</td></tr>
+                <tr><td>{{ strtoupper($item->school_code) }}</td><td>{{ $item->client }}</td><td>{{ implode(', ', array_intersect_key($modules, array_flip(explode(',', $item->current_modules ?? $item->modules)))) }}</td><td>@if(in_array('cbt', explode(',', $item->current_modules ?? ''), true)){{ ['ready'=>'Siap', 'legacy'=>'CBT lama', 'error'=>'Perlu diperiksa'][$item->cbt_status] ?? 'Menunggu penyiapan' }}@else — @endif</td><td>{{ $item->until_date }}</td><td>{{ $item->operator ?? 'Akun sudah dihapus' }}</td><td>{{ $item->approved_at }}</td></tr>
             @empty
                 <tr><td colspan="7">Belum ada konfirmasi melalui SISCOM.</td></tr>
             @endforelse

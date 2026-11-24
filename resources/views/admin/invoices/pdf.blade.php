@@ -358,24 +358,11 @@
     </tr>
 </table>
 
-<table class="signatures">
-    <tr>
-        <td>
-            {{ $city }}, {{ $formatDate($invoice->invoice_date ?? $invoice->created_at) }}<br>
-            {{ $labels['issued_by'] }}<br><strong>{{ $directorTitle }}</strong>
-            <div class="signature-space"></div>
-            <span class="signer-name">{{ $directorName ?: '(...................................)' }}</span>
-            {{ $companyName }}
-        </td>
-        <td>
-            &nbsp;<br>
-            {{ $labels['approved_by'] }}<br><strong>{{ $schoolSignerTitle }}</strong>
-            <div class="signature-space"></div>
-            <span class="signer-name">{{ $schoolSignerName ?: '(...................................)' }}</span>
-            {{ $invoice->client->name }}
-        </td>
-    </tr>
-</table>
+@include('pdf.signatures', [
+    'placeDate' => $city.', '.$formatDate($invoice->invoice_date ?? $invoice->created_at),
+    'issuer' => [$labels['issued_by'], $directorTitle, $directorName, $companyName],
+    'recipient' => [$labels['approved_by'], $schoolSignerTitle, $schoolSignerName, $invoice->client->name],
+])
 
 <div class="footer">
     {{ $labels['thank_you'] }}<br>

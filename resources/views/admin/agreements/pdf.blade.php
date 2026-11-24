@@ -64,12 +64,10 @@
         <p class="details">{!! nl2br(e($body)) !!}</p>
     @endforeach
 
-    <table class="signatures">
-        <tr><td><strong>Pihak Pertama</strong></td><td><strong>Pihak Kedua</strong></td></tr>
-        <tr><td>{{ $agreement->provider_name }}</td><td>{{ $agreement->client_name }}</td></tr>
-        <tr><td class="signature-space"></td><td></td></tr>
-        <tr><td><strong>{{ $agreement->provider_signer }}</strong></td><td><strong>{{ $agreement->client_signer }}</strong></td></tr>
-        <tr><td>{{ $agreement->provider_title }}</td><td>{{ $agreement->client_title }}</td></tr>
-    </table>
+    @include('pdf.signatures', [
+    'placeDate' => $agreement->city.', '.$agreement->document_date->locale('id')->translatedFormat('d F Y'),
+    'issuer' => ['Pihak Pertama,', $agreement->provider_title, $agreement->provider_signer, $agreement->provider_name],
+    'recipient' => ['Pihak Kedua,', $agreement->client_title, $agreement->client_signer, $agreement->client_name],
+])
 </body>
 </html>

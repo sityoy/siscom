@@ -76,6 +76,7 @@
                                     {{ $balance['invoice']->invoice_number }}
                                 </a>
                                 <small class="d-block text-muted">{{ $balance['invoice']->client?->name ?? 'Client' }}</small>
+                                <a class="btn btn-sm btn-outline-primary mt-1" href="{{ route('salary.show', $balance['invoice']) }}">Pembagian gaji</a>
                             </td>
                             <td class="text-right text-nowrap">Rp {{ number_format((float) $balance['invoice']->grand_total, 2, ',', '.') }}</td>
                             <td class="text-right text-nowrap">Rp {{ number_format((float) $balance['capital'], 2, ',', '.') }}</td>

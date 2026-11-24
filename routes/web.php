@@ -23,6 +23,9 @@ Route::post('/portal-sekolah', [\App\Http\Controllers\PortalLoginController::cla
 Route::prefix('admin/pendaftaran-sekolah')->name('school-registrations.')
     ->middleware(['auth', 'role:super_admin'])->group(function () {
         Route::get('/', [SchoolRegistrationController::class, 'index'])->name('index');
+        Route::post('/tambah-modul', [SchoolRegistrationController::class, 'addModules'])->name('modules');
+        Route::get('/proposal', [\App\Http\Controllers\Admin\SchoolProposalController::class, 'form'])->name('proposal');
+        Route::post('/proposal', [\App\Http\Controllers\Admin\SchoolProposalController::class, 'pdf'])->name('proposal.pdf');
         Route::post('/tambah-cbt', [SchoolRegistrationController::class, 'addCbt'])->name('cbt');
         Route::post('/hubungkan', [SchoolRegistrationController::class, 'link'])->name('link');
         Route::post('/{school}/aktifkan', [SchoolRegistrationController::class, 'approve'])
@@ -111,6 +114,13 @@ Route::resource(
     'auth',
     'role:super_admin'
 ])->except(['show'])->names('payments');
+
+Route::prefix('admin/modal-usaha/invoice/{invoice}/gaji')->middleware(['auth','role:super_admin'])
+    ->controller(\App\Http\Controllers\Admin\SalaryAllocationController::class)->group(function () {
+        Route::get('/', 'show')->name('salary.show');
+        Route::post('/', 'store')->name('salary.store');
+        Route::delete('/{allocation}', 'destroy')->whereNumber('allocation')->name('salary.destroy');
+    });
 
 Route::resource('/admin/modal-usaha', CapitalContributionController::class)
     ->parameters(['modal-usaha' => 'contribution'])
