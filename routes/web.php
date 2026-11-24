@@ -23,6 +23,7 @@ Route::post('/portal-sekolah', [\App\Http\Controllers\PortalLoginController::cla
 Route::prefix('admin/pendaftaran-sekolah')->name('school-registrations.')
     ->middleware(['auth', 'role:super_admin'])->group(function () {
         Route::get('/', [SchoolRegistrationController::class, 'index'])->name('index');
+        Route::post('/tambah-cbt', [SchoolRegistrationController::class, 'addCbt'])->name('cbt');
         Route::post('/hubungkan', [SchoolRegistrationController::class, 'link'])->name('link');
         Route::post('/{school}/aktifkan', [SchoolRegistrationController::class, 'approve'])
             ->whereNumber('school')->name('approve');
