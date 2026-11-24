@@ -18,7 +18,7 @@ class SchoolRegistrationController extends Controller
     private const MODULES = [
         'absensi' => 'Absensi siswa', 'guru' => 'Absensi guru', 'keuangan' => 'Keuangan',
         'sarpras' => 'Sarana dan prasarana', 'kesiswaan' => 'Kesiswaan',
-        'kurikulum' => 'Kurikulum', 'perpustakaan' => 'Perpustakaan',
+        'cbt' => 'Ujian CBT', 'kurikulum' => 'Kurikulum', 'perpustakaan' => 'Perpustakaan',
     ];
 
     public function index()
@@ -28,10 +28,11 @@ class SchoolRegistrationController extends Controller
                 ->whereNotExists(function ($query) {
                     $query->selectRaw('1')->from('school_approvals')
                         ->whereColumn('school_approvals.portal_school_id', self::SCHOOLS.'.id');
-                })->orderByDesc('id')->paginate(15, ['id','name','code','contact','npsn'], 'pending');
+                })->orderByDesc('id')->paginate(15, ['id','name','code','contact','npsn','requested_package'], 'pending');
             $history = DB::table('school_approvals as a')
                 ->leftJoin('users as u', 'u.id', '=', 'a.approved_by')
-                ->orderByDesc('a.id')->paginate(15, ['a.school_code','a.client_label as client','u.name as operator','a.until_date','a.modules','a.approved_at'], 'history');
+                ->leftJoin(self::SCHOOLS.' as s', 's.id', '=', 'a.portal_school_id')
+                ->orderByDesc('a.id')->paginate(15, ['a.school_code','a.client_label as client','u.name as operator','a.until_date','a.modules','a.approved_at','s.modules as current_modules','s.cbt_status'], 'history');
         } catch (QueryException $e) {
             report($e);
             return response()->view('admin.school-registrations.index', ['unavailable' => true], 503);
@@ -41,6 +42,25 @@ class SchoolRegistrationController extends Controller
             'users' => User::role('client')->orderBy('name')->get(['id','name','email']),
             'pending' => $pending, 'history' => $history, 'clients' => $clients, 'modules' => self::MODULES,
         ]);
+    }
+
+    public function addCbt(Request $request)
+    {
+        $data = $request->validate(['code'=>'required|string|max:32','npsn'=>['required','regex:/^[a-zA-Z0-9]{8}$/D']]);
+        $code = strtolower($data['code']);
+        $npsn = strtoupper($data['npsn']);
+        DB::transaction(function () use ($code,$npsn) {
+            $school = DB::table(self::SCHOOLS)->where('code',$code)->where('npsn',$npsn)->lockForUpdate()->first();
+            if (!$school || !$school->active || $school->until_date < now('Asia/Jakarta')->toDateString()) {
+                throw ValidationException::withMessages(['code'=>'Periksa kode, NPSN dan masa aktif sekolah.']);
+            }
+            $modules = array_filter(explode(',', $school->modules));
+            if (!in_array('cbt',$modules,true)) {
+                $modules[] = 'cbt';
+                DB::table(self::SCHOOLS)->where('id',$school->id)->update(['modules'=>implode(',', $modules)]);
+            }
+        }, 3);
+        return back()->with('success','CBT telah ditambahkan untuk sekolah '.strtoupper($code).'.');
     }
 
     private function serviceRules(): array
