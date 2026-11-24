@@ -159,19 +159,8 @@
     <p>Demikian dokumen ini dibuat untuk dipergunakan sebagaimana mestinya.</p>
 @endif
 
-<table class="signature-table">
-    <tr>
-        <td width="50%" class="text-center">
-            Pihak Sekolah/Client,<br>
-            <strong>{{ $schoolSignerTitle }}</strong>
-            <div class="signature-space"></div>
-            <strong>{{ $document->school_signer_name ?: '(...................................)' }}</strong>
-        </td>
-        <td width="50%" class="text-center">
-            {{ $company?->city ?: 'Tangerang' }}, {{ $document->document_date->locale('id')->translatedFormat('d F Y') }}<br>
-            <strong>{{ $providerSignerTitle }}</strong>
-            <div class="signature-space"></div>
-            <strong>{{ $document->provider_signer_name ?: ($company?->director_name ?: '(...................................)') }}</strong>
-        </td>
-    </tr>
-</table>
+@include('pdf.signatures', [
+    'placeDate' => ($company?->city ?: 'Tangerang').', '.$document->document_date->locale('id')->translatedFormat('d F Y'),
+    'issuer' => ['Dibuat oleh,', $providerSignerTitle, $document->provider_signer_name ?: $company?->director_name, $providerName],
+    'recipient' => ['Disetujui oleh,', $schoolSignerTitle, $document->school_signer_name, $client->name],
+])

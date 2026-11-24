@@ -12,7 +12,25 @@ use App\Http\Controllers\Client\NotificationController as ClientNotificationCont
 use App\Http\Controllers\Admin\CompanySettingController;
 use App\Http\Controllers\Admin\CapitalContributionController;
 use App\Http\Controllers\Admin\AgreementController;
+use App\Http\Controllers\Admin\SchoolRegistrationController;
 use App\Http\Controllers\DashboardRedirectController;
+
+Route::get('/portal-sekolah', [\App\Http\Controllers\PortalLoginController::class, 'choose'])
+    ->middleware('throttle:30,1')->name('portal-login.choose');
+Route::post('/portal-sekolah', [\App\Http\Controllers\PortalLoginController::class, 'issue'])
+    ->middleware(['auth','role:client','throttle:20,1'])->name('portal-login.issue');
+
+Route::prefix('admin/pendaftaran-sekolah')->name('school-registrations.')
+    ->middleware(['auth', 'role:super_admin'])->group(function () {
+        Route::get('/', [SchoolRegistrationController::class, 'index'])->name('index');
+        Route::post('/tambah-modul', [SchoolRegistrationController::class, 'addModules'])->name('modules');
+        Route::get('/proposal', [\App\Http\Controllers\Admin\SchoolProposalController::class, 'form'])->name('proposal');
+        Route::post('/proposal', [\App\Http\Controllers\Admin\SchoolProposalController::class, 'pdf'])->name('proposal.pdf');
+        Route::post('/tambah-cbt', [SchoolRegistrationController::class, 'addCbt'])->name('cbt');
+        Route::post('/hubungkan', [SchoolRegistrationController::class, 'link'])->name('link');
+        Route::post('/{school}/aktifkan', [SchoolRegistrationController::class, 'approve'])
+            ->whereNumber('school')->name('approve');
+    });
 
 Route::redirect('/', '/login');
 
@@ -96,6 +114,13 @@ Route::resource(
     'auth',
     'role:super_admin'
 ])->except(['show'])->names('payments');
+
+Route::prefix('admin/modal-usaha/invoice/{invoice}/gaji')->middleware(['auth','role:super_admin'])
+    ->controller(\App\Http\Controllers\Admin\SalaryAllocationController::class)->group(function () {
+        Route::get('/', 'show')->name('salary.show');
+        Route::post('/', 'store')->name('salary.store');
+        Route::delete('/{allocation}', 'destroy')->whereNumber('allocation')->name('salary.destroy');
+    });
 
 Route::resource('/admin/modal-usaha', CapitalContributionController::class)
     ->parameters(['modal-usaha' => 'contribution'])

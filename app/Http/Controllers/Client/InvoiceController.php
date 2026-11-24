@@ -7,35 +7,34 @@ use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\CompanySetting;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use App\Support\Pagination;
 
 class InvoiceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $client = auth()->user()->client;
+        $client = $request->user()->client;
+        abort_unless($client, 403);
 
-        if (!$client) {
+        $filters = $request->validate([
+            'type' => ['nullable', 'string', Rule::in(array_keys(Invoice::TYPES))],
+        ]);
 
-            abort(403);
+        $query = Invoice::where('client_id', $client->id)->with([
+            'client',
+            'project',
+            'items',
+            'agreement' => fn ($query) => $query->visibleToClient($client->id),
+        ]);
 
+        if (isset($filters['type'])) {
+            $query->where('invoice_type', $filters['type']);
         }
 
-        $invoices = Invoice::where(
+        $invoices = $query->latest()->paginate(Pagination::perPage());
 
-            'client_id',
-
-            $client->id
-
-        )->with(['agreement' => fn ($query) => $query->visibleToClient($client->id)])
-            ->latest()->paginate(\App\Support\Pagination::perPage());
-
-        return view(
-
-            'clients.invoices.index',
-
-            compact('invoices')
-
-        );
+        return view('clients.invoices.index', compact('invoices'));
     }
 
     public function pdf(Request $request, Invoice $invoice)
