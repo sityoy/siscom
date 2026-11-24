@@ -76,6 +76,7 @@ Route::prefix('admin')->middleware(['auth', 'role:super_admin'])->group(function
     Route::post('invoices/{invoice}/mou', [AgreementController::class, 'store'])->name('agreements.store');
     Route::get('mou/{agreement}', [AgreementController::class, 'show'])->name('agreements.show');
     Route::put('mou/{agreement}', [AgreementController::class, 'update'])->name('agreements.update');
+    Route::delete('mou/{agreement}', [AgreementController::class, 'destroy'])->name('agreements.destroy');
     Route::post('mou/{agreement}/finalize', [AgreementController::class, 'finalize'])->name('agreements.finalize');
     Route::get('mou/{agreement}/pdf', [AgreementController::class, 'pdf'])->name('agreements.pdf');
 });
