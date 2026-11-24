@@ -363,16 +363,18 @@
         <td>
             {{ $city }}, {{ $formatDate($invoice->invoice_date ?? $invoice->created_at) }}<br>
             {{ $labels['issued_by'] }}<br><strong>{{ $directorTitle }}</strong>
+            <br> {{ $companyName }}
             <div class="signature-space"></div>
             <span class="signer-name">{{ $directorName ?: '(...................................)' }}</span>
-            {{ $companyName }}
+            
         </td>
         <td>
             &nbsp;<br>
             {{ $labels['approved_by'] }}<br><strong>{{ $schoolSignerTitle }}</strong>
+            <br> {{ $invoice->client->name }}
             <div class="signature-space"></div>
             <span class="signer-name">{{ $schoolSignerName ?: '(...................................)' }}</span>
-            {{ $invoice->client->name }}
+            
         </td>
     </tr>
 </table>
