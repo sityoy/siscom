@@ -15,7 +15,7 @@ class SchoolRegistrationController extends Controller
 {
     // Same MySQL instance as SISCOM. Only this tenant directory is needed.
     private const SCHOOLS = 'db_portalsiscom.schools';
-    private const MODULES = [
+    public const MODULES = [
         'absensi' => 'Absensi siswa', 'guru' => 'Absensi guru', 'keuangan' => 'Keuangan',
         'sarpras' => 'Sarana dan prasarana', 'kesiswaan' => 'Kesiswaan',
         'cbt' => 'Ujian CBT', 'kurikulum' => 'Kurikulum', 'perpustakaan' => 'Perpustakaan',
@@ -28,7 +28,7 @@ class SchoolRegistrationController extends Controller
                 ->whereNotExists(function ($query) {
                     $query->selectRaw('1')->from('school_approvals')
                         ->whereColumn('school_approvals.portal_school_id', self::SCHOOLS.'.id');
-                })->orderByDesc('id')->paginate(15, ['id','name','code','contact','npsn','requested_package'], 'pending');
+                })->orderByDesc('id')->paginate(15, ['id','name','code','contact','npsn','requested_package','requested_modules'], 'pending');
             $history = DB::table('school_approvals as a')
                 ->leftJoin('users as u', 'u.id', '=', 'a.approved_by')
                 ->leftJoin(self::SCHOOLS.' as s', 's.id', '=', 'a.portal_school_id')
@@ -46,21 +46,28 @@ class SchoolRegistrationController extends Controller
 
     public function addCbt(Request $request)
     {
-        $data = $request->validate(['code'=>'required|string|max:32','npsn'=>['required','regex:/^[a-zA-Z0-9]{8}$/D']]);
+        $request->merge(['modules' => ['cbt']]);
+        return $this->addModules($request);
+    }
+
+    public function addModules(Request $request)
+    {
+        $data = $request->validate([
+            'code'=>'required|string|max:32','npsn'=>['required','regex:/^[a-zA-Z0-9]{8}$/D'],
+            'modules'=>'required|array|min:1','modules.*'=>['required','distinct',Rule::in(array_keys(self::MODULES))],
+        ]);
         $code = strtolower($data['code']);
         $npsn = strtoupper($data['npsn']);
-        DB::transaction(function () use ($code,$npsn) {
+        DB::transaction(function () use ($code,$npsn,$data) {
             $school = DB::table(self::SCHOOLS)->where('code',$code)->where('npsn',$npsn)->lockForUpdate()->first();
             if (!$school || !$school->active || $school->until_date < now('Asia/Jakarta')->toDateString()) {
                 throw ValidationException::withMessages(['code'=>'Periksa kode, NPSN dan masa aktif sekolah.']);
             }
             $modules = array_filter(explode(',', $school->modules));
-            if (!in_array('cbt',$modules,true)) {
-                $modules[] = 'cbt';
-                DB::table(self::SCHOOLS)->where('id',$school->id)->update(['modules'=>implode(',', $modules)]);
-            }
+            $modules = array_unique(array_merge($modules, $data['modules']));
+            DB::table(self::SCHOOLS)->where('id',$school->id)->update(['modules'=>implode(',', $modules)]);
         }, 3);
-        return back()->with('success','CBT telah ditambahkan untuk sekolah '.strtoupper($code).'.');
+        return back()->with('success','Modul telah ditambahkan untuk sekolah '.strtoupper($code).'.');
     }
 
     private function serviceRules(): array
