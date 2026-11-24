@@ -255,6 +255,36 @@ class SystemSmokeTest extends TestCase
         $this->assertRoutesDoNotReturnServerErrors($routes);
     }
 
+    public function test_client_invoice_list_shows_own_item_details_and_client_actions_only(): void
+    {
+        $otherClient = Client::create(['name' => 'Klien lain']);
+        $otherInvoice = $this->invoice->replicate()->fill([
+            'invoice_number' => 'INV-OTHER-CLIENT',
+            'client_id' => $otherClient->id,
+            'project_id' => null,
+        ]);
+        $otherInvoice->save();
+
+        $this->actingAs($this->clientUser)
+            ->get(route('client.invoices', ['type' => 'project']))
+            ->assertOk()
+            ->assertSeeText('Pengembangan sistem sekolah')
+            ->assertSeeText('Jatuh Tempo')
+            ->assertSeeText('Rp 5.000.000')
+            ->assertSee(route('client.invoices.pdf', [$this->invoice, 'lang' => 'id']))
+            ->assertSee(route('client.invoices.pdf', [$this->invoice, 'lang' => 'en']))
+            ->assertDontSeeText('INV-OTHER-CLIENT')
+            ->assertDontSee(route('invoices.edit', $this->invoice))
+            ->assertDontSeeText('Reward');
+        $this->get(route('client.invoices', ['type' => 'general']))
+            ->assertOk()->assertDontSeeText($this->invoice->invoice_number);
+        $this->get(route('client.invoices.pdf', $otherInvoice))->assertForbidden();
+
+        $this->actingAs($this->admin)->get(route('invoices.index'))
+            ->assertOk()->assertSeeText('Pengembangan sistem sekolah')
+            ->assertSeeText('INV-OTHER-CLIENT')->assertSee(route('invoices.edit', $this->invoice));
+    }
+
     public function test_payment_accepts_indonesian_currency_format(): void
     {
         $this->actingAs($this->admin)
