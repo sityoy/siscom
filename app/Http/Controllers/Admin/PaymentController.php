@@ -11,7 +11,9 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Notification;
 use Carbon\Carbon;
 use App\Models\Client;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class PaymentController extends Controller
 {
@@ -33,359 +35,151 @@ class PaymentController extends Controller
 
     public function create()
     {
-        $invoices = Invoice::with([
-            'client',
-            'payments',
-        ])->get();
-
-        return view(
-            'admin.payments.create',
-            compact('invoices')
-        );
-    }
-
-    public function store(Request $request)
-    {
-        $request->merge([
-            'amount' => $this->normalizeCurrencyInput($request->input('amount')),
-        ]);
-
-        $request->validate([
-
-            'invoice_id' => 'required|exists:invoices,id',
-
-            'amount' => 'required|numeric|min:0.01',
-
-            'payment_date' => 'required|date',
-
-            'proof' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-
-        ]);
-
-
-        $invoice = Invoice::findOrFail(
-        $request->invoice_id
-            );
-
-            $totalPaid =
-                $invoice->payments()
-                    ->sum('amount');
-
-            $remaining =
-                $invoice->calculateNetReceivable($request->payment_date)
-                - $totalPaid;
-
-            if($request->amount > $remaining){
-
-                return back()
-                    ->withInput()
-                    ->with(
-                        'error',
-                        'Nominal melebihi sisa tagihan'
-                    );
-
-            }
-
-            $proof = null;
-
-            if($request->hasFile('proof')){
-
-                $proof = $request->file('proof')
-                    ->store(
-                        'payments',
-                        'public'
-                    );
-
-            }
-
-        Payment::create([
-
-            'invoice_id' => $request->invoice_id,
-
-            'amount' => $request->amount,
-
-            'payment_date' => $request->payment_date,
-
-            'payment_method' => $request->payment_method,
-
-            'proof' => $proof,
-
-            'notes' => $request->notes,
-
-        ]);
-
-
-        // AMBIL INVOICE
-        $invoice = Invoice::findOrFail(
-            $request->invoice_id
-        );
-
-        Notification::create([
-
-            'client_id' => $invoice->client_id,
-
-            'title' => 'Pembayaran Baru',
-
-            'message' =>
-                'Pembayaran invoice ' .
-                $invoice->invoice_number .
-                ' sebesar Rp ' .
-                number_format(
-                    $request->amount,
-                    0,
-                    ',',
-                    '.'
-                ),
-
-        ]);
-
-        // TOTAL SUDAH DIBAYAR
-        $totalPaid = $invoice->payments()
-            ->sum('amount');
-
-        // GRAND TOTAL
-        $grandTotal = $invoice->calculateNetReceivable(
-            $request->payment_date
-        );
-
-        $previousStatus = $invoice->status;
-
-        // UPDATE STATUS OTOMATIS
-        if ($totalPaid >= $grandTotal) {
-
-            $invoice->update([
-                'status' => 'paid',
-                'paid_at' => $request->payment_date,
-            ]);
-
-            if ($previousStatus !== 'paid') {
-                $this->processRenewalInvoice($invoice);
-            }
-
-        } elseif ($totalPaid > 0) {
-
-            $invoice->update([
-
-                'status' => 'partial',
-                'paid_at' => null,
-
-            ]);
-
-        } else {
-
-            $invoice->update([
-
-                'status' => 'unpaid',
-                'paid_at' => null,
-
-            ]);
-        }
-
-        return redirect()
-            ->route('payments.index')
-            ->with(
-                'success',
-                'Pembayaran berhasil dibuat'
-            );
+        return view('admin.payments.create', ['invoices' => $this->availableInvoices()]);
     }
 
     public function edit(Payment $payment)
     {
-        $invoices = Invoice::with([
-            'client',
-            'payments',
-        ])->get();
-
-        return view(
-            'admin.payments.create',
-            compact(
-                'payment',
-                'invoices'
-            )
-        );
+        return view('admin.payments.create', [
+            'invoices' => $this->availableInvoices($payment),
+            'payment' => $payment,
+        ]);
     }
 
-    public function update(
-        Request $request,
-        Payment $payment
-    ) {
-        $request->merge([
-            'amount' => $this->normalizeCurrencyInput($request->input('amount')),
-        ]);
+    private function availableInvoices(?Payment $payment = null)
+    {
+        return Invoice::with('client')
+            ->withSum('payments as amount_paid', 'amount')
+            ->where('status', '!=', 'paid')
+            ->when($payment, fn ($query) => $query->orWhere('id', $payment->invoice_id))
+            ->get()
+            ->filter(fn (Invoice $invoice) => $invoice->id == $payment?->invoice_id
+                || round($invoice->net_receivable - $invoice->amount_paid, 2) > 0);
+    }
 
-        $request->validate([
+    public function store(Request $request)
+    {
+        return $this->savePayment($request);
+    }
 
-            'invoice_id' => 'required|exists:invoices,id',
+    public function update(Request $request, Payment $payment)
+    {
+        return $this->savePayment($request, $payment);
+    }
 
-            'amount' => 'required|numeric|min:0.01',
-
+    private function savePayment(Request $request, ?Payment $payment = null)
+    {
+        $request->merge(['amount' => $this->normalizeCurrencyInput($request->input('amount'))]);
+        $data = $request->validate([
+            'invoice_id' => 'required|integer|exists:invoices,id',
+            'amount' => 'required|numeric|decimal:0,2|min:0.01',
             'payment_date' => 'required|date',
-
             'proof' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-
+            'payment_method' => 'nullable|string',
+            'notes' => 'nullable|string',
         ]);
 
-        $invoice = Invoice::findOrFail(
-        $request->invoice_id
-        );
+        unset($data['proof']);
+        $newProof = null;
+        $oldProof = null;
+        try {
+            DB::transaction(function () use ($request, $data, $payment, &$newProof, &$oldProof) {
+                if ($payment) {
+                    $payment = Payment::lockForUpdate()->findOrFail($payment->id);
+                }
 
-        $totalPaid =
-            $invoice->payments()
-                ->where(
-                    'id',
-                    '!=',
-                    $payment->id
-                )
-                ->sum('amount');
+                $invoices = Invoice::whereKey(array_filter([$data['invoice_id'], $payment?->invoice_id]))
+                    ->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+                $invoice = $invoices->get($data['invoice_id']);
+                abort_unless($invoice, 404);
+                $sameInvoice = $payment && $payment->invoice_id == $invoice->id;
+                $paidByOthers = (float) $invoice->payments()
+                    ->when($sameInvoice, fn ($query) => $query->where('id', '!=', $payment->id))
+                    ->sum('amount');
 
-        $remaining =
-            $invoice->calculateNetReceivable($request->payment_date)
-            - $totalPaid;
+                if (! $sameInvoice && ($invoice->status === 'paid' || round($invoice->net_receivable - $paidByOthers, 2) <= 0)) {
+                    throw ValidationException::withMessages(['invoice_id' => 'Invoice ini sudah lunas.']);
+                }
 
-        if($request->amount > $remaining){
+                $remaining = round($invoice->calculateNetReceivable($data['payment_date']) - $paidByOthers, 2);
+                if ($data['amount'] > $remaining) {
+                    throw ValidationException::withMessages(['amount' => 'Nominal melebihi sisa tagihan.']);
+                }
 
-            return back()
-                ->withInput()
-                ->with(
-                    'error',
-                    'Nominal melebihi sisa tagihan'
-                );
+                if ($request->hasFile('proof')) {
+                    $oldProof = $payment?->proof;
+                    $newProof = $request->file('proof')->store('payments', 'public');
+                    if (! $newProof) {
+                        throw ValidationException::withMessages(['proof' => 'Bukti pembayaran gagal disimpan.']);
+                    }
+                    $data['proof'] = $newProof;
+                }
 
-        }
+                if ($payment) {
+                    $previousInvoice = $invoices->get($payment->invoice_id);
+                    $payment->update($data);
+                    if (! $sameInvoice) {
+                        $this->refreshPaymentStatus($previousInvoice, today(), false);
+                    }
+                } else {
+                    Payment::create($data);
+                    Notification::create([
+                        'client_id' => $invoice->client_id,
+                        'title' => 'Pembayaran Baru',
+                        'message' => 'Pembayaran invoice '.$invoice->invoice_number.' sebesar Rp '
+                            .number_format($data['amount'], 0, ',', '.'),
+                    ]);
+                }
 
-        $proof = $payment->proof;
-
-        if($request->hasFile('proof')){
-
-            if ($proof) {
-                Storage::disk('public')->delete($proof);
+                $this->refreshPaymentStatus($invoice, $data['payment_date']);
+            });
+        } catch (\Throwable $exception) {
+            if ($newProof) {
+                Storage::disk('public')->delete($newProof);
             }
-
-            $proof = $request->file('proof')
-                ->store(
-                    'payments',
-                    'public'
-                );
+            throw $exception;
         }
 
-        $payment->update([
-
-            'invoice_id' => $request->invoice_id,
-
-            'amount' => $request->amount,
-
-            'payment_date' => $request->payment_date,
-
-            'payment_method' => $request->payment_method,
-
-            'proof' => $proof,
-
-            'notes' => $request->notes,
-
-        ]);
-
-        // AMBIL INVOICE
-        $invoice = Invoice::findOrFail(
-            $request->invoice_id
-        );
-
-        // TOTAL PEMBAYARAN
-        $totalPaid = $invoice->payments()
-            ->sum('amount');
-
-        // GRAND TOTAL
-        $grandTotal = $invoice->calculateNetReceivable(
-            $request->payment_date
-        );
-
-        $previousStatus = $invoice->status;
-
-        // UPDATE STATUS
-        if ($totalPaid >= $grandTotal) {
-
-            $invoice->update([
-                'status' => 'paid',
-                'paid_at' => $request->payment_date,
-            ]);
-
-            if ($previousStatus !== 'paid') {
-                $this->processRenewalInvoice($invoice);
-            }
-
-        } elseif ($totalPaid > 0) {
-
-            $invoice->update([
-
-                'status' => 'partial',
-                'paid_at' => null,
-
-            ]);
-
-        } else {
-
-            $invoice->update([
-
-                'status' => 'unpaid',
-                'paid_at' => null,
-
-            ]);
+        if ($oldProof) {
+            Storage::disk('public')->delete($oldProof);
         }
 
-        return redirect()
-            ->route('payments.index')
-            ->with(
-                'success',
-                'Pembayaran berhasil diupdate'
-            );
+        return redirect()->route('payments.index')->with('success',
+            $payment ? 'Pembayaran berhasil diupdate' : 'Pembayaran berhasil dibuat'
+        );
     }
 
     public function destroy(Payment $payment)
     {
-        $invoice = $payment->invoice;
+        $proof = DB::transaction(function () use ($payment) {
+            $payment = Payment::lockForUpdate()->findOrFail($payment->id);
+            $invoice = Invoice::lockForUpdate()->findOrFail($payment->invoice_id);
+            $payment->delete();
+            $this->refreshPaymentStatus($invoice, today(), false);
 
-        if ($payment->proof) {
-            Storage::disk('public')->delete($payment->proof);
+            return $payment->proof;
+        });
+
+        if ($proof) {
+            Storage::disk('public')->delete($proof);
         }
 
-        $payment->delete();
+        return back()->with('success', 'Pembayaran berhasil dihapus');
+    }
 
+    private function refreshPaymentStatus(Invoice $invoice, $date, bool $applyRenewal = true): void
+    {
+        $paid = (float) $invoice->payments()->sum('amount');
+        $settled = round($invoice->calculateNetReceivable($date) - $paid, 2) <= 0;
+        $wasPaid = $invoice->status === 'paid';
         $invoice->update([
-            'paid_at' => null,
+            'status' => $settled ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid'),
+            'paid_at' => $settled ? $date : null,
         ]);
 
-        $invoice->refresh();
-
-        // HITUNG ULANG
-        $totalPaid = $invoice->payments()
-            ->sum('amount');
-
-        // UPDATE STATUS
-        if ($totalPaid >= $invoice->net_receivable) {
-
-            $invoice->update([
-                'status' => 'paid',
-                'paid_at' => now(),
-            ]);
-
-        } elseif ($totalPaid > 0) {
-
-            $invoice->update([
-                'status' => 'partial',
-                'paid_at' => null,
-            ]);
-
-        } else {
-
-            $invoice->update([
-                'status' => 'unpaid',
-                'paid_at' => null,
-            ]);
+        if ($applyRenewal && $settled && ! $wasPaid) {
+            $this->processRenewalInvoice($invoice);
         }
-
-        return back()->with(
-            'success',
-            'Pembayaran berhasil dihapus'
-        );
     }
 
     private function normalizeCurrencyInput(mixed $value): mixed

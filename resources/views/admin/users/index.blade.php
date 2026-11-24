@@ -78,6 +78,9 @@
 
                         <td>
 
+                            @if($user->hasRole('client'))
+                                <a class="btn btn-primary btn-sm" href="{{ route('school-registrations.index', ['pengguna' => $user->id]) }}#hubungkan">Hubungkan sekolah</a>
+                            @endif
                             <a href="{{ route('users.edit', $user->id) }}"
                                class="btn btn-warning btn-sm">
 

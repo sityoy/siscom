@@ -255,6 +255,96 @@ class SystemSmokeTest extends TestCase
         $this->assertRoutesDoNotReturnServerErrors($routes);
     }
 
+    public function test_final_payment_locks_only_its_invoice_even_for_a_later_payment_date(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 24));
+        $other = $this->invoice->replicate()->fill(['invoice_number' => 'INV-OPEN']);
+        $other->save();
+        $this->invoice->update(['late_fee_active' => true, 'late_fee_per_month' => 100000]);
+        $data = ['invoice_id' => $this->invoice->id, 'payment_date' => '2026-11-24', 'amount' => '4000000'];
+        $this->actingAs($this->admin)->get(route('payments.create'))
+            ->assertOk()->assertSeeText($this->invoice->invoice_number);
+        $this->post(route('payments.store'), array_replace($data, ['amount' => '4000001']))
+            ->assertSessionHasErrors('amount');
+        $this->post(route('payments.store'), $data)->assertRedirect(route('payments.index'));
+        $this->assertSame('paid', $this->invoice->fresh()->status);
+        $this->get(route('payments.create'))->assertOk()
+            ->assertDontSeeText($this->invoice->invoice_number)->assertSeeText('INV-OPEN');
+
+        $latePayment = array_replace($data, ['amount' => '100000', 'payment_date' => '2027-01-01']);
+        $this->post(route('payments.store'), $latePayment)->assertSessionHasErrors('invoice_id');
+        $this->assertEquals(5000000, $this->invoice->payments()->sum('amount'));
+
+        $otherPayment = $other->payments()->create(['payment_date' => '2026-11-24', 'amount' => 100000]);
+        $this->put(route('payments.update', $otherPayment), $latePayment)->assertSessionHasErrors('invoice_id');
+        $this->assertEquals($other->id, $otherPayment->fresh()->invoice_id);
+
+        $this->get(route('payments.edit', $this->payment))->assertOk()->assertSeeText($this->invoice->invoice_number);
+        $this->delete(route('payments.destroy', $this->payment))->assertRedirect();
+        $this->assertSame('partial', $this->invoice->fresh()->status);
+        $this->get(route('payments.create'))->assertOk()->assertSeeText($this->invoice->invoice_number);
+    }
+
+    public function test_settled_legacy_invoices_cannot_receive_a_new_payment(): void
+    {
+        $this->actingAs($this->admin);
+        $data = ['invoice_id' => $this->invoice->id, 'payment_date' => '2026-11-24', 'amount' => '1'];
+        $this->invoice->update(['status' => 'paid']);
+        $this->post(route('payments.store'), $data)->assertSessionHasErrors('invoice_id');
+
+        $this->invoice->update(['status' => 'partial', 'grand_total' => $this->payment->amount]);
+        $this->get(route('payments.create'))->assertOk()->assertSeeText('Tidak ada invoice dengan sisa tagihan');
+        $this->post(route('payments.store'), $data)->assertSessionHasErrors('invoice_id');
+        $this->assertSame(1, $this->invoice->payments()->count());
+    }
+
+    public function test_approval_and_addons_preserve_existing_school_modules(): void
+    {
+        $db = \Illuminate\Support\Facades\DB::connection();
+        $db->statement("ATTACH DATABASE ':memory:' AS db_portalsiscom");
+        $db->statement("CREATE TABLE db_portalsiscom.schools (id INTEGER PRIMARY KEY, code TEXT, npsn TEXT, name TEXT, contact TEXT, requested_package TEXT, requested_modules TEXT, active INTEGER, until_date TEXT, modules TEXT, siscom_user_id INTEGER, cbt_status TEXT)");
+        $school = $db->table('db_portalsiscom.schools');
+        $school->insert(['id'=>1,'name'=>'Sekolah Uji','code'=>'sis-uji','npsn'=>'12345678',
+            'active'=>false,'modules'=>'','requested_package'=>'pilihan','requested_modules'=>'keuangan']);
+        $this->actingAs($this->admin)->get(route('school-registrations.index'))->assertOk()->assertSeeText('CBT + modul pilihan');
+        $this->post(route('school-registrations.approve', 1), [
+            'npsn'=>'12345678','until_date'=>today()->addMonth()->toDateString(),'modules'=>['cbt','keuangan'],
+        ])->assertSessionHasNoErrors();
+        $this->post(route('school-registrations.modules'), ['code'=>'sis-uji','npsn'=>'12345678','modules'=>['guru','cbt']])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('cbt,keuangan,guru', $school->value('modules'));
+        $this->post(route('school-registrations.modules'), ['code'=>'sis-uji','npsn'=>'12345679','modules'=>['sarpras']])
+            ->assertSessionHasErrors('code');
+        $this->assertSame('cbt,keuangan,guru', $school->value('modules'));
+    }
+
+    public function test_salary_plan_uses_cash_received_less_capital_and_can_be_adjusted(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 24));
+        $this->actingAs($this->admin)->post(route('capital.store'), [
+            'invoice_id'=>$this->invoice->id, 'source'=>'Modal jasa', 'amount'=>200000, 'contribution_date'=>'2026-11-20',
+        ])->assertSessionHasNoErrors();
+        $url = route('salary.store', $this->invoice);
+        $this->post($url, ['recipient'=>'Teknisi','mode'=>'percent','value'=>25])->assertSessionHasNoErrors();
+        $this->post($url, ['recipient'=>'Operator','mode'=>'fixed','value'=>150000])->assertSessionHasNoErrors();
+        $this->get(route('salary.show', $this->invoice))->assertOk()->assertSeeText('Rp 450.000,00');
+        $this->post($url, ['recipient'=>'Operator','mode'=>'fixed','value'=>700000])->assertSessionHasErrors('value');
+        $this->post($url, ['recipient'=>'Operator','mode'=>'fixed','value'=>100000])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('salary_allocations', 2);
+        $this->get(route('salary.show', $this->invoice))->assertSeeText('Rp 500.000,00');
+        $this->actingAs($this->clientUser)->get(route('salary.show', $this->invoice))->assertForbidden();
+    }
+
+    public function test_admin_can_download_school_proposal_with_manual_and_blank_prices(): void
+    {
+        $this->actingAs($this->admin)->get(route('school-registrations.proposal'))->assertOk();
+        $data = ['school'=>'Sekolah Uji', 'title'=>'Kepala Sekolah', 'date'=>'2026-11-24',
+            'period'=>'semester','packages'=>['cbt','pilihan'],'prices'=>['cbt'=>1500000], 'modules'=>['guru']];
+        $this->post(route('school-registrations.proposal.pdf'),$data)->assertOk()->assertDownload('Proposal-Layanan-Sekolah.pdf');
+        $this->post(route('school-registrations.proposal.pdf'),array_replace($data,['prices'=>['cbt'=>-1]]))->assertSessionHasErrors('prices.cbt');
+        $this->actingAs($this->clientUser)->post(route('school-registrations.proposal.pdf'),$data)->assertForbidden();
+    }
+
     public function test_payment_accepts_indonesian_currency_format(): void
     {
         $this->actingAs($this->admin)

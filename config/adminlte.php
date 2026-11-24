@@ -349,6 +349,13 @@ return [
     ],
 
     [
+        'text' => 'Pendaftaran Sekolah',
+        'url'  => 'admin/pendaftaran-sekolah',
+        'icon' => 'fas fa-school',
+        'can'  => 'super_admin',
+    ],
+
+    [
         'text' => 'Project',
         'url'  => 'admin/projects',
         'icon' => 'fas fa-project-diagram',

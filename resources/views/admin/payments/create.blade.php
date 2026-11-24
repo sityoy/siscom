@@ -46,14 +46,14 @@
                             required>
 
                         <option value="">
-                            -- Choose Invoice --
+                            {{ $invoices->isEmpty() ? 'Tidak ada invoice dengan sisa tagihan' : '-- Pilih invoice --' }}
                         </option>
 
                         @foreach($invoices as $invoice)
 
                             <option value="{{ $invoice->id }}"
                                     data-total="{{ $invoice->net_receivable }}"
-                                    data-paid="{{ $invoice->payments->where('id', '!=', $payment->id ?? null)->sum('amount') }}"
+                                    data-paid="{{ $invoice->amount_paid - (isset($payment) && $payment->invoice_id == $invoice->id ? $payment->amount : 0) }}"
                                     @selected((string) old('invoice_id', $payment->invoice_id ?? '') === (string) $invoice->id)>
 
                                 {{ $invoice->invoice_number }}
@@ -232,7 +232,7 @@
 
             </a>
 
-            <button class="btn btn-primary">
+            <button class="btn btn-primary" @disabled($invoices->isEmpty())>
 
                 {{ isset($payment) ? 'Simpan Perubahan' : 'Simpan Pembayaran' }}
 
