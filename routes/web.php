@@ -12,7 +12,15 @@ use App\Http\Controllers\Client\NotificationController as ClientNotificationCont
 use App\Http\Controllers\Admin\CompanySettingController;
 use App\Http\Controllers\Admin\CapitalContributionController;
 use App\Http\Controllers\Admin\AgreementController;
+use App\Http\Controllers\Admin\SchoolRegistrationController;
 use App\Http\Controllers\DashboardRedirectController;
+
+Route::prefix('admin/pendaftaran-sekolah')->name('school-registrations.')
+    ->middleware(['auth', 'role:super_admin'])->group(function () {
+        Route::get('/', [SchoolRegistrationController::class, 'index'])->name('index');
+        Route::post('/{school}/aktifkan', [SchoolRegistrationController::class, 'approve'])
+            ->whereNumber('school')->name('approve');
+    });
 
 Route::redirect('/', '/login');
 
