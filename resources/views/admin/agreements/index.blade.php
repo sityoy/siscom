@@ -17,7 +17,7 @@
                 <tbody>
                     @forelse($agreements as $agreement)
                         <tr>
-                            <td>{{ $agreement->number }}</td>
+                            <td>{{ $agreement->number ?? 'Belum bernomor' }}</td>
                             <td><strong>{{ $agreement->title }}</strong><small class="text-muted d-block">{{ $agreement->client_name }}</small></td>
                             <td>{{ $agreement->invoice_reference }}</td>
                             <td class="text-nowrap">{{ $agreement->starts_on->format('d/m/Y') }} – {{ $agreement->ends_on->format('d/m/Y') }}</td>

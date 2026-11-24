@@ -8,6 +8,7 @@ use App\Models\CompanySetting;
 use App\Models\Invoice;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -34,17 +35,18 @@ class AgreementTest extends TestCase
         $this->assertSame($invoice->id, $agreement->invoice_id);
         $this->assertSame('1250000.00', $agreement->invoice_total);
         $this->assertNull($agreement->finalized_at);
+        $this->assertNull($agreement->number);
 
         $this->get(route('invoices.index'))->assertOk()->assertSee('Lihat MoU');
         $this->get(route('agreements.create', $invoice))->assertRedirect($details);
         $this->post(route('agreements.store', $invoice), $this->terms())->assertRedirect($details);
         $this->assertDatabaseCount('agreements', 1);
-        $this->get(route('agreements.index'))->assertOk()->assertSee($agreement->number);
+        $this->get(route('agreements.index'))->assertOk()->assertSee('Belum bernomor');
         $this->get($details)->assertOk()->assertSee('Simpan Draf');
 
         $pdfRoute = route('agreements.pdf', $agreement);
-        $filename = str_replace('/', '-', $agreement->number).'.pdf';
-        $this->get($pdfRoute)->assertOk()->assertHeader('content-type', 'application/pdf')->assertDownload('Draf-MoU-'.$filename);
+        $draftPdf = $this->get($pdfRoute)->assertOk()->assertHeader('content-type', 'application/pdf')->assertDownload('Draf-MoU-'.$agreement->id.'.pdf');
+        fwrite(STDOUT, 'MOU_NUMBER_PDF:'.base64_encode($draftPdf->getContent()).PHP_EOL);
 
         $this->put(route('agreements.update', $agreement), array_replace($this->terms(), ['scope' => 'Layanan revisi']))
             ->assertSessionHasNoErrors()->assertRedirect($details);
@@ -61,7 +63,8 @@ class AgreementTest extends TestCase
         $this->assertSame('PT SITYOY IT SOLUTIONS', $agreement->letterhead['legal_name']);
         $this->assertSame('Layanan revisi', $agreement->scope);
         $this->get($details)->assertOk()->assertSee('INV-MOU-TEST')->assertDontSee('Simpan Draf');
-        $this->get($pdfRoute)->assertOk()->assertDownload('MoU-'.$filename);
+        $this->assertSame('0001/MOU/SIS/'.$agreement->finalized_at->year, $agreement->number);
+        $this->get($pdfRoute)->assertOk()->assertDownload('MoU-'.str_replace('/', '-', $agreement->number).'.pdf');
     }
 
     public function test_invalid_period_cancelled_invoice_and_client_access_are_rejected(): void
@@ -95,6 +98,7 @@ class AgreementTest extends TestCase
         $original = Agreement::sole();
         $this->get(route('agreements.show', $original))->assertOk()->assertSee('Hapus MoU Permanen');
         $this->post(route('agreements.finalize', $original))->assertSessionHas('success');
+        $original->refresh();
 
         $remove = route('agreements.destroy', $original);
         $clientDetail = route('client.agreements.show', $original->id);
@@ -116,7 +120,61 @@ class AgreementTest extends TestCase
         $replacement = Agreement::sole();
         $this->assertSame($invoice->id, $replacement->invoice_id);
         $this->assertNull($replacement->finalized_at);
-        $this->assertNotSame($original->number, $replacement->number);
+        $this->assertNull($replacement->number);
+        $this->post(route('agreements.finalize', $replacement))->assertSessionHas('success');
+        $this->assertSame('0002/MOU/SIS/'.$original->finalized_at->year, $replacement->fresh()->number);
+    }
+
+    public function test_deleted_drafts_do_not_consume_official_numbers_and_repeated_finalization_does_not_advance_them(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 24));
+        $admin = User::factory()->create()->assignRole(Role::create(['name' => 'super_admin']));
+        $invoice = $this->createInvoice();
+        $store = route('agreements.store', $invoice);
+
+        $this->actingAs($admin)->post($store, $this->terms())->assertRedirect();
+        $draft = Agreement::sole();
+        $this->assertNull($draft->number);
+        $this->delete(route('agreements.destroy', $draft))->assertRedirect();
+
+        $this->post($store, $this->terms())->assertRedirect();
+        $first = Agreement::sole();
+        $finalize = route('agreements.finalize', $first);
+        $this->post($finalize)->assertSessionHas('success');
+        $this->post($finalize)->assertSessionHas('success');
+        $this->assertSame('0001/MOU/SIS/2026', $first->fresh()->number);
+
+        $other = $invoice->replicate()->fill(['invoice_number' => 'INV-MOU-OTHER']);
+        $other->save();
+        $this->post(route('agreements.store', $other), $this->terms())->assertRedirect();
+        $this->post(route('agreements.finalize', $other->agreement))->assertSessionHas('success');
+        $this->assertSame('0002/MOU/SIS/2026', $other->agreement->fresh()->number);
+    }
+
+    public function test_number_migration_keeps_legacy_numbers_and_reserves_deleted_ids(): void
+    {
+        if (DB::getDriverName() !== 'sqlite') {
+            $this->markTestSkipped('This migration test uses transactional SQLite schema changes.');
+        }
+
+        $migration = require database_path('migrations/2026_11_24_000015_issue_agreement_numbers_on_finalization.php');
+        $migration->down();
+        $invoice = $this->createInvoice();
+        $base = $this->terms() + [
+            'invoice_reference' => $invoice->invoice_number, 'invoice_total' => $invoice->grand_total,
+            'provider_name' => 'SIS.COM', 'client_name' => $invoice->client->name, 'letterhead' => [],
+        ];
+        $final = Agreement::create($base);
+        $final->forceFill(['created_at' => '2025-12-31 12:00:00', 'finalized_at' => '2026-01-01 12:00:00'])->save();
+        $deleted = Agreement::create($base);
+        $deleted->delete();
+        $draft = Agreement::create($base);
+
+        $migration->up();
+
+        $this->assertSame('0001/MOU/SIS/2025', $final->fresh()->number);
+        $this->assertNull($draft->fresh()->number);
+        $this->assertDatabaseHas('agreement_number_sequences', ['id' => 1, 'last_number' => 2]);
     }
 
     public function test_detailed_cbt_agreement_is_shared_only_with_its_client_after_finalization(): void
@@ -165,7 +223,7 @@ class AgreementTest extends TestCase
         $this->get(route('client.invoices'))->assertOk()->assertSee('Lihat MoU');
         $this->get($show)->assertOk()->assertSee('Rp3.000.000 per periode')->assertSee('Pasal 10. Ketentuan Tambahan')
             ->assertSee('Kerahasiaan dan Data')->assertSee('Jakarta')->assertDontSee('Simpan Draf');
-        $this->get($pdf)->assertOk()->assertDownload('MoU-'.str_replace('/', '-', $agreement->number).'.pdf');
+        $this->get($pdf)->assertOk()->assertDownload('MoU-'.str_replace('/', '-', $agreement->fresh()->number).'.pdf');
 
         $invoice->update(['client_id' => $otherClient->id]);
         $this->actingAs($other)->get($index)->assertOk()->assertDontSee($agreement->title);
