@@ -158,7 +158,18 @@ class AgreementController extends Controller
                 return false;
             }
 
-            return $agreement->forceFill(['finalized_at' => now()])->save();
+            $sequence = DB::table('agreement_number_sequences')->where('id', 1);
+            if ($sequence->increment('last_number') !== 1) {
+                throw new \LogicException('MoU number sequence has not been initialized.');
+            }
+
+            $finalizedAt = now();
+            $agreement->forceFill([
+                'official_number' => sprintf('%04d/MOU/SIS/%04d', $sequence->value('last_number'), $finalizedAt->year),
+                'finalized_at' => $finalizedAt,
+            ])->saveOrFail();
+
+            return true;
         }, 3);
 
         return to_route('agreements.show', $agreement)->with(

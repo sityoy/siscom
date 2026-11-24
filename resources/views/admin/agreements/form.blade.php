@@ -5,7 +5,7 @@
 @section('admin-content')
 <div class="card">
     <div class="card-header d-flex align-items-center flex-wrap">
-        <h2 class="card-title font-weight-bold mr-3">{{ $agreement->exists ? $agreement->number : 'Draf MoU Baru' }}</h2>
+        <h2 class="card-title font-weight-bold mr-3">{{ $agreement->number ?? ($agreement->exists ? 'Draf MoU' : 'Draf MoU Baru') }}</h2>
         @if($agreement->exists)
             <span class="badge badge-{{ $agreement->finalized_at ? 'success' : 'warning' }}">{{ $agreement->finalized_at ? 'Final' : 'Draf' }}</span>
             <a class="btn btn-sm btn-outline-success ml-auto" href="{{ route('agreements.pdf', $agreement) }}">
@@ -120,7 +120,7 @@
             <form class="mt-3" method="POST" action="{{ route('agreements.finalize', $agreement) }}"
                   onsubmit="return confirm('Finalkan draf terakhir yang sudah disimpan? MoU akan terkunci dan tampil di portal client.')">
                 @csrf
-                <p class="small text-muted mb-2">Simpan perubahan dan periksa PDF draf sebelum finalisasi.</p>
+                <p class="small text-muted mb-2">Simpan perubahan dan periksa PDF draf. Nomor resmi diberikan saat finalisasi.</p>
                 <button type="submit" class="btn btn-outline-success">Finalkan MoU</button>
             </form>
         @endif

@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="utf-8">
-    <title>MoU {{ $agreement->number }}</title>
+    <title>{{ $agreement->number ? 'MoU '.$agreement->number : 'Draf MoU' }}</title>
     <style>
         @page { margin: 15mm 18mm; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; }
@@ -37,7 +37,9 @@
     <div class="heading">
         <h1>NOTA KESEPAHAMAN (MoU)</h1>
         <p><strong>{{ $agreement->title }}</strong></p>
-        <p>Nomor {{ $agreement->number }}</p>
+        @if($agreement->number)
+            <p>Nomor {{ $agreement->number }}</p>
+        @endif
     </div>
 
     <p>Dokumen kerja sama antara <strong>{{ $agreement->provider_name }}</strong> sebagai Pihak Pertama dan

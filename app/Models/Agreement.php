@@ -74,8 +74,8 @@ class Agreement extends Model
         ], 'filled');
     }
 
-    public function getNumberAttribute(): string
+    public function getNumberAttribute(): ?string
     {
-        return sprintf('%04d/MOU/SIS/%s', $this->id, $this->created_at->format('Y'));
+        return $this->official_number;
     }
 }
