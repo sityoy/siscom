@@ -53,6 +53,9 @@
                         <small class="text-muted ml-2">{{ $entry->npsn ?: 'NPSN belum ada' }} · {{ strtoupper($entry->code) }}</small>
                     </summary>
                     <div class="mt-3">
+                        @if($current === ['cbt'])
+                            <p class="mb-2"><strong>Paket CBT Sekolah saja</strong> · <a href="https://cbt-sekolah.sityoyitsolutions.com/">Buka CBT Sekolah</a></p>
+                        @endif
                         @forelse(array_intersect_key($modules, array_flip($current)) as $label)
                             <span class="badge badge-primary mb-1">{{ $label }}</span>
                         @empty
@@ -109,7 +112,7 @@
         @forelse($pending as $school)
             <details class="border rounded p-3 mb-2">
                 <summary><strong>{{ $school->name }}</strong> · {{ strtoupper($school->code) }}</summary>
-                <p class="mt-3">Kontak pendaftar: {{ $school->contact }} · Paket yang diminta: {{ ['cbt'=>'CBT saja','portal'=>'Portal Sekolah','lengkap'=>'Portal + CBT','pilihan'=>'CBT + modul pilihan'][$school->requested_package] ?? $school->requested_package }}</p>
+                <p class="mt-3">Kontak pendaftar: {{ $school->contact }} · Paket yang diminta: {{ ['cbt'=>'CBT Sekolah saja','portal'=>'Portal Sekolah','lengkap'=>'Portal + CBT','pilihan'=>'CBT + modul pilihan'][$school->requested_package] ?? $school->requested_package }}</p>
                 <form method="POST" action="{{ route('school-registrations.approve', $school->id) }}">
                     @csrf
                     <label>NPSN terverifikasi <input class="form-control" name="npsn" value="{{ $school->npsn }}" pattern="[A-Za-z0-9]{8}" maxlength="8" @readonly($school->npsn) required></label>
@@ -130,9 +133,15 @@
                     <label for="u-{{ $school->id }}">Masa aktif portal sampai</label>
                     <input class="form-control mb-3" id="u-{{ $school->id }}" type="date" name="until_date" min="{{ now('Asia/Jakarta')->toDateString() }}" required>
                     <fieldset><legend class="h6">Modul sesuai pesanan</legend>
+                        @if($school->requested_package === 'cbt')
+                            <input type="hidden" name="modules[]" value="cbt">
+                            <p class="mb-1"><strong>CBT Sekolah saja</strong> · Layanan ujian berbasis komputer.</p>
+                            <p class="small text-muted">Setelah ruang ujian siap, pengguna masuk melalui <a href="https://cbt-sekolah.sityoyitsolutions.com/">CBT Sekolah</a> dengan NPSN atau kode SIS.</p>
+                        @else
                         @foreach($modules as $key => $label)
                             <label class="mr-3"><input type="checkbox" name="modules[]" value="{{ $key }}" @checked($school->requested_package === 'lengkap' || ($school->requested_package === 'portal' && $key !== 'cbt') || (in_array($school->requested_package,['cbt','pilihan'],true) && $key === 'cbt') || ($school->requested_package === 'pilihan' && in_array($key,explode(',', $school->requested_modules ?? ''),true)))> {{ $label }}</label>
                         @endforeach
+                        @endif
                     </fieldset>
                     <button class="btn btn-primary mt-2">Konfirmasi dan aktifkan sekolah</button>
                 </form>
