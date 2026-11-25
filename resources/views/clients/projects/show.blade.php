@@ -36,11 +36,11 @@
 
                     <div>
 
-                        @if($project->status == 'completed')
+                        @if($project->isComplete())
 
                             <span class="badge bg-success">
 
-                                Completed
+                                Selesai
 
                             </span>
 
@@ -128,9 +128,13 @@
 
                     <strong>
 
-                        {{ $project->deadline
+                        @if($project->isComplete())
+                            Selesai
+                        @else
+                            {{ $project->deadline
                             ? \Carbon\Carbon::parse($project->deadline)->format('d M Y')
                             : '-' }}
+                        @endif
 
                     </strong>
 

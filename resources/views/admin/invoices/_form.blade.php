@@ -104,9 +104,9 @@
                             <option value="{{ $project->id }}"
                                     data-client="{{ $project->client_id }}"
                                     data-title="{{ $project->title }}"
-                                    data-budget="{{ $project->budget }}"
+                                    data-budget="{{ \App\Support\Rupiah::input($project->budget) }}"
                                     data-late-active="{{ $project->late_fee_active ? 1 : 0 }}"
-                                    data-late-fee="{{ $project->late_fee_per_month ?? 100000 }}"
+                                    data-late-fee="{{ \App\Support\Rupiah::input($project->late_fee_per_month ?? 100000) }}"
                                     @disabled($usedByOtherInvoice)
                                     @selected((string) $selectedProject === (string) $project->id)>
                                 {{ $project->title }}{{ $usedByOtherInvoice ? ' — Invoice sudah ada' : '' }}
@@ -187,7 +187,7 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label>Harga Satuan</label>
-                                <input type="number" name="price[]" class="form-control price" min="0" step="1" value="{{ $item['price'] }}" required>
+                                <input type="number" name="price[]" class="form-control price" min="0" step="1" value="{{ \App\Support\Rupiah::input($item['price']) }}" required>
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label>Total Item</label>
@@ -248,7 +248,7 @@
                             <label>Denda Keterlambatan</label><input type="hidden" name="late_fee_active" value="0">
                             <div class="form-check mt-2"><input type="checkbox" name="late_fee_active" id="late-fee-active" class="form-check-input" value="1" @checked(old('late_fee_active', $invoice?->late_fee_active ?? ($defaults['late_fee_active'] ?? false)))><label class="form-check-label" for="late-fee-active">Aktifkan denda</label></div>
                         </div>
-                        <div class="col-md-4 mb-3"><label>Denda per 30 Hari</label><input type="number" name="late_fee_per_month" id="late-fee-per-month" class="form-control" min="0" step="1000" value="{{ old('late_fee_per_month', $invoice?->late_fee_per_month ?? ($defaults['late_fee_per_month'] ?? 100000)) }}"></div>
+                        <div class="col-md-4 mb-3"><label>Denda per 30 Hari</label><input type="number" name="late_fee_per_month" id="late-fee-per-month" class="form-control" min="0" step="1000" value="{{ \App\Support\Rupiah::input(old('late_fee_per_month', $invoice?->late_fee_per_month ?? ($defaults['late_fee_per_month'] ?? 100000))) }}"></div>
                         <div class="col-md-4 mb-3">
                             <label>Status</label><select name="status" id="status" class="form-control" required>
                                 @foreach(['unpaid' => 'Unpaid', 'partial' => 'Partial', 'paid' => 'Paid', 'cancelled' => 'Cancelled'] as $value => $label)<option value="{{ $value }}" @selected(old('status', $invoice?->status ?? 'unpaid') === $value)>{{ $label }}</option>@endforeach

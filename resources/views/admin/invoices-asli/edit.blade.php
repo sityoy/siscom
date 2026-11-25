@@ -161,7 +161,7 @@
                                 <input type="number"
                                        name="price[]"
                                        class="form-control price"
-                                       value="{{ $item->price }}">
+                                       value="{{ \App\Support\Rupiah::input($item->price) }}">
 
                             </div>
 
@@ -214,7 +214,7 @@
 
                                 <input type="number"
                                        class="form-control total"
-                                       value="{{ $item->total }}"
+                                       value="{{ \App\Support\Rupiah::input($item->total) }}"
                                        readonly>
 
                             </div>
@@ -533,15 +533,15 @@ document.addEventListener('DOMContentLoaded', function () {
             .innerText = cashback;
 
         document.getElementById('cashback-amount')
-            .innerText = cashbackAmount.toLocaleString('id-ID');
+            .innerText = cashbackAmount.toLocaleString('id-ID', {maximumFractionDigits: 0});
 
 
         document.getElementById('grand-total')
-            .innerText = grandTotal.toLocaleString('id-ID');
+            .innerText = grandTotal.toLocaleString('id-ID', {maximumFractionDigits: 0});
 
         document.getElementById('final-total')
             .innerText =
-            grandTotal.toLocaleString('id-ID');
+            grandTotal.toLocaleString('id-ID', {maximumFractionDigits: 0});
     }
 
     function updateSummary(item) {

@@ -246,7 +246,7 @@
             type="number"
             name="package_price"
             class="form-control"
-            value="{{ old('package_price', $client->package_price) }}">
+            value="{{ \App\Support\Rupiah::input(old('package_price', $client->package_price)) }}">
 
     </div>
 

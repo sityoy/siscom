@@ -54,7 +54,7 @@ class CapitalContributionTest extends TestCase
             ->assertViewHas('cashInTotal', '2396500.89');
 
         $this->get(route('capital.index'))->assertOk()->assertViewHas('cashInTotal', '2496500.89');
-        $this->get(route('capital.edit', $contribution))->assertOk()->assertSee('1.500.000,50');
+        $this->get(route('capital.edit', $contribution))->assertOk()->assertSee('1500000.50')->assertSee('1.500.001');
 
         $this->put(route('capital.update', $contribution), array_replace($setoran, ['amount' => '1500001.25']))
             ->assertSessionHasNoErrors()->assertRedirect(route('capital.index'));
@@ -111,7 +111,7 @@ class CapitalContributionTest extends TestCase
             ->assertViewHas('capitalTotal', '500000.50')
             ->assertViewHas('paymentsTotal', '400000.25')
             ->assertViewHas('invoiceBalances', fn ($rows) => $rows->count() === 1 && $rows[0]['difference'] === '-100000.25')
-            ->assertSee('−Rp 100.000,25')
+            ->assertSee('−Rp 100.000')->assertDontSee('−Rp 100.000,25')
             ->assertDontSee('Setoran umum');
 
         $this->delete(route('capital.destroy', $contribution))->assertRedirect(route('capital.index'));
