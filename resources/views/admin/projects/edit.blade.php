@@ -81,7 +81,7 @@
                         <option value="completed"
                             @selected($project->status == 'completed')>
 
-                            Completed
+                            Selesai
 
                         </option>
 
@@ -132,7 +132,7 @@
                     <input type="number"
                            name="budget"
                            class="form-control"
-                           value="{{ old('budget', $project->budget) }}">
+                           value="{{ \App\Support\Rupiah::input(old('budget', $project->budget)) }}">
 
                 </div>
 
@@ -198,7 +198,7 @@
                     <input type="number"
                            name="late_fee_per_month"
                            class="form-control @error('late_fee_per_month') is-invalid @enderror"
-                           value="{{ old('late_fee_per_month', $project->late_fee_per_month ?? 100000) }}"
+                           value="{{ \App\Support\Rupiah::input(old('late_fee_per_month', $project->late_fee_per_month ?? 100000)) }}"
                            min="0"
                            step="1000">
 

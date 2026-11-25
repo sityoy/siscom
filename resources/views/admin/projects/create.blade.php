@@ -75,7 +75,7 @@
                         </option>
 
                         <option value="completed">
-                            Completed
+                            Selesai
                         </option>
 
                         <option value="cancelled">
@@ -188,7 +188,7 @@
                     <input type="number"
                            name="late_fee_per_month"
                            class="form-control @error('late_fee_per_month') is-invalid @enderror"
-                           value="{{ old('late_fee_per_month', 100000) }}"
+                           value="{{ \App\Support\Rupiah::input(old('late_fee_per_month', 100000)) }}"
                            min="0"
                            step="1000">
 

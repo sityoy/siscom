@@ -13,8 +13,21 @@
     <div class="form-group col-md-4">
         <label for="capital-amount">Nominal Setoran (Rp)</label>
         <input type="text" id="capital-amount" name="amount" inputmode="decimal" class="form-control" maxlength="24"
-               value="{{ old('amount', $contribution ? number_format((float) $contribution->amount, 2, ',', '.') : '') }}"
-               placeholder="1.500.000,50" required>
+               value="{{ old('amount', \App\Support\Rupiah::input($contribution?->amount)) }}"
+               placeholder="1.500.000" required>
+        @if($contribution && !session()->hasOldInput('amount'))
+            <script>
+                const capitalAmount = document.getElementById('capital-amount');
+                const exactAmount = document.createElement('input');
+                exactAmount.type = 'hidden';
+                exactAmount.name = capitalAmount.name;
+                exactAmount.value = capitalAmount.value;
+                capitalAmount.removeAttribute('name');
+                capitalAmount.after(exactAmount);
+                capitalAmount.value = @js(number_format((float) $contribution->amount, 0, ',', '.'));
+                capitalAmount.addEventListener('input', () => { exactAmount.value = capitalAmount.value; });
+            </script>
+        @endif
     </div>
 </div>
 <div class="form-group">

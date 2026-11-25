@@ -181,7 +181,9 @@
 
                             <td>
 
-                                @if($project->deadline)
+                                @if($project->isComplete())
+                                    <span class="badge bg-success">Selesai</span>
+                                @elseif($project->deadline)
 
                                     @php
                                         $deadline =
@@ -191,7 +193,7 @@
                                     @endphp
 
                                     <span class="
-                                        @if($deadline->isPast())
+                                        @if($deadline->isBefore(today()))
                                             text-danger
                                         @else
                                             text-primary
@@ -214,7 +216,15 @@
 
                             <td>
 
-                                @if($project->status == 'pending')
+                                @if($project->isComplete())
+
+                                    <span class="badge bg-success">
+
+                                        Selesai
+
+                                    </span>
+
+                                @elseif($project->status == 'pending')
 
                                     <span class="badge bg-warning">
 
@@ -227,14 +237,6 @@
                                     <span class="badge bg-info">
 
                                         Progress
-
-                                    </span>
-
-                                @elseif($project->status == 'completed')
-
-                                    <span class="badge bg-success">
-
-                                        Completed
 
                                     </span>
 

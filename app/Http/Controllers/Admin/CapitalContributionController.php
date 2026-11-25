@@ -54,21 +54,47 @@ class CapitalContributionController extends Controller
         $paymentsTotal = $this->money($payments->sum('amount'));
         $cashInTotal = $capitalTotal->plus($paymentsTotal);
 
+        // Salary percentages use the same lifetime invoice margin as the allocation form.
+        $salaryPeriod = static function ($query) use ($start) {
+            if ($start) {
+                $query->whereBetween('allocated_on', [$start->toDateString(), $start->copy()->endOfMonth()->toDateString()]);
+            }
+        };
+        $salaryByInvoice = [];
+        $salaryTotal = $this->money(0);
+        $allocatedInvoices = Invoice::query()->select('id')
+            ->when($invoiceId, fn ($query) => $query->whereKey($invoiceId))
+            ->withWhereHas('salaryAllocations', $salaryPeriod)
+            ->withSum(['payments as receipts' => fn ($q) => $q->where('payment_date', '<=', $today)], 'amount')
+            ->withSum(['capitalContributions as capital' => fn ($q) => $q->whereNull('voided_at')->where('contribution_date', '<=', $today)], 'amount');
+        foreach ($allocatedInvoices->lazyById() as $invoice) {
+            $margin = $this->money($invoice->receipts)->minus($this->money($invoice->capital));
+            $salary = $this->money(0);
+            foreach ($invoice->salaryAllocations as $allocation) {
+                $salary = $salary->plus($allocation->allocatedAmount($margin));
+            }
+            $salaryByInvoice[$invoice->id] = $salary;
+            $salaryTotal = $salaryTotal->plus($salary);
+        }
+
         $invoiceBalances = $this->invoiceQuery()
             ->when($invoiceId, fn (Builder $query) => $query->whereKey($invoiceId))
             ->withSum(['capitalContributions as recorded_capital' => $capitalInPeriod], 'amount')
             ->withSum(['payments as recorded_payments' => $paymentsInPeriod], 'amount')
             ->paginate(10, pageName: 'invoice_page');
 
-        $invoiceBalances->through(function (Invoice $invoice): array {
+        $invoiceBalances->through(function (Invoice $invoice) use ($salaryByInvoice): array {
             $capital = $this->money($invoice->recorded_capital);
             $payments = $this->money($invoice->recorded_payments);
 
+            $salary = $salaryByInvoice[$invoice->id] ?? $this->money(0);
+
             return [
+                'salary' => (string) $salary,
                 'invoice' => $invoice,
                 'capital' => (string) $capital,
                 'payments' => (string) $payments,
-                'difference' => (string) $payments->minus($capital),
+                'difference' => (string) $payments->minus($capital)->minus($salary),
             ];
         });
 
@@ -79,6 +105,8 @@ class CapitalContributionController extends Controller
             'invoiceBalances' => $invoiceBalances,
             'capitalTotal' => (string) $capitalTotal,
             'paymentsTotal' => (string) $paymentsTotal,
+            'salaryTotal' => (string) $salaryTotal,
+            'netTotal' => (string) $paymentsTotal->minus($capitalTotal)->minus($salaryTotal),
             'cashInTotal' => (string) $cashInTotal,
             'contributions' => $contributions->with('invoice:id,invoice_number')->latest('contribution_date')->orderByDesc('id')
                 ->paginate(Pagination::perPage()),
@@ -205,7 +233,7 @@ class CapitalContributionController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
             'invoice_id' => ['nullable', 'integer', 'exists:invoices,id'],
         ], [
-            'amount.regex' => 'Isi nominal dengan angka, misalnya 1.500.000,50 atau 1500000.50.',
+            'amount.regex' => 'Isi nominal dengan angka, misalnya 1.500.000 atau 1500000.',
             'amount.min' => 'Nominal setoran minimal Rp 0,01.',
             'contribution_date.before_or_equal' => 'Tanggal setoran maksimal hari ini.',
         ], [

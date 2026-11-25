@@ -17,6 +17,7 @@ use App\Models\TicketMessage;
 use App\Models\User;
 use App\Support\JobTitleTranslator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -318,6 +319,19 @@ class SystemSmokeTest extends TestCase
         $this->assertSame('cbt,keuangan,guru', $school->value('modules'));
     }
 
+    public function test_completed_project_clears_deadline_in_admin_and_client_views(): void
+    {
+        $this->project->update(['deadline'=>'2024-04-12','progress'=>100,'status'=>'progress']);
+        $this->actingAs($this->admin)->get(route('projects.index'))->assertOk()
+            ->assertSeeText('Selesai')->assertDontSeeText('12 Apr 2024');
+        $this->actingAs($this->clientUser)->get(route('client.projects'))->assertOk()
+            ->assertSeeText('Selesai')->assertDontSeeText('12 Apr 2024');
+        $this->get(route('client.projects.show', $this->project))->assertOk()
+            ->assertSeeText('Selesai')->assertDontSeeText('12 Apr 2024');
+        $this->project->update(['progress'=>90]);
+        $this->get(route('client.projects.show', $this->project))->assertSeeText('12 Apr 2024');
+    }
+
     public function test_salary_plan_uses_cash_received_less_capital_and_can_be_adjusted(): void
     {
         $this->travelTo(now()->setDate(2026, 11, 24));
@@ -327,11 +341,17 @@ class SystemSmokeTest extends TestCase
         $url = route('salary.store', $this->invoice);
         $this->post($url, ['recipient'=>'Teknisi','mode'=>'percent','value'=>25])->assertSessionHasNoErrors();
         $this->post($url, ['recipient'=>'Operator','mode'=>'fixed','value'=>150000])->assertSessionHasNoErrors();
-        $this->get(route('salary.show', $this->invoice))->assertOk()->assertSeeText('Rp 450.000,00');
+        $this->get(route('salary.show', $this->invoice))->assertOk()->assertSeeText('Rp 450.000')->assertSeeText('Kembali ke Modal Usaha');
         $this->post($url, ['recipient'=>'Operator','mode'=>'fixed','value'=>700000])->assertSessionHasErrors('value');
         $this->post($url, ['recipient'=>'Operator','mode'=>'fixed','value'=>100000])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('salary_allocations', 2);
-        $this->get(route('salary.show', $this->invoice))->assertSeeText('Rp 500.000,00');
+        $this->get(route('salary.show', $this->invoice))->assertSeeText('Rp 500.000');
+        $report = route('capital.index', ['invoice_id'=>$this->invoice->id, 'month'=>'2026-11']);
+        $this->get($report)->assertOk()->assertViewHas('netTotal', '500000.00')->assertViewHas('salaryTotal', '300000.00')
+            ->assertViewHas('invoiceBalances', fn ($rows) => $rows->first()['difference'] === '500000.00');
+        $allocation = DB::table('salary_allocations')->where('recipient','Operator')->value('id');
+        $this->delete(route('salary.destroy', [$this->invoice,$allocation]))->assertRedirect();
+        $this->get($report)->assertViewHas('netTotal', '600000.00');
         $this->actingAs($this->clientUser)->get(route('salary.show', $this->invoice))->assertForbidden();
     }
 

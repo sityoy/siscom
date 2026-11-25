@@ -104,24 +104,24 @@
                         <div class="col-md-4 mb-3">
                             <label>Nilai Kontrak/Invoice</label>
                             <input type="number" name="contract_value" id="contract-value" class="form-control"
-                                   value="{{ old('contract_value', $package->contract_value ?: $invoice->grand_total) }}" readonly required>
+                                   value="{{ \App\Support\Rupiah::input(old('contract_value', $package->contract_value ?: $invoice->grand_total)) }}" readonly required>
                             <small class="text-muted">Otomatis mengikuti invoice.</small>
                         </div>
                         <div class="col-md-4 mb-3 vendor-cost-field">
                             <label>Biaya Vendor (termasuk PPN bila ada)</label>
                             <input type="number" name="vendor_cost" id="vendor-cost" class="form-control" min="0" step="1"
-                                   value="{{ old('vendor_cost', $package->vendor_cost ?? 0) }}">
+                                   value="{{ \App\Support\Rupiah::input(old('vendor_cost', $package->vendor_cost ?? 0)) }}">
                         </div>
                         <div class="col-md-4 mb-3 vendor-cost-field">
                             <label>Potongan Pajak Vendor</label>
                             <input type="number" name="vendor_tax_amount" id="vendor-tax" class="form-control" min="0" step="1"
-                                   value="{{ old('vendor_tax_amount', $package->vendor_tax_amount ?? 0) }}">
+                                   value="{{ \App\Support\Rupiah::input(old('vendor_tax_amount', $package->vendor_tax_amount ?? 0)) }}">
                             <small class="text-muted">Isi sesuai bukti potong; bukan biaya tambahan.</small>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label>Biaya Operasional SIS.COM</label>
                             <input type="number" name="operational_cost" id="operational-cost" class="form-control" min="0" step="1"
-                                   value="{{ old('operational_cost', $package->operational_cost ?? 0) }}">
+                                   value="{{ \App\Support\Rupiah::input(old('operational_cost', $package->operational_cost ?? 0)) }}">
                         </div>
                         <div class="col-md-4 mb-3">
                             <label>Partner Bisnis yang Sah</label>

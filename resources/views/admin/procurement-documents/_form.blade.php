@@ -25,7 +25,7 @@
             <option value="">-- Pilih Client dan Project --</option>
             @foreach($projects as $project)
                 <option value="{{ $project->id }}"
-                        data-budget="{{ $project->budget }}"
+                        data-budget="{{ \App\Support\Rupiah::input($project->budget) }}"
                         data-school-signer-name="{{ $project->client->authorized_official_name }}"
                         data-school-signer-title="{{ $project->client->authorized_official_title }}"
                         @selected((string) $selectedProjectId === (string) $project->id)>
@@ -98,7 +98,7 @@
     <div class="col-md-4 mb-3">
         <label>Nilai Pekerjaan <span class="text-danger">*</span></label>
         <input type="number" name="amount" id="amount" min="0" step="1" class="form-control" required
-               value="{{ old('amount', $document->amount ?? 0) }}">
+               value="{{ \App\Support\Rupiah::input(old('amount', $document->amount ?? 0)) }}">
     </div>
 
     <div class="col-md-4 mb-3">
@@ -185,11 +185,11 @@
     </div>
     <div class="col-md-4 mb-3">
         <label>PPN</label>
-        <input type="number" name="vat_amount" id="vat_amount" min="0" class="form-control" value="{{ old('vat_amount', $document->vat_amount ?? 0) }}">
+        <input type="number" name="vat_amount" id="vat_amount" min="0" class="form-control" value="{{ \App\Support\Rupiah::input(old('vat_amount', $document->vat_amount ?? 0)) }}">
     </div>
     <div class="col-md-4 mb-3">
         <label>PPh/Potongan Pajak</label>
-        <input type="number" name="income_tax_amount" id="income_tax_amount" min="0" class="form-control" value="{{ old('income_tax_amount', $document->income_tax_amount ?? 0) }}">
+        <input type="number" name="income_tax_amount" id="income_tax_amount" min="0" class="form-control" value="{{ \App\Support\Rupiah::input(old('income_tax_amount', $document->income_tax_amount ?? 0)) }}">
     </div>
 </div>
 

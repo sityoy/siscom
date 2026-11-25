@@ -492,22 +492,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.getElementById('subtotal')
             .innerText =
-            subtotal.toLocaleString('id-ID');
+            subtotal.toLocaleString('id-ID', {maximumFractionDigits: 0});
 
         document.getElementById('vat-amount')
             .innerText =
-            vat.toLocaleString('id-ID');
+            vat.toLocaleString('id-ID', {maximumFractionDigits: 0});
 
         document.getElementById('service-fee-view')
             .innerText =
-            serviceFee.toLocaleString('id-ID');
+            serviceFee.toLocaleString('id-ID', {maximumFractionDigits: 0});
 
         document.getElementById('grand-total')
-            .innerText = grandTotal.toLocaleString('id-ID');
+            .innerText = grandTotal.toLocaleString('id-ID', {maximumFractionDigits: 0});
 
         document.getElementById('cashback-reward')
             .innerText =
-        cashbackAmount.toLocaleString('id-ID');
+        cashbackAmount.toLocaleString('id-ID', {maximumFractionDigits: 0});
 
     }
 
