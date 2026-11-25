@@ -54,6 +54,9 @@ h1{font-size:17pt;margin:8pt 0}h2{font-size:11pt;color:#24446f;margin:8pt 0 3pt}
 @endforeach
 <h2>Pelaksanaan</h2><p>Sekolah memilih paket dan menyampaikan NPSN serta kontak penanggung jawab. Setelah harga, modul, dan masa layanan disepakati, SIS memverifikasi pendaftaran dan mengaktifkan akses. Untuk paket CBT, kepala sekolah menyiapkan akun pengelola ujian melalui portal.</p>
 <h2>Konfirmasi penawaran</h2><p>Mohon sampaikan pilihan paket dan periode kepada tim SIS untuk penyusunan dokumen kerja sama dan invoice. Harga yang masih kosong diisi sebelum penawaran disetujui.</p>
+<p><strong>Kontak penawaran</strong><br>
+WhatsApp 0813-8320-5359<br>
+Email sityoyitsolutions@gmail.com</p>
 @include('pdf.signatures', [
     'placeDate'=>($company?->city ?: 'Jakarta').', '.\Carbon\Carbon::parse($data['date'])->locale('id')->translatedFormat('d F Y'),
     'issuer'=>['Dibuat oleh,',$company?->director_title ?: 'Direktur',$company?->director_name,$company?->legal_name ?: 'PT SITYOY IT SOLUTIONS'],
