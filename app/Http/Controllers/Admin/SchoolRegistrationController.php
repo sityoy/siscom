@@ -19,7 +19,7 @@ class SchoolRegistrationController extends Controller
     public const MODULES = [
         'absensi' => 'Absensi siswa', 'guru' => 'Absensi guru', 'keuangan' => 'Keuangan',
         'sarpras' => 'Sarana dan prasarana', 'kesiswaan' => 'Kesiswaan',
-        'cbt' => 'Ujian CBT', 'kurikulum' => 'Kurikulum', 'perpustakaan' => 'Perpustakaan',
+        'cbt' => 'CBT Sekolah', 'kurikulum' => 'Kurikulum', 'perpustakaan' => 'Perpustakaan',
     ];
 
     public function index()
@@ -209,6 +209,9 @@ class SchoolRegistrationController extends Controller
                     DB::table('school_approvals')->where('portal_school_id', $school)->exists()) {
                     return 'Pendaftaran ini sudah diproses. Periksa status sekolah sebelum mengambil tindakan lain.';
                 }
+                if ($entry->requested_package === 'cbt' && $data['modules'] !== ['cbt']) {
+                    throw ValidationException::withMessages(['modules' => 'Paket CBT Sekolah saja hanya dapat mengaktifkan layanan CBT Sekolah.']);
+                }
                 $this->checkNpsn($entry, $data['npsn']);
                 $client = !empty($data['client_id']) ? Client::lockForUpdate()->findOrFail($data['client_id']) : null;
                 $owner = $client ? User::role('client')->find($client->user_id) : null;
@@ -229,6 +232,9 @@ class SchoolRegistrationController extends Controller
                     'npsn' => $data['npsn'], 'siscom_user_id' => $owner?->id,
                     'active' => true, 'until_date' => $data['until_date'], 'modules' => $modules,
                 ]);
+                if ($modules === 'cbt') {
+                    return $entry->name.' aktif untuk layanan CBT Sekolah. Gunakan NPSN atau kode '.strtoupper($entry->code).' setelah ruang CBT siap.';
+                }
                 return $entry->name.' aktif. Sekolah dapat masuk ke portal dengan kode '.strtoupper($entry->code).'.';
             }, 3);
         } catch (QueryException $e) {
