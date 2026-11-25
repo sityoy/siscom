@@ -28,6 +28,8 @@ Route::prefix('admin/pendaftaran-sekolah')->name('school-registrations.')
         Route::post('/proposal', [\App\Http\Controllers\Admin\SchoolProposalController::class, 'pdf'])->name('proposal.pdf');
         Route::post('/tambah-cbt', [SchoolRegistrationController::class, 'addCbt'])->name('cbt');
         Route::post('/hubungkan', [SchoolRegistrationController::class, 'link'])->name('link');
+        Route::patch('/{school}/layanan', [SchoolRegistrationController::class, 'updateServices'])
+            ->whereNumber('school')->name('services');
         Route::post('/{school}/aktifkan', [SchoolRegistrationController::class, 'approve'])
             ->whereNumber('school')->name('approve');
     });

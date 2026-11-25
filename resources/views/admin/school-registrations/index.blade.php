@@ -31,15 +31,78 @@
             <button class="btn btn-primary">Hubungkan pengguna</button>
         </form>
     </div></section>
-    <details class="card p-3 mb-3"><summary>Tambahkan CBT atau modul pendamping untuk sekolah aktif</summary>
-        <form class="mt-3" method="post" action="{{ route('school-registrations.modules') }}">@csrf
-            <label>Kode sekolah <input class="form-control" name="code" maxlength="32" required></label>
-            <label>NPSN <input class="form-control" name="npsn" pattern="[A-Za-z0-9]{8}" required></label>
-            <fieldset><legend class="h6">Layanan tambahan</legend>@foreach($modules as $key=>$label)
-                <label class="mr-3"><input type="checkbox" name="modules[]" value="{{ $key }}"> {{ $label }}</label>
-            @endforeach</fieldset>
-            <button class="btn btn-primary">Tambahkan modul</button>
-        </form></details>
+    <div class="card border-primary" id="sekolah-terdaftar">
+        <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center">
+            <h2 class="h5 mb-2">Sekolah terdaftar <span class="badge badge-light">{{ $registered->total() }}</span></h2>
+            <form method="get" class="form-inline" action="{{ route('school-registrations.index') }}#sekolah-terdaftar">
+                <label class="sr-only" for="cari-sekolah">Cari nama, NPSN, atau kode</label>
+                <input class="form-control form-control-sm mr-2" id="cari-sekolah" name="cari" maxlength="80" value="{{ request('cari') }}" placeholder="Nama, NPSN, atau kode">
+                <button class="btn btn-sm btn-outline-primary">Cari</button>
+            </form>
+        </div>
+        <div class="card-body">
+            <p class="text-muted">Gunakan daftar ini untuk menambah layanan atau menghapus centang modul yang ingin dinonaktifkan. Riwayat dan data sekolah tetap tersimpan.</p>
+            @forelse($registered as $entry)
+                @php
+                    $current = explode(',', $entry->modules);
+                    $active = $entry->active && $entry->until_date >= now('Asia/Jakarta')->toDateString();
+                @endphp
+                <details class="border rounded p-3 mb-3">
+                    <summary class="font-weight-bold">{{ $entry->name }}
+                        <span class="badge {{ $active ? 'badge-success' : 'badge-secondary' }}">{{ $active ? 'Aktif' : 'Tidak aktif' }}</span>
+                        <small class="text-muted ml-2">{{ $entry->npsn ?: 'NPSN belum ada' }} · {{ strtoupper($entry->code) }}</small>
+                    </summary>
+                    <div class="mt-3">
+                        @forelse(array_intersect_key($modules, array_flip($current)) as $label)
+                            <span class="badge badge-primary mb-1">{{ $label }}</span>
+                        @empty
+                            <span class="text-muted">Belum ada modul dipilih.</span>
+                        @endforelse
+                        <p class="small mt-2">Masa layanan hingga {{ $entry->until_date }}
+                        @if(in_array('cbt', $current, true))
+                            · CBT {{ ['ready'=>'siap', 'legacy'=>'lama', 'error'=>'perlu diperiksa'][$entry->cbt_status] ?? 'menunggu penyiapan' }}<br>
+                            <strong>Tarif CBT</strong>
+                            @if($entry->amount !== null)
+                                Rp {{ number_format($entry->amount,0,',','.') }} · {{ $cbtBases[$entry->basis] }}
+                                @if($entry->units) · {{ $entry->units }} {{ $entry->basis }} · Total Rp {{ number_format($entry->amount * $entry->units,0,',','.') }} @endif
+                            @else
+                                Belum dicatat
+                            @endif
+                        @endif
+                        </p>
+                        <form method="post" action="{{ route('school-registrations.services', $entry->id) }}">
+                            @csrf @method('PATCH')
+                            <input type="hidden" name="current_modules" value="{{ $entry->modules }}">
+                            <fieldset class="border rounded p-2 mb-3">
+                                <legend class="h6">Kelola modul sekolah</legend>
+                                @foreach($modules as $key => $label)
+                                    <label class="mr-3"><input type="checkbox" name="modules[]" value="{{ $key }}" @checked(in_array($key,$current,true))> {{ $label }}</label>
+                                @endforeach
+                            </fieldset>
+                            <fieldset class="border rounded p-2 mb-3">
+                                <legend class="h6">Kesepakatan CBT</legend>
+                                <div class="form-row">
+                                    <label class="col-md">Dasar tarif<select class="form-control" name="basis">
+                                        <option value="">Pilih dasar tarif</option>
+                                        @foreach($cbtBases as $key=>$label)
+                                            <option value="{{ $key }}" @selected($entry->basis === $key)>{{ $label }}</option>
+                                        @endforeach
+                                    </select></label>
+                                    <label class="col-md">Tarif (Rp)<input class="form-control" type="number" name="amount" min="0" max="9999999999999" value="{{ $entry->amount }}"></label>
+                                    <label class="col-md">Jumlah siswa atau ujian<input class="form-control" type="number" name="units" min="1" max="100000" value="{{ $entry->units }}"></label>
+                                </div>
+                                <label class="d-block">Catatan kesepakatan <input class="form-control" name="note" maxlength="500" value="{{ $entry->note }}"></label>
+                            </fieldset>
+                            <button class="btn btn-primary">Simpan layanan sekolah</button>
+                        </form>
+                    </div>
+                </details>
+            @empty
+                <p class="text-muted mb-0">Tidak ada sekolah yang cocok dengan pencarian.</p>
+            @endforelse
+            {{ $registered->withQueryString()->links() }}
+        </div>
+    </div>
     <div class="card"><div class="card-body">
         <h2 class="h5">Menunggu verifikasi ({{ $pending->total() }})</h2>
         <p>Verifikasi NPSN dan pastikan pendaftar berwenang mewakili sekolah sebelum memberikan akses Kepala Sekolah.</p>

@@ -22,5 +22,6 @@
 </head>
 <body class="sis-login-bg min-h-screen antialiased">
     {{ $slot }}
+<script src="{{ asset('js/password-visibility.js') }}?v=1" defer></script>
 </body>
 </html>
