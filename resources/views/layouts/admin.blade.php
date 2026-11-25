@@ -17,6 +17,7 @@
         @yield('admin-content')
     </main>
 
+    <script src="{{ asset('js/password-visibility.js') }}?v=1" defer></script>
     <script src="{{ asset('js/siscom-ui.js') }}?v=20261116" defer></script>
 @stop
 
