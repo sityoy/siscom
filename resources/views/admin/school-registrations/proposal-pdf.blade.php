@@ -3,7 +3,7 @@
 @page{margin:12mm 16mm}body{font:9.5pt/1.28 "DejaVu Sans",sans-serif;color:#19263b}
 .letterhead,.prices{width:100%;border-collapse:collapse}.letterhead{border-bottom:2pt solid #24446f;margin-bottom:9pt}
 .letterhead td{padding-bottom:6pt}.letterhead img{width:85pt}.letterhead-info{font-size:8pt}.letterhead-name{font-size:15pt;font-weight:bold;color:#24446f}
-h1{font-size:17pt;margin:8pt 0}h2{font-size:11pt;color:#24446f;margin:8pt 0 3pt}p{margin:4pt 0}
+h1{font-size:17pt;margin:8pt 0}h2{font-size:11pt;color:#24446f;margin:6pt 0 3pt}p{margin:4pt 0}
 .prices td,.prices th{border-bottom:1px solid #c8d3df;padding:3pt;text-align:left}.prices th{background:#eaf0f6}.prices tr{page-break-inside:avoid}
 </style></head><body>
 @include('admin.procurement-documents._company-letterhead')
@@ -54,9 +54,7 @@ h1{font-size:17pt;margin:8pt 0}h2{font-size:11pt;color:#24446f;margin:8pt 0 3pt}
 @endforeach
 <h2>Pelaksanaan</h2><p>Sekolah memilih paket dan menyampaikan NPSN serta kontak penanggung jawab. Setelah harga, modul, dan masa layanan disepakati, SIS memverifikasi pendaftaran dan mengaktifkan akses. Untuk paket CBT, kepala sekolah menyiapkan akun pengelola ujian melalui portal.</p>
 <h2>Konfirmasi penawaran</h2><p>Mohon sampaikan pilihan paket dan periode kepada tim SIS untuk penyusunan dokumen kerja sama dan invoice. Harga yang masih kosong diisi sebelum penawaran disetujui.</p>
-<p><strong>Kontak penawaran</strong><br>
-WhatsApp 0813-8320-5359<br>
-Email sityoyitsolutions@gmail.com</p>
+<p><strong>Kontak penawaran</strong> &nbsp; WhatsApp 0813-8320-5359 &bull; Email sityoyitsolutions@gmail.com</p>
 @include('pdf.signatures', [
     'placeDate'=>($company?->city ?: 'Jakarta').', '.\Carbon\Carbon::parse($data['date'])->locale('id')->translatedFormat('d F Y'),
     'issuer'=>['Dibuat oleh,',$company?->director_title ?: 'Direktur',$company?->director_name,$company?->legal_name ?: 'PT SITYOY IT SOLUTIONS'],
