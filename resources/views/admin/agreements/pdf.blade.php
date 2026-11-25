@@ -55,7 +55,7 @@
     <table class="meta">
         <tr><td>Tempat dan tanggal MoU</td><td>{{ $agreement->city }}, {{ $agreement->document_date->translatedFormat('d F Y') }}</td></tr>
         <tr><td>Invoice sumber</td><td>{{ $agreement->invoice_reference }}{{ $agreement->invoice_date ? ' • '.$agreement->invoice_date->translatedFormat('d F Y') : '' }}</td></tr>
-        <tr><td>Nilai bruto referensi</td><td>Rp {{ number_format((float) $agreement->invoice_total, 2, ',', '.') }}</td></tr>
+        <tr><td>Nilai bruto referensi</td><td>Rp {{ number_format((float) $agreement->invoice_total, 0, ',', '.') }}</td></tr>
         <tr><td>Masa berlaku</td><td>{{ $agreement->starts_on->translatedFormat('d F Y') }} s.d. {{ $agreement->ends_on->translatedFormat('d F Y') }}</td></tr>
     </table>
 

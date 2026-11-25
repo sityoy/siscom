@@ -163,9 +163,9 @@
                            inputmode="decimal"
                            autocomplete="off"
                            value="{{ old('amount') !== null
-                               ? number_format((float) old('amount'), 2, ',', '.')
-                               : (isset($payment) ? number_format((float) $payment->amount, 2, ',', '.') : '') }}"
-                           placeholder="Contoh: 896.500,39"
+                               ? number_format((float) old('amount'), 0, ',', '.')
+                               : (isset($payment) ? number_format((float) $payment->amount, 0, ',', '.') : '') }}"
+                           placeholder="Contoh: 896.500"
                            required>
 
                     <input type="hidden"
@@ -174,7 +174,7 @@
                            value="{{ old('amount', $payment->amount ?? '') }}">
 
                     <small class="form-text text-muted">
-                        Gunakan format Rupiah Indonesia, misalnya 896.500,39.
+                        Gunakan format Rupiah Indonesia, misalnya 896.500.
                     </small>
 
                 </div>
@@ -246,7 +246,6 @@
 
 <script>
 
-const paymentForm = document.getElementById('payment-form');
 const amountDisplay = document.getElementById('amount-display');
 const amountValue = document.getElementById('amount-value');
 
@@ -283,21 +282,19 @@ function syncAmountValue() {
 }
 
 function formatAmountDisplay() {
-    syncAmountValue();
+    if (!amountValue.value) return;
 
     const amount = Number(amountValue.value);
 
     if (Number.isFinite(amount)) {
         amountDisplay.value = amount.toLocaleString('id-ID', {
-            minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
-            maximumFractionDigits: 2,
+            maximumFractionDigits: 0,
         });
     }
 }
 
 amountDisplay.addEventListener('input', syncAmountValue);
 amountDisplay.addEventListener('blur', formatAmountDisplay);
-paymentForm.addEventListener('submit', syncAmountValue);
 
 document
 .querySelector('[name="invoice_id"]')
@@ -322,17 +319,17 @@ document
     document
         .getElementById('invoice-total')
         .value =
-        total.toLocaleString('id-ID');
+        total.toLocaleString('id-ID', {maximumFractionDigits: 0});
 
     document
         .getElementById('paid-total')
         .value =
-        paid.toLocaleString('id-ID');
+        paid.toLocaleString('id-ID', {maximumFractionDigits: 0});
 
     document
         .getElementById('remaining-total')
         .value =
-        remaining.toLocaleString('id-ID');
+        remaining.toLocaleString('id-ID', {maximumFractionDigits: 0});
 
 });
 

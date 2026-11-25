@@ -165,6 +165,11 @@ class Invoice extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function salaryAllocations(): HasMany
+    {
+        return $this->hasMany(SalaryAllocation::class);
+    }
+
     public function capitalContributions(): HasMany
     {
         return $this->hasMany(CapitalContribution::class);

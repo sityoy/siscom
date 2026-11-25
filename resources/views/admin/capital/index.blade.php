@@ -5,7 +5,7 @@
 @section('admin-content')
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title font-weight-bold">Ringkasan Dana Masuk</h2>
+        <h2 class="card-title font-weight-bold">Ringkasan Modal dan Pendapatan</h2>
     </div>
     <div class="card-body">
         <form method="GET" action="{{ route('capital.index') }}" class="form-inline mb-3">
@@ -29,24 +29,28 @@
             <div class="col-md-4 mb-3">
                 <div class="border rounded p-3 h-100">
                     <div class="text-muted">Setoran Modal</div>
-                    <strong class="h5">Rp {{ number_format((float) $capitalTotal, 2, ',', '.') }}</strong>
+                    <strong class="h5">Rp {{ number_format((float) $capitalTotal, 0, ',', '.') }}</strong>
                 </div>
             </div>
             <div class="col-md-4 mb-3">
                 <div class="border rounded p-3 h-100">
                     <div class="text-muted"><a href="{{ route('payments.index') }}">Pembayaran Client Tercatat</a></div>
-                    <strong class="h5">Rp {{ number_format((float) $paymentsTotal, 2, ',', '.') }}</strong>
+                    <strong class="h5">Rp {{ number_format((float) $paymentsTotal, 0, ',', '.') }}</strong>
                 </div>
             </div>
             <div class="col-md-4 mb-3">
                 <div class="border border-primary rounded p-3 h-100">
                     <div class="text-muted">Total Dana Masuk</div>
-                    <strong class="h5 text-primary">Rp {{ number_format((float) $cashInTotal, 2, ',', '.') }}</strong>
+                    <strong class="h5 text-primary">Rp {{ number_format((float) $cashInTotal, 0, ',', '.') }}</strong>
                 </div>
             </div>
         </div>
+        <div class="row">
+            <div class="col-md-4 mb-3"><div class="border rounded p-3">Gaji dialokasikan<br><strong>{{ 'Rp '.number_format((float)$salaryTotal, 0, ',', '.') }}</strong></div></div>
+            <div class="col-md-4 mb-3"><div class="border rounded p-3">Pendapatan bersih<br><strong>{{ 'Rp '.number_format((float)$netTotal, 0, ',', '.') }}</strong></div></div>
+        </div>
         <p class="small text-muted mb-0">
-            {{ $month ? 'Periode '.$month : 'Semua periode' }}. Ringkasan menghitung setoran modal aktif dan pembayaran client yang tercatat sampai hari ini, sebelum dikurangi pengeluaran.
+            {{ $month ? 'Periode '.$month : 'Semua periode' }}. Total dana masuk menjumlahkan setoran modal aktif dan pembayaran client sampai hari ini.
         </p>
     </div>
 </div>
@@ -56,7 +60,7 @@
         <h2 class="card-title font-weight-bold">Pencocokan Modal per Invoice</h2>
     </div>
     <div class="card-body">
-        <p class="text-muted small">Selisih dihitung dari pembayaran client dikurangi modal yang dialokasikan dalam periode terpilih. Angka negatif menunjukkan pembayaran yang tercatat masih di bawah modal.</p>
+        <p class="text-muted small">Selisih bersih = pembayaran tercatat − modal aktif − gaji dialokasikan. Filter bulan mengikuti tanggal pembagian gaji. Alokasi lama tanpa tanggal tampil di Semua periode.</p>
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
@@ -65,7 +69,8 @@
                         <th scope="col" class="text-right">Nilai Invoice (Bruto)</th>
                         <th scope="col" class="text-right">Modal Teralokasi</th>
                         <th scope="col" class="text-right">Pembayaran Tercatat</th>
-                        <th scope="col" class="text-right">Selisih</th>
+                        <th scope="col" class="text-right">Gaji</th>
+                        <th scope="col" class="text-right">Selisih bersih</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -76,17 +81,18 @@
                                     {{ $balance['invoice']->invoice_number }}
                                 </a>
                                 <small class="d-block text-muted">{{ $balance['invoice']->client?->name ?? 'Client' }}</small>
-                                <a class="btn btn-sm btn-outline-primary mt-1" href="{{ route('salary.show', $balance['invoice']) }}">Pembagian gaji</a>
+                                <a class="btn btn-sm btn-outline-primary mt-1" href="{{ route('salary.show', [$balance['invoice'], ...request()->only('month','invoice_id','invoice_page','page','per_page')]) }}">Pembagian gaji</a>
                             </td>
-                            <td class="text-right text-nowrap">Rp {{ number_format((float) $balance['invoice']->grand_total, 2, ',', '.') }}</td>
-                            <td class="text-right text-nowrap">Rp {{ number_format((float) $balance['capital'], 2, ',', '.') }}</td>
-                            <td class="text-right text-nowrap">Rp {{ number_format((float) $balance['payments'], 2, ',', '.') }}</td>
+                            <td class="text-right text-nowrap">Rp {{ number_format((float) $balance['invoice']->grand_total, 0, ',', '.') }}</td>
+                            <td class="text-right text-nowrap">Rp {{ number_format((float) $balance['capital'], 0, ',', '.') }}</td>
+                            <td class="text-right text-nowrap">Rp {{ number_format((float) $balance['payments'], 0, ',', '.') }}</td>
+                            <td class="text-right text-nowrap">Rp {{ number_format((float) $balance['salary'], 0, ',', '.') }}</td>
                             <td class="text-right text-nowrap font-weight-bold {{ $balance['difference'] < 0 ? 'text-danger' : '' }}">
-                                {{ $balance['difference'] < 0 ? '−' : '' }}Rp {{ number_format(abs((float) $balance['difference']), 2, ',', '.') }}
+                                {{ $balance['difference'] < 0 ? '−' : '' }}Rp {{ number_format(abs((float) $balance['difference']), 0, ',', '.') }}
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="text-center text-muted py-4">Belum ada invoice.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-4">Belum ada invoice.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -147,7 +153,7 @@
                                     <span class="text-muted">Modal umum</span>
                                 @endif
                             </td>
-                            <td class="text-right text-nowrap">Rp {{ number_format((float) $contribution->amount, 2, ',', '.') }}</td>
+                            <td class="text-right text-nowrap">Rp {{ number_format((float) $contribution->amount, 0, ',', '.') }}</td>
                             <td>
                                 @if($contribution->voided_at)
                                     <span class="badge badge-secondary">Dibatalkan</span>

@@ -33,6 +33,11 @@ class Project extends Model
         'late_fee_per_month' => 'decimal:2',
     ];
 
+    public function isComplete(): bool
+    {
+        return $this->status === 'completed' || $this->progress >= 100;
+    }
+
     public function client()
     {
         return $this->belongsTo(Client::class);

@@ -25,7 +25,7 @@
             <dt class="col-sm-4">Client</dt>
             <dd class="col-sm-8">{{ $agreement->client_name ?? $invoice->client->name }}</dd>
             <dt class="col-sm-4">Nilai Bruto Referensi</dt>
-            <dd class="col-sm-8">Rp {{ number_format((float) ($agreement->invoice_total ?? $invoice->grand_total), 2, ',', '.') }}</dd>
+            <dd class="col-sm-8">Rp {{ number_format((float) ($agreement->invoice_total ?? $invoice->grand_total), 0, ',', '.') }}</dd>
         </dl>
 
         @unless($agreement->exists)
@@ -81,7 +81,7 @@
                     <div class="form-group col-md-6">
                         <label for="mou-student-rate">Tarif per Siswa (Rp)</label>
                         <input type="number" name="details[fee_per_student]" id="mou-student-rate" class="form-control" min="1" max="1000000000"
-                               value="{{ old('details.fee_per_student', $agreement->details['fee_per_student'] ?? null) }}">
+                               value="{{ \App\Support\Rupiah::input(old('details.fee_per_student', $agreement->details['fee_per_student'] ?? null)) }}">
                     </div>
                 </div>
                 <p class="small text-muted">Isi kedua kolom untuk mencantumkan biaya CBT per periode, lalu cocokkan hasilnya dengan invoice sumber di PDF draf. Kosongkan keduanya jika tarif per siswa tidak berlaku.</p>
