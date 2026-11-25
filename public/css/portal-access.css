@@ -1,0 +1,85 @@
+@font-face {
+    font-family: "DM Sans";
+    src: url("../portal/dm-sans.woff2") format("woff2");
+    font-weight: 400 800;
+    font-style: normal;
+    font-display: swap;
+}
+:root {
+    color: #102c50;
+    background: #f9f8f4;
+    font: 100%/1.55 "DM Sans", system-ui, sans-serif;
+    font-synthesis: none;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+.access-wrap { width: min(92%, 1100px); margin-inline: auto; }
+.access-header { background: white; border-bottom: 1px solid #dbe2e9; }
+.access-header .access-wrap { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 68px; }
+.access-brand { display: inline-flex; gap: 9px; align-items: center; text-decoration: none; color: #102c50; font-weight: 800; }
+.access-brand img { object-fit: contain; }
+.access-link { color: #184baf; font-size: .9rem; font-weight: 670; text-underline-offset: 4px; }
+.access-shell {
+    display: grid;
+    grid-template-columns: minmax(0,.86fr) minmax(0,1.14fr);
+    margin-block: clamp(22px,5vw,64px);
+    border: 1px solid #dbe2e9;
+    border-radius: 17px;
+    overflow: hidden;
+    box-shadow: 0 26px 62px -44px #142b5a;
+    background: white;
+}
+.access-aside {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: clamp(23px, 4vw, 48px);
+    min-width: 0;
+    color: white;
+    background: radial-gradient(ellipse at 88% 0%, #255594, transparent 73%), #102b51;
+}
+.access-kicker { color: #c4e3ff; margin: 0 0 10px; font-weight: 720; font-size: .75rem; text-transform: uppercase; letter-spacing: .13em; }
+.access-aside h2, .access-content h1 { letter-spacing: -.052em; line-height: 1.08; margin: 0; }
+.access-aside h2 { font-size: clamp(1.65rem,4vw,3.15rem); }
+.access-aside > p:not(.access-kicker) { color: #dce8f8; }
+.access-art { display: block; width: 100%; aspect-ratio: 1.9; object-fit: cover; border-radius: 10px; margin: 2px 0 14px; }
+.access-account { border: 1px solid #ffffff40; border-radius: 9px; background: #0a244880; padding: 12px 15px; margin-top: 10px; overflow-wrap: anywhere; }
+.access-account span, .access-account strong { display: block; }
+.access-account span { color: #dce8f8; font-size: .81rem; }
+.access-content { padding: clamp(22px,4.4vw,52px); min-width: 0; }
+.access-content h1 { font-size: clamp(1.8rem,4vw,2.8rem); }
+.access-intro { color: #526478; margin: 9px 0 21px; }
+.school-options { display: grid; gap: 12px; }
+.school-option { padding: 16px 18px; border: 1px solid #d7e1ed; border-radius: 10px; background: #f8faff; }
+.school-option h2 { font-size: 1.1rem; margin: 0; overflow-wrap: anywhere; }
+.school-option p { margin: 6px 0 0; color: #455971; }
+.school-option dl { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: .87rem; margin: 8px 0 14px; }
+.school-option dt { color: #526478; }
+.school-option dd { margin: 0; font-weight: 670; overflow-wrap: anywhere; }
+.school-option button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    border: 0;
+    border-radius: 7px;
+    padding: 11px 14px;
+    background: #194db3;
+    color: white;
+    font: inherit;
+    font-weight: 680;
+    cursor: pointer;
+}
+.school-option button:hover { background: #153d8a; }
+.access-chevron { width: 7px; height: 7px; border: solid currentColor; border-width: 2px 2px 0 0; transform: rotate(45deg); }
+.access-back { margin: 19px 0 0; }
+a:focus-visible, button:focus-visible { outline: 3px solid #2776c6; outline-offset: 3px; }
+@media (max-width: 700px) {
+    .access-shell { grid-template-columns: 1fr; }
+    .access-aside h2 { font-size: 1.72rem; }
+    .access-aside > p:not(.access-kicker) { margin: 7px 0 12px; }
+    .access-account { margin-top: 0; }
+    .access-art { display: none; }
+    .access-header .access-link { font-size: .79rem; }
+}
