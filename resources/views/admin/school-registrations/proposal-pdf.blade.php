@@ -11,12 +11,47 @@ h1{font-size:17pt;margin:8pt 0}h2{font-size:11pt;color:#24446f;margin:8pt 0 3pt}
 <p>Kepada Yth. {{ $data['title'] }}<br><strong>{{ $data['school'] }}</strong></p>
 <p>Kami menawarkan layanan pengelolaan sekolah dan ujian berbasis komputer. Sekolah dapat memilih layanan sesuai kebutuhan operasional, jumlah bidang yang terlibat, dan agenda ujian.</p>
 <h2>Pilihan layanan dan harga penawaran</h2>
-<table class="prices"><thead><tr><th>Paket dan cakupan</th><th style="width:25%">Harga per {{ $data['period'] }}</th></tr></thead><tbody>
+<table class="prices"><thead><tr><th>Paket</th><th style="width:43%">Tarif dan dasar penghitungan</th></tr></thead><tbody>
 @foreach($packages as $key=>[$name,$description])
-<tr><td><strong>{{ $name }}</strong><br>{{ $description }}
-@if($key==='pilihan' && $modules)<br>Modul pilihan: {{ implode(', ', $modules) }}.@endif</td>
-<td>@if(isset($data['prices'][$key]))Rp {{ number_format((float)$data['prices'][$key],0,',','.') }}@else Rp __________ @endif</td></tr>
-@endforeach</tbody></table>
+@php
+    $basis = $data['cbt_basis'] ?? 'kesepakatan';
+    $price = $data['prices'][$key] ?? null;
+    $units = $data['cbt_units'] ?? null;
+    $formatRupiah = fn ($value) => 'Rp '.number_format($value, 0, ',', '.');
+@endphp
+<tr><td><strong>{{ $name }}</strong><br>{{ $description }}</td>
+<td>
+    @if($price !== null){{ $formatRupiah($price) }}<br>@endif
+    @if($key === 'cbt')
+        {{ $cbtBases[$basis] }}
+        @if($basis !== 'kesepakatan' && $units && $price !== null)
+            <br>{{ number_format($units, 0, ',', '.') }} {{ $basis }} × {{ $formatRupiah($price) }} = <strong>{{ $formatRupiah($units * $price) }}</strong>
+        @endif
+        @if(!empty($data['cbt_note']))<br>{{ $data['cbt_note'] }}@endif
+    @else
+        Per {{ $data['period'] }}
+    @endif
+    @if($price === null && ($key !== 'cbt' || $basis !== 'kesepakatan'))<br>Tarif akan disepakati bersama.@endif
+</td></tr>
+@endforeach
+</tbody></table>
+<h2>Cakupan paket</h2>
+@foreach($packages as $key=>[$name,$description])
+    <h2>{{ $name }}</h2>
+    @if($key !== 'portal')
+        <p><strong>Ujian CBT</strong></p>
+        <ul>@foreach($cbtDetails as $item)<li>{{ $item }}</li>@endforeach</ul>
+    @endif
+    @if(in_array($key, ['portal','lengkap','pilihan'], true))
+        @php($included = $key === 'pilihan' ? $selectedModules : $modules)
+        @if($included)
+            <ul>@foreach($included as $module=>$label)<li><strong>{{ $label }}.</strong> {{ $details[$module] }}</li>@endforeach</ul>
+        @else
+            <p>Modul pendamping akan dipilih dari daftar berikut sesuai kesepakatan.</p>
+            <ul>@foreach($modules as $module=>$label)<li><strong>{{ $label }}.</strong> {{ $details[$module] }}</li>@endforeach</ul>
+        @endif
+    @endif
+@endforeach
 <h2>Pelaksanaan</h2><p>Sekolah memilih paket dan menyampaikan NPSN serta kontak penanggung jawab. Setelah harga, modul, dan masa layanan disepakati, SIS memverifikasi pendaftaran dan mengaktifkan akses. Untuk paket CBT, kepala sekolah menyiapkan akun pengelola ujian melalui portal.</p>
 <h2>Konfirmasi penawaran</h2><p>Mohon sampaikan pilihan paket dan periode kepada tim SIS untuk penyusunan dokumen kerja sama dan invoice. Harga yang masih kosong diisi sebelum penawaran disetujui.</p>
 @include('pdf.signatures', [

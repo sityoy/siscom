@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\User;
+use App\Support\SchoolCbtPricing;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -29,6 +30,14 @@ class SchoolRegistrationController extends Controller
                     $query->selectRaw('1')->from('school_approvals')
                         ->whereColumn('school_approvals.portal_school_id', self::SCHOOLS.'.id');
                 })->orderByDesc('id')->paginate(15, ['id','name','code','contact','npsn','requested_package','requested_modules'], 'pending');
+            $registered = DB::table(self::SCHOOLS.' as s')
+                ->leftJoin('school_cbt_prices as p', 'p.portal_school_id', '=', 's.id')
+                ->whereNotNull('s.until_date')
+                ->when(request()->filled('cari'), function ($query) {
+                    $term = '%'.mb_substr((string) request()->string('cari'), 0, 80).'%';
+                    $query->where(fn ($q) => $q->where('s.name', 'like', $term)->orWhere('s.npsn', 'like', $term)->orWhere('s.code', 'like', $term));
+                })->orderBy('s.name')
+                ->paginate(15, ['s.id','s.name','s.npsn','s.code','s.active','s.until_date','s.modules','s.cbt_status','p.basis','p.amount','p.units','p.note'], 'registered');
             $history = DB::table('school_approvals as a')
                 ->leftJoin('users as u', 'u.id', '=', 'a.approved_by')
                 ->leftJoin(self::SCHOOLS.' as s', 's.id', '=', 'a.portal_school_id')
@@ -40,7 +49,7 @@ class SchoolRegistrationController extends Controller
         $clients = Client::orderBy('company')->orderBy('name')->get(['id','company','name','package_name','subscription_end']);
         return view('admin.school-registrations.index', [
             'users' => User::role('client')->orderBy('name')->get(['id','name','email']),
-            'pending' => $pending, 'history' => $history, 'clients' => $clients, 'modules' => self::MODULES,
+            'pending' => $pending, 'registered' => $registered, 'cbtBases' => SchoolCbtPricing::BASES, 'history' => $history, 'clients' => $clients, 'modules' => self::MODULES,
         ]);
     }
 
@@ -64,10 +73,44 @@ class SchoolRegistrationController extends Controller
                 throw ValidationException::withMessages(['code'=>'Periksa kode, NPSN dan masa aktif sekolah.']);
             }
             $modules = array_filter(explode(',', $school->modules));
-            $modules = array_unique(array_merge($modules, $data['modules']));
+            $added = array_diff($data['modules'], $modules);
+            if (!$added) return;
+            $modules = array_merge($modules, $added);
             DB::table(self::SCHOOLS)->where('id',$school->id)->update(['modules'=>implode(',', $modules)]);
         }, 3);
         return back()->with('success','Modul telah ditambahkan untuk sekolah '.strtoupper($code).'.');
+    }
+
+    public function updateServices(Request $request, int $school)
+    {
+        $data = $request->validate([
+            'current_modules' => 'nullable|string|max:255',
+            'modules' => 'nullable|array',
+            'modules.*' => ['required','distinct',Rule::in(array_keys(self::MODULES))],
+            'basis' => ['nullable',Rule::in(array_keys(SchoolCbtPricing::BASES))],
+            'amount' => 'nullable|required_with:basis,units,note|integer|min:0|max:9999999999999',
+            'units' => 'nullable|integer|min:1|max:100000',
+            'note' => 'nullable|string|max:500',
+        ]);
+        DB::transaction(function () use ($data, $school) {
+            $entry = DB::table(self::SCHOOLS)->where('id', $school)->lockForUpdate()->first();
+            abort_unless($entry && $entry->until_date, 404);
+            if (array_key_exists('current_modules',$data) && ($data['current_modules'] ?? '') !== $entry->modules) {
+                throw ValidationException::withMessages(['modules'=>'Daftar modul telah berubah. Muat ulang halaman sebelum menyimpan.']);
+            }
+            $known = array_keys(self::MODULES);
+            $modules = array_merge($data['modules'] ?? [], array_diff(array_filter(explode(',', $entry->modules)), $known));
+            DB::table(self::SCHOOLS)->where('id', $school)->update(['modules'=>implode(',', $modules)]);
+            if (in_array('cbt', $modules, true) && isset($data['amount'])) {
+                $basis = $data['basis'] ?? 'kesepakatan';
+                DB::table('school_cbt_prices')->updateOrInsert(['portal_school_id'=>$school], [
+                    'basis'=>$basis, 'amount'=>$data['amount'],
+                    'units'=>$basis === 'kesepakatan' ? null : ($data['units'] ?? null),
+                    'note'=>$data['note'] ?? null, 'updated_at'=>now(),
+                ]);
+            }
+        }, 3);
+        return back()->with('success', 'Layanan sekolah diperbarui.');
     }
 
     private function serviceRules(): array

@@ -72,11 +72,8 @@
                             </div>
                             <div class="relative">
                                 <input id="password" type="password" name="password" autocomplete="current-password" required
-                                       class="w-full rounded-xl border-slate-300 px-4 py-3.5 pr-14 text-slate-900 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                       class="w-full rounded-xl border-slate-300 px-4 py-3.5 text-slate-900 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                        placeholder="Masukkan password">
-                                <button type="button" data-password-toggle
-                                        class="absolute inset-y-0 right-0 px-4 text-xs font-bold text-slate-500 hover:text-blue-700"
-                                        aria-label="Tampilkan password">Lihat</button>
                             </div>
                             <x-input-error :messages="$errors->get('password')" class="mt-2" />
                         </div>
@@ -105,13 +102,4 @@
         </div>
     </main>
 
-    <script>
-        document.querySelector('[data-password-toggle]')?.addEventListener('click', function () {
-            const input = document.getElementById('password');
-            const visible = input.type === 'text';
-            input.type = visible ? 'password' : 'text';
-            this.textContent = visible ? 'Lihat' : 'Sembunyikan';
-            this.setAttribute('aria-label', visible ? 'Tampilkan password' : 'Sembunyikan password');
-        });
-    </script>
 </x-guest-layout>

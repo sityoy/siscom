@@ -35,5 +35,6 @@
                 {{ $slot }}
             </main>
         </div>
-    </body>
+    <script src="{{ asset('js/password-visibility.js') }}?v=1" defer></script>
+</body>
 </html>
