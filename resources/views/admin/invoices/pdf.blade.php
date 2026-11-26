@@ -175,6 +175,8 @@
         ['name' => 'BANK MANDIRI', 'number' => $company?->bank_mandiri, 'holder' => $company?->bank_mandiri_name],
         ['name' => 'BANK BCA', 'number' => $company?->bank_bca, 'holder' => $company?->bank_bca_name],
     ])->filter(fn (array $bank) => filled($bank['number']))->values();
+    $clientCompanyName = trim((string) $invoice->client->company);
+    $billToName = $clientCompanyName !== '' ? $clientCompanyName : $invoice->client->name;
     $schoolSignerName = $invoice->client->authorized_official_name;
     $schoolSignerTitleSource = $invoice->client->authorized_official_title
         ?: ($language === 'id' ? 'Kepala Sekolah' : 'Principal');
@@ -242,7 +244,7 @@
         <td>
             <div class="box">
                 <div class="section-title">{{ $labels['bill_to'] }}</div>
-                <strong>{{ $invoice->client->name }}</strong><br>
+                <strong>{{ $billToName }}</strong><br>
                 @if($invoice->client->address){{ $invoice->client->address }}<br>@endif
                 @if($invoice->client->email){{ $invoice->client->email }}@endif
             </div>
@@ -361,7 +363,7 @@
 @include('pdf.signatures', [
     'placeDate' => $city.', '.$formatDate($invoice->invoice_date ?? $invoice->created_at),
     'issuer' => [$labels['issued_by'], $directorTitle, $directorName, $companyName],
-    'recipient' => [$labels['approved_by'], $schoolSignerTitle, $schoolSignerName, $invoice->client->signatureCompanyName()],
+    'recipient' => [$labels['approved_by'], $schoolSignerTitle, $schoolSignerName, $clientCompanyName],
 ])
 
 <div class="footer">
