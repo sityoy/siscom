@@ -175,7 +175,6 @@
         ['name' => 'BANK MANDIRI', 'number' => $company?->bank_mandiri, 'holder' => $company?->bank_mandiri_name],
         ['name' => 'BANK BCA', 'number' => $company?->bank_bca, 'holder' => $company?->bank_bca_name],
     ])->filter(fn (array $bank) => filled($bank['number']))->values();
-    $clientCompanyName = filled($invoice->client->company) ? $invoice->client->company : $invoice->client->name;
     $schoolSignerName = $invoice->client->authorized_official_name;
     $schoolSignerTitleSource = $invoice->client->authorized_official_title
         ?: ($language === 'id' ? 'Kepala Sekolah' : 'Principal');
@@ -362,7 +361,7 @@
 @include('pdf.signatures', [
     'placeDate' => $city.', '.$formatDate($invoice->invoice_date ?? $invoice->created_at),
     'issuer' => [$labels['issued_by'], $directorTitle, $directorName, $companyName],
-    'recipient' => [$labels['approved_by'], $schoolSignerTitle, $schoolSignerName, $clientCompanyName],
+    'recipient' => [$labels['approved_by'], $schoolSignerTitle, $schoolSignerName, $invoice->client->signatureCompanyName()],
 ])
 
 <div class="footer">

@@ -24,6 +24,7 @@ class AgreementTest extends TestCase
             'director_name' => 'Penandatangan SIS', 'director_title' => 'Manager',
         ]);
         $invoice = $this->createInvoice();
+        $invoice->client->update(['company' => 'Yayasan Pengujian MoU']);
         $invoice->items()->create(['description' => 'Sewa platform ujian', 'qty' => 1, 'price' => 1250000, 'total' => 1250000]);
 
         $this->actingAs($admin)->get(route('agreements.create', $invoice))->assertOk()
@@ -36,6 +37,7 @@ class AgreementTest extends TestCase
         $this->assertSame('1250000.00', $agreement->invoice_total);
         $this->assertNull($agreement->finalized_at);
         $this->assertNull($agreement->number);
+        $this->assertSame('Yayasan Pengujian MoU', $agreement->signatureCompanyName());
 
         $this->get(route('invoices.index'))->assertOk()->assertSee('Lihat MoU');
         $this->get(route('agreements.create', $invoice))->assertRedirect($details);
@@ -49,18 +51,28 @@ class AgreementTest extends TestCase
 
         $this->put(route('agreements.update', $agreement), array_replace($this->terms(), ['scope' => 'Layanan revisi']))
             ->assertSessionHasNoErrors()->assertRedirect($details);
+        $invoice->client->update(['company' => 'Yayasan Saat Finalisasi']);
         $this->post(route('agreements.finalize', $agreement))->assertSessionHas('success')->assertRedirect($details);
         $this->assertNotNull($agreement->fresh()->finalized_at);
         $this->put(route('agreements.update', $agreement), $this->terms())->assertSessionHas('error')->assertRedirect($details);
 
         $invoice->update(['grand_total' => 9000000]);
         $company->update(['legal_name' => 'Nama Baru']);
+        $invoice->client->update(['company' => 'Yayasan Setelah Finalisasi']);
         $invoice->delete();
         $agreement->refresh();
         $this->assertNull($agreement->invoice_id);
         $this->assertSame('1250000.00', $agreement->invoice_total);
         $this->assertSame('PT SITYOY IT SOLUTIONS', $agreement->letterhead['legal_name']);
         $this->assertSame('Layanan revisi', $agreement->scope);
+        $this->assertSame('Yayasan Saat Finalisasi', $agreement->client_signature_company);
+        $html = view('admin.agreements.pdf', [
+            'agreement' => $agreement,
+            'company' => (object) $agreement->letterhead,
+            'logoPath' => public_path('logo/siscombg2.png'),
+        ])->render();
+        $this->assertMatchesRegularExpression('~<strong>Kepala Sekolah</strong><br>\s+Yayasan Saat Finalisasi\s*</td>~', $html);
+        $this->assertStringContainsString('<strong style="text-decoration:underline">Penandatangan Sekolah</strong>', $html);
         $this->get($details)->assertOk()->assertSee('INV-MOU-TEST')->assertDontSee('Simpan Draf');
         $this->assertSame('0001/MOU/SIS/'.$agreement->finalized_at->year, $agreement->number);
         $this->get($pdfRoute)->assertOk()->assertDownload('MoU-'.str_replace('/', '-', $agreement->number).'.pdf');

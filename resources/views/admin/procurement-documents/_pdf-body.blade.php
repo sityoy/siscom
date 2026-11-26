@@ -162,5 +162,5 @@
 @include('pdf.signatures', [
     'placeDate' => ($company?->city ?: 'Tangerang').', '.$document->document_date->locale('id')->translatedFormat('d F Y'),
     'issuer' => ['Dibuat oleh,', $providerSignerTitle, $document->provider_signer_name ?: $company?->director_name, $providerName],
-    'recipient' => ['Disetujui oleh,', $schoolSignerTitle, $document->school_signer_name, $client->name],
+    'recipient' => ['Disetujui oleh,', $schoolSignerTitle, $document->school_signer_name, $client->signatureCompanyName()],
 ])

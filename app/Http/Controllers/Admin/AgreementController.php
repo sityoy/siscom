@@ -167,6 +167,7 @@ class AgreementController extends Controller
             $agreement->forceFill([
                 'official_number' => sprintf('%04d/MOU/SIS/%04d', $sequence->value('last_number'), $finalizedAt->year),
                 'finalized_at' => $finalizedAt,
+                'client_signature_company' => $agreement->signatureCompanyName(),
             ])->saveOrFail();
 
             return true;
