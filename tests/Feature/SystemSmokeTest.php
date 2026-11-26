@@ -419,6 +419,9 @@ class SystemSmokeTest extends TestCase
         $this->assertStringContainsString('<strong>Director</strong>', $englishHtml);
         $this->assertStringContainsString('Issued by,', $englishHtml);
         $this->assertStringContainsString('Approved by,', $englishHtml);
+        $this->assertMatchesRegularExpression('~<strong>Kepala Sekolah</strong><br>\s+Yayasan Pengujian\s*</td>~', $indonesianHtml);
+        $this->assertMatchesRegularExpression('~<strong>Principal</strong><br>\s+Yayasan Pengujian\s*</td>~', $englishHtml);
+        $this->assertStringContainsString('<strong style="text-decoration:underline">Kepala Sekolah Pengujian</strong>', $englishHtml);
 
         $issuedByPosition = strpos($englishHtml, 'Issued by,');
         $approvedByPosition = strpos($englishHtml, 'Approved by,');
@@ -426,6 +429,15 @@ class SystemSmokeTest extends TestCase
         $this->assertIsInt($issuedByPosition);
         $this->assertIsInt($approvedByPosition);
         $this->assertLessThan($approvedByPosition, $issuedByPosition);
+
+        $invoice->client->company = null;
+        $fallbackHtml = view('admin.invoices.pdf', [
+            'invoice' => $invoice,
+            'company' => $company,
+            'language' => 'en',
+        ])->render();
+
+        $this->assertMatchesRegularExpression('~<strong>Principal</strong><br>\s+SMK Pengujian SIS\.COM\s*</td>~', $fallbackHtml);
     }
 
     public function test_common_company_and_school_job_titles_are_translated(): void
