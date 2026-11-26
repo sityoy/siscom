@@ -361,7 +361,7 @@
 @include('pdf.signatures', [
     'placeDate' => $city.', '.$formatDate($invoice->invoice_date ?? $invoice->created_at),
     'issuer' => [$labels['issued_by'], $directorTitle, $directorName, $companyName],
-    'recipient' => [$labels['approved_by'], $schoolSignerTitle, $schoolSignerName, $invoice->client->name],
+    'recipient' => [$labels['approved_by'], $schoolSignerTitle, $schoolSignerName, $invoice->client->signatureCompanyName()],
 ])
 
 <div class="footer">

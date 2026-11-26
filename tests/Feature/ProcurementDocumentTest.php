@@ -77,6 +77,7 @@ class ProcurementDocumentTest extends TestCase
     {
         [$admin, $project] = $this->createAdminAndProject();
         $project->client->update([
+            'company' => 'Yayasan Pengujian SPJ',
             'authorized_official_name' => 'Drs. Kepala Sekolah',
             'authorized_official_title' => 'Kepala Sekolah',
         ]);
@@ -93,6 +94,9 @@ class ProcurementDocumentTest extends TestCase
         $document = ProcurementDocument::firstOrFail();
         $this->assertSame('Drs. Kepala Sekolah', $document->school_signer_name);
         $this->assertSame('Kepala Sekolah', $document->school_signer_title);
+        $html = view('admin.procurement-documents._pdf-body', ['document' => $document, 'company' => null])->render();
+        $this->assertMatchesRegularExpression('~<strong>Kepala Sekolah</strong><br>\s+Yayasan Pengujian SPJ\s*</td>~', $html);
+        $this->assertStringContainsString('<strong style="text-decoration:underline">Drs. Kepala Sekolah</strong>', $html);
     }
 
     public function test_document_numbers_restart_after_the_spj_package_is_deleted(): void

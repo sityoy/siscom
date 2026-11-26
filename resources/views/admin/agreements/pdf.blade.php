@@ -67,7 +67,7 @@
     @include('pdf.signatures', [
     'placeDate' => $agreement->city.', '.$agreement->document_date->locale('id')->translatedFormat('d F Y'),
     'issuer' => ['Pihak Pertama,', $agreement->provider_title, $agreement->provider_signer, $agreement->provider_name],
-    'recipient' => ['Pihak Kedua,', $agreement->client_title, $agreement->client_signer, $agreement->client_name],
+    'recipient' => ['Pihak Kedua,', $agreement->client_title, $agreement->client_signer, $agreement->signatureCompanyName()],
 ])
 </body>
 </html>

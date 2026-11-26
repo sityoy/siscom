@@ -72,6 +72,11 @@ class Client extends Model
             return $this->hasMany(Ticket::class);
         }
 
+    public function signatureCompanyName(?string $fallback = null): string
+    {
+        return filled($this->company) ? $this->company : ($fallback ?? $this->name);
+    }
+
     public function getWhatsappNumbersAttribute(): array
     {
         return collect([

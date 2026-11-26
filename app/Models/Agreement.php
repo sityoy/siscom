@@ -38,6 +38,18 @@ class Agreement extends Model
         return $this->belongsTo(Invoice::class);
     }
 
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    public function signatureCompanyName(): string
+    {
+        return $this->client_signature_company
+            ?? $this->client?->signatureCompanyName($this->client_name)
+            ?? $this->client_name;
+    }
+
     public function scopeVisibleToClient(Builder $query, int $clientId): Builder
     {
         return $query->where('client_id', $clientId)->whereNotNull('finalized_at');
