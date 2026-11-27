@@ -336,7 +336,7 @@ class SystemSmokeTest extends TestCase
         $this->assertSame(995000.0, $invoice->net_receivable);
 
         $create = route('payments.create', ['invoice_id' => $invoice->id]);
-        $this->get(route('invoices.index'))->assertOk()->assertSee('Invoice baru siap menerima pembayaran.')->assertSee($create);
+        $this->get(route('invoices.index'))->assertOk()->assertSee('Catat pembayaran untuk invoice yang baru dibuat.')->assertSee($create);
         $this->get(route('invoices.edit', $invoice))->assertOk()->assertSee('Tambah Pembayaran')->assertSee($create);
         $html = $this->get($create)->assertOk()->assertSee('Tanpa proyek')->getContent();
         $this->assertMatchesRegularExpression('~<option value="'.$invoice->id.'"[^>]*\bselected\b~s', $html);
@@ -385,8 +385,8 @@ class SystemSmokeTest extends TestCase
         ];
         $this->post(route('invoices.store'), array_replace($data, ['price' => [0]]))
             ->assertSessionHasErrors(['continue_to_payment' => 'Tidak ada sisa tagihan.']);
-        $this->post(route('invoices.store'), array_replace($data, ['status' => 'paid']))
-            ->assertSessionHasErrors(['continue_to_payment' => 'Invoice sudah lunas.']);
+        $this->post(route('invoices.store'), array_replace($data, ['status' => 'cancelled']))
+            ->assertSessionHasErrors(['continue_to_payment' => 'Invoice dibatalkan.']);
         $this->assertDatabaseMissing('invoices', ['invoice_number' => $data['invoice_number']]);
 
         $response = $this->post(route('invoices.store'), $data);
@@ -396,6 +396,65 @@ class SystemSmokeTest extends TestCase
         $response->assertRedirect($create);
         $html = $this->get($create)->assertOk()->assertSee('Tambah Pembayaran')->assertSee('Tanpa proyek')->getContent();
         $this->assertMatchesRegularExpression('~<option value="'.$invoice->id.'"[^>]*\bselected\b~s', $html);
+    }
+
+    public function test_paid_manual_invoice_can_record_received_settlement_once(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 27));
+        $data = [
+            'client_id' => $this->client->id,
+            'invoice_type' => 'general',
+            'invoice_number' => 'INV-MANUAL-LUNAS',
+            'invoice_date' => '2026-11-27',
+            'due_date' => '2026-11-28',
+            'status' => 'paid',
+            'continue_to_payment' => 1,
+            'income_tax_withheld' => 1,
+            'late_fee_active' => 1,
+            'late_fee_per_month' => 100000,
+            'description' => ['Barang'],
+            'qty' => [1],
+            'item_type' => ['goods'],
+            'unit' => ['Pcs'],
+            'price' => [140704],
+        ];
+        $response = $this->actingAs($this->admin)->post(route('invoices.store'), $data);
+        $invoice = Invoice::where('invoice_number', 'INV-MANUAL-LUNAS')->sole();
+        $paidAt = $invoice->paid_at->toDateString();
+        $this->assertSame(140000.48, round($invoice->net_receivable, 2));
+        $create = route('payments.create', ['invoice_id' => $invoice->id]);
+        $response->assertRedirect($create);
+
+        $this->get(route('invoices.index'))->assertOk()->assertSee('Catat Pelunasan')->assertSee($create);
+        $this->get(route('invoices.edit', $invoice))->assertOk()->assertSee('Catat Pelunasan');
+        $this->get(route('payments.create'))->assertOk()->assertSee('Lunas, pembayaran belum tercatat');
+        $this->get($create)->assertOk()->assertSee('Saya sudah menerima pembayaran sebesar tagihan bersih.');
+
+        $form = ['invoice_id' => $invoice->id, 'payment_date' => '2026-11-27', 'amount' => '140.000'];
+        $this->from($create)->post(route('payments.store'), $form)->assertSessionHasErrors('confirm_received');
+        $form += ['confirm_received' => 1];
+        $this->post(route('payments.store'), array_replace($form, ['amount' => '139.999']))
+            ->assertSessionHasErrors('amount');
+        $this->assertSame(0, $invoice->payments()->count());
+
+        $this->post(route('payments.store'), $form)->assertRedirect(route('payments.index'));
+        $payment = $invoice->payments()->sole();
+        $this->assertTrue($payment->recorded_settlement);
+        $this->assertEquals(140000, $payment->amount);
+        $this->assertSame('paid', $invoice->fresh()->status);
+        $this->get(route('payments.receipt', $payment))->assertOk();
+        $this->get(route('payments.create'))->assertOk()->assertDontSee('INV-MANUAL-LUNAS');
+        $this->post(route('payments.store'), $form)->assertSessionHasErrors('invoice_id');
+        $this->assertSame(1, $invoice->payments()->count());
+
+        unset($form['confirm_received']);
+        $this->put(route('payments.update', $payment), array_replace($form, ['invoice_id' => $this->invoice->id]))
+            ->assertSessionHasErrors('invoice_id');
+        $this->put(route('payments.update', $payment), array_replace($form, ['payment_date' => '2026-11-29']))
+            ->assertRedirect(route('payments.index'));
+        $this->assertSame('paid', $invoice->fresh()->status);
+        $this->assertSame($paidAt, $invoice->fresh()->paid_at->toDateString());
+        $this->assertEquals(140000, $payment->fresh()->amount);
     }
 
     public function test_cancelled_invoices_reject_new_payments_and_keep_their_status(): void

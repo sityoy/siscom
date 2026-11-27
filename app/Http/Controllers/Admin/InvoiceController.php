@@ -27,7 +27,7 @@ class InvoiceController extends Controller
         'client',
         'project',
         'items',
-    ])->withExists('agreement')->withSum('payments as amount_paid', 'amount');
+    ])->withExists(['agreement', 'payments'])->withSum('payments as amount_paid', 'amount');
 
     if ($request->type) {
 
@@ -295,7 +295,8 @@ class InvoiceController extends Controller
 
         $continueToPayment = $request->boolean('continue_to_payment');
         $paymentBlock = $invoice->paymentBlockReason(0);
-        if ($continueToPayment && $paymentBlock) {
+        $hasPaymentAction = $paymentBlock === null || $invoice->canRecordUnloggedSettlement();
+        if ($continueToPayment && ! $hasPaymentAction) {
             throw ValidationException::withMessages(['continue_to_payment' => $paymentBlock]);
         }
 
@@ -401,7 +402,7 @@ class InvoiceController extends Controller
 
         return to_route('invoices.index')
             ->with('success', 'Invoice berhasil dibuat')
-            ->with('new_invoice_payment_id', $paymentBlock ? null : $invoice->id);
+            ->with('new_invoice_payment_id', $hasPaymentAction ? $invoice->id : null);
     }
 
     public function edit(Invoice $invoice)
@@ -412,6 +413,7 @@ class InvoiceController extends Controller
 
         $projects = Project::withCount('invoices')->get();
         $paymentBlock = $invoice->paymentBlockReason($invoice->recordedPaymentsTotal());
+        $recordSettlement = $invoice->canRecordUnloggedSettlement();
 
         return view(
             'admin.invoices.edit',
@@ -420,7 +422,8 @@ class InvoiceController extends Controller
                 'clients',
                 'projects',
                 'company',
-                'paymentBlock'
+                'paymentBlock',
+                'recordSettlement'
             )
         );
     }

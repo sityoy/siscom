@@ -135,9 +135,13 @@
                             <div class="d-flex flex-column gap-2">
                                 @if($adminView)
                                     @php($paymentBlock = $invoice->paymentBlockReason($invoice->recordedPaymentsTotal()))
-                                    @if($paymentBlock === null)
+                                    @php($recordSettlement = $invoice->canRecordUnloggedSettlement())
+                                    @if($paymentBlock === null || $recordSettlement)
                                         <a class="btn btn-primary btn-sm rounded-pill mb-1"
-                                           href="{{ route('payments.create', ['invoice_id' => $invoice->id]) }}">Tambah Pembayaran</a>
+                                           href="{{ route('payments.create', ['invoice_id' => $invoice->id]) }}">{{ $recordSettlement ? 'Catat Pelunasan' : 'Tambah Pembayaran' }}</a>
+                                        @if($recordSettlement)
+                                            <small class="text-muted mb-1">Pembayaran belum tercatat.</small>
+                                        @endif
                                     @else
                                         <small class="text-muted mb-1">{{ $paymentBlock }}</small>
                                     @endif

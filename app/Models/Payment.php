@@ -20,7 +20,11 @@ class Payment extends Model
 
         'notes',
 
+        'recorded_settlement',
+
     ];
+
+    protected $casts = ['recorded_settlement' => 'boolean'];
 
     public function invoice()
     {
