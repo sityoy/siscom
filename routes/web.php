@@ -10,6 +10,7 @@ use App\Http\Controllers\Client\TicketController as ClientTicketController;
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Client\NotificationController as ClientNotificationController;
 use App\Http\Controllers\Admin\CompanySettingController;
+use App\Http\Controllers\Admin\PaymentBankAccountController;
 use App\Http\Controllers\Admin\CapitalContributionController;
 use App\Http\Controllers\Admin\AgreementController;
 use App\Http\Controllers\Admin\SchoolRegistrationController;
@@ -326,6 +327,13 @@ Route::prefix('admin')
             '/settings',
             [CompanySettingController::class, 'update']
         )->name('settings.update');
+
+        Route::post('/settings/bank-accounts', [PaymentBankAccountController::class, 'store'])
+            ->name('settings.bank-accounts.store');
+        Route::put('/settings/bank-accounts/{bankAccount}', [PaymentBankAccountController::class, 'update'])
+            ->name('settings.bank-accounts.update');
+        Route::patch('/settings/bank-accounts/{bankAccount}/status', [PaymentBankAccountController::class, 'setStatus'])
+            ->name('settings.bank-accounts.status');
 
         // Tickets
         Route::get(

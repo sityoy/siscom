@@ -15,6 +15,7 @@ use App\Models\Project;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Models\User;
+use App\Services\InvoiceReminderMessageService;
 use App\Support\JobTitleTranslator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -467,6 +468,70 @@ class SystemSmokeTest extends TestCase
         $this->assertMatchesRegularExpression('~BILL TO</div>\s+<strong>SMK Pengujian SIS\.COM</strong>~', $fallbackHtml);
         $this->assertMatchesRegularExpression('~<strong>Principal</strong>\s*<br>\s*<div class="signature-space">~', $fallbackHtml);
         $this->assertStringContainsString('<span class="signer-name">Kepala Sekolah Pengujian</span>', $fallbackHtml);
+    }
+
+    public function test_payment_instructions_follow_bank_account_status(): void
+    {
+        $company = CompanySetting::firstOrFail();
+        $invoice = $this->invoice;
+        $pdf = fn () => view('admin.invoices.pdf', ['invoice' => $invoice, 'company' => $company->fresh()])->render();
+        $message = fn () => app(InvoiceReminderMessageService::class)->build($invoice, 'https://example.test/invoice');
+        $data = [
+            'bank_name' => 'Bank Pembayaran',
+            'account_number' => '000-321-001',
+            'account_holder' => 'Pemilik Rekening Uji',
+        ];
+        $this->actingAs($this->admin)->post(route('settings.bank-accounts.store'), $data)
+            ->assertSessionHas('success');
+        $account = $company->bankAccounts()->sole();
+        $this->assertTrue($account->is_active);
+        $this->get(route('settings.index'))->assertOk()->assertSee($data['account_number'])->assertSee('Nonaktifkan');
+        $this->post(route('settings.bank-accounts.store'), $data)->assertSessionHasErrorsIn('bankAccount', 'account_number');
+        $this->assertSame(1, $company->bankAccounts()->count());
+        $this->assertStringContainsString('<table class="banks">', $pdf());
+        $this->assertStringContainsString($data['account_number'], $pdf());
+        $this->assertStringContainsString('Bank Pembayaran: 000-321-001 (a/n Pemilik Rekening Uji)', $message());
+
+        $status = route('settings.bank-accounts.status', $account);
+        $this->actingAs($this->clientUser)->patch($status, ['is_active' => 0])->assertForbidden();
+        $this->actingAs($this->admin)->patch($status, ['is_active' => 0])->assertSessionHas('success');
+        $this->assertFalse($account->refresh()->is_active);
+        $this->get(route('settings.index'))->assertOk()->assertSee($data['account_number'])->assertSee('Aktifkan kembali');
+        $this->assertStringNotContainsString($data['account_number'], $pdf());
+        $this->assertStringNotContainsString($data['account_number'], $message());
+        $this->assertStringContainsString('Silakan hubungi admin untuk informasi rekening.', $message());
+
+        $data['account_holder'] = 'Pemilik Baru';
+        $this->put(route('settings.bank-accounts.update', $account), $data)->assertSessionHas('success');
+        $this->assertFalse($account->refresh()->is_active);
+        $this->patch($status, ['is_active' => 1])->assertSessionHas('success');
+        $this->assertStringContainsString('Pemilik Baru', $pdf());
+        $this->assertStringContainsString('000-321-001 (a/n Pemilik Baru)', $message());
+    }
+
+    public function test_migrating_legacy_bank_accounts_keeps_numbers_and_status_on_retry(): void
+    {
+        $company = CompanySetting::firstOrFail();
+        DB::table('company_settings')->where('id', $company->id)->update([
+            'bank_jakarta' => '001-22-001',
+            'bank_jakarta_name' => 'Pemilik Rekening Lama',
+            'bank_mandiri' => '001-33-002',
+            'bank_bca' => '',
+        ]);
+
+        $migration = require database_path('migrations/2026_11_27_000018_create_payment_bank_accounts_table.php');
+        $migration->down();
+        $migration->up();
+
+        $accounts = $company->bankAccounts()->get();
+        $this->assertSame(['001-22-001', '001-33-002'], $accounts->pluck('account_number')->all());
+        $this->assertSame('Pemilik Rekening Lama', $accounts->first()->account_holder);
+        $this->assertTrue($accounts->first()->is_active);
+        $accounts->first()->update(['is_active' => false]);
+
+        $migration->up();
+        $this->assertSame(2, $company->bankAccounts()->count());
+        $this->assertSame(['001-33-002'], $company->activeBankAccounts()->pluck('account_number')->all());
     }
 
     public function test_invoice_signature_can_be_enabled_per_invoice(): void

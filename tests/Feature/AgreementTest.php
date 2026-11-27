@@ -197,13 +197,20 @@ class AgreementTest extends TestCase
         $otherClient = Client::create(['name' => 'Sekolah Lain', 'user_id' => $other->id]);
         $invoice = $this->createInvoice();
         $invoice->client->update(['user_id' => $owner->id]);
-        CompanySetting::create([
+        $company = CompanySetting::create([
             'company_name' => 'SIS.COM', 'legal_name' => 'PT SITYOY IT SOLUTIONS',
-            'bank_jakarta' => '000-TEST-001', 'bank_jakarta_name' => 'PT SITYOY IT SOLUTIONS',
+        ]);
+        $company->bankAccounts()->create([
+            'bank_name' => 'Bank Jakarta', 'account_number' => '000-TEST-099',
+            'account_holder' => $company->legal_name, 'is_active' => false,
+        ]);
+        $company->bankAccounts()->create([
+            'bank_name' => 'Bank Mandiri', 'account_number' => '000-TEST-001', 'account_holder' => $company->legal_name,
         ]);
 
         $this->actingAs($admin)->get(route('agreements.create', ['invoice' => $invoice, 'template' => 'cbt']))
-            ->assertOk()->assertSee('15000')->assertSee('Hak dan Kewajiban Pihak Pertama')->assertSee('000-TEST-001');
+            ->assertOk()->assertSee('15000')->assertSee('Hak dan Kewajiban Pihak Pertama')
+            ->assertSee('Bank Mandiri')->assertSee('000-TEST-001')->assertDontSee('000-TEST-099');
 
         $terms = $this->terms() + ['details' => ['fee_per_student' => 15000]];
         $this->from(route('agreements.create', $invoice))->post(route('agreements.store', $invoice), $terms)
