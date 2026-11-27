@@ -95,7 +95,7 @@
 
                     <div class="mt-8 border-t border-slate-200 pt-6 text-center text-xs text-slate-500">
                         <p class="font-semibold text-slate-700">siscom.sityoyitsolutions.com</p>
-                        <p class="mt-1">&copy; {{ now()->year }} PT Sityoy IT Solutions &bull; Upgrade Your System</p>
+                        <p class="mt-1">Dikembangkan oleh PT SITYOY IT SOLUTIONS</p>
                     </div>
                 </div>
             </section>

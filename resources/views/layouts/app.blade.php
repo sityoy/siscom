@@ -2,6 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
+        <meta name="author" content="PT SITYOY IT SOLUTIONS">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
@@ -34,6 +35,10 @@
             <main>
                 {{ $slot }}
             </main>
+
+            <footer class="px-4 py-4 text-center text-sm text-gray-600">
+                Dikembangkan oleh PT SITYOY IT SOLUTIONS
+            </footer>
         </div>
     <script src="{{ asset('js/password-visibility.js') }}?v=1" defer></script>
 </body>
