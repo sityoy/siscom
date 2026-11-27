@@ -58,6 +58,7 @@ public function index(Request $request)
             Rule::exists('users', 'id'),
             Rule::unique('clients', 'user_id'),
         ],
+        'company' => 'nullable|string|max:255',
         'phone' => [
             'nullable',
             'string',
@@ -166,6 +167,7 @@ public function index(Request $request)
                 Rule::exists('users', 'id'),
                 Rule::unique('clients', 'user_id')->ignore($client->id),
             ],
+            'company' => 'nullable|string|max:255',
             'phone' => [
                 'nullable',
                 'string',

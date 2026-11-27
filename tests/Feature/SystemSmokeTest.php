@@ -232,6 +232,30 @@ class SystemSmokeTest extends TestCase
         $this->assertRoutesDoNotReturnServerErrors($routes);
     }
 
+    public function test_client_company_name_matches_the_length_supported_by_documents(): void
+    {
+        $this->actingAs($this->admin);
+        $newUser = User::factory()->create();
+        $company = 'Yayasan Pengujian Dokumen';
+        $longCompany = str_repeat('a', 256);
+
+        $this->post(route('clients.store'), ['user_id' => $newUser->id, 'company' => $longCompany])
+            ->assertSessionHasErrors('company');
+        $this->assertDatabaseMissing('clients', ['user_id' => $newUser->id]);
+
+        $this->put(route('clients.update', $this->client), [
+            'user_id' => $this->clientUser->id,
+            'company' => $longCompany,
+        ])->assertSessionHasErrors('company');
+        $this->assertSame('Yayasan Pengujian', $this->client->fresh()->company);
+
+        $this->put(route('clients.update', $this->client), [
+            'user_id' => $this->clientUser->id,
+            'company' => $company,
+        ])->assertSessionHasNoErrors();
+        $this->assertSame($company, $this->client->fresh()->company);
+    }
+
     public function test_all_primary_client_pages_have_no_server_error(): void
     {
         $this->actingAs($this->clientUser);
