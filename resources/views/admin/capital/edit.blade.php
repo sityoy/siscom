@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('page-title', 'Edit Setoran Modal')
+@section('page-title', 'Edit Pengeluaran Modal')
 
 @section('admin-content')
 <div class="card">

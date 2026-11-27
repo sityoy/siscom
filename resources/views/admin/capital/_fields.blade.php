@@ -1,17 +1,17 @@
 <div class="form-row">
     <div class="form-group col-md-3">
-        <label for="capital-date">Tanggal Setoran</label>
+        <label for="capital-date">Tanggal Pengeluaran</label>
         <input type="date" id="capital-date" name="contribution_date" class="form-control"
                max="{{ today()->toDateString() }}"
                value="{{ old('contribution_date', $contribution?->contribution_date->toDateString() ?? today()->toDateString()) }}" required>
     </div>
     <div class="form-group col-md-5">
-        <label for="capital-source">Sumber Setoran</label>
+        <label for="capital-source">Keperluan Pengeluaran</label>
         <input type="text" id="capital-source" name="source" class="form-control" maxlength="120"
-               value="{{ old('source', $contribution?->source) }}" placeholder="Nama pemilik atau sumber setoran" required>
+               value="{{ old('source', $contribution?->source) }}" placeholder="Pembelian perlengkapan" required>
     </div>
     <div class="form-group col-md-4">
-        <label for="capital-amount">Nominal Setoran (Rp)</label>
+        <label for="capital-amount">Nominal Pengeluaran (Rp)</label>
         <input type="text" id="capital-amount" name="amount" inputmode="decimal" class="form-control" maxlength="24"
                value="{{ old('amount', \App\Support\Rupiah::input($contribution?->amount)) }}"
                placeholder="1.500.000" required>
@@ -36,10 +36,10 @@
         <input id="capital-invoice" type="text" class="form-control" readonly
                value="{{ $contribution->invoice?->invoice_number ?? $contribution->invoice_reference }}{{ $contribution->invoice_id ? '' : ' (invoice dihapus)' }}"
                aria-describedby="capital-invoice-help">
-        <small id="capital-invoice-help" class="form-text text-muted">Untuk mengganti invoice, batalkan setoran ini lalu catat setoran baru.</small>
+        <small id="capital-invoice-help" class="form-text text-muted">Untuk mengganti invoice, batalkan pengeluaran ini lalu catat ulang.</small>
     @else
         <select id="capital-invoice" name="invoice_id" class="custom-select" aria-describedby="capital-invoice-help">
-            <option value="">Modal umum — tanpa invoice</option>
+            <option value="">Pengeluaran umum — tanpa invoice</option>
             @foreach($invoices as $invoice)
                 <option value="{{ $invoice->id }}"
                         @disabled($invoice->has_active_capital)
@@ -48,7 +48,7 @@
                 </option>
             @endforeach
         </select>
-        <small id="capital-invoice-help" class="form-text text-muted">Satu setoran aktif per invoice. Perbarui nominal melalui Edit, atau batalkan setoran untuk mencatatnya kembali.</small>
+        <small id="capital-invoice-help" class="form-text text-muted">Satu catatan pengeluaran aktif per invoice. Gunakan Edit untuk memperbarui totalnya.</small>
     @endif
 </div>
 <div class="form-group">

@@ -5,9 +5,9 @@
 <div class="card"><div class="card-body">
 <a class="btn btn-outline-secondary mb-3" href="{{ route('capital.index', request()->only('month','invoice_id','invoice_page','page','per_page')) }}"><i class="fas fa-arrow-left mr-1"></i> Kembali ke Modal Usaha</a>
 <h2 class="h4 mt-3">Pembagian gaji · {{ $invoice->invoice_number }}</h2>
-<p>Alokasi dihitung dari seluruh pembayaran yang diterima sampai hari ini dikurangi modal aktif invoice. Persentase mengikuti perubahan laba. Nominal tetap mengikuti nilai yang Anda masukkan.</p>
-<dl><dt>Pembayaran diterima</dt><dd>{{ $rp($payments) }}</dd><dt>Modal dialokasikan</dt><dd>{{ $rp($capital) }}</dd><dt>Laba sebelum pembagian</dt><dd>{{ $rp($profit) }}</dd><dt>Sisa untuk dibagikan</dt><dd>{{ $rp($remaining) }}</dd></dl>
-@if($remaining->isNegative())<p class="alert alert-warning">Pembayaran atau modal telah berubah. Sesuaikan alokasi untuk menutup kekurangan.</p>@endif
+<p>Alokasi dihitung dari seluruh pembayaran yang diterima sampai hari ini dikurangi modal terpakai pada invoice. Persentase mengikuti perubahan laba. Nominal tetap mengikuti nilai yang Anda masukkan.</p>
+<dl><dt>Pembayaran diterima</dt><dd>{{ $rp($payments) }}</dd><dt>Modal terpakai</dt><dd>{{ $rp($capital) }}</dd><dt>Laba sebelum pembagian</dt><dd>{{ $rp($profit) }}</dd><dt>Sisa untuk dibagikan</dt><dd>{{ $rp($remaining) }}</dd></dl>
+@if($remaining->isNegative())<p class="alert alert-warning">Pembayaran atau pengeluaran modal telah berubah. Sesuaikan alokasi untuk menutup kekurangan.</p>@endif
 <div class="table-responsive"><table class="table"><thead><tr><th>Tanggal</th><th>Penerima</th><th>Dasar pembagian</th><th>Alokasi gaji</th><th></th></tr></thead><tbody>
 @forelse($rows as $row)<tr><td>{{ $row->allocated_on ?? 'Belum tercatat' }}</td><td>{{ $row->recipient }}</td><td>{{ $row->mode === 'percent' ? $row->value.'%' : 'Nominal tetap' }}</td><td>{{ $rp($row->amount) }}</td><td><form action="{{ route('salary.destroy', [$invoice,$row->id]) }}" method="post">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Hapus alokasi</button></form></td></tr>
 @empty<tr><td colspan="5">Belum ada alokasi gaji.</td></tr>@endforelse
