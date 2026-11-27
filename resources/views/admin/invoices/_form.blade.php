@@ -74,7 +74,16 @@
                 <h4 class="font-weight-bold mb-1">{{ $isEdit ? 'Edit Invoice' : 'Buat Invoice Baru' }}</h4>
                 <small class="text-muted">Pilih jenis invoice agar rincian barang, SPJ, atau periode jasa ditampilkan dengan benar.</small>
             </div>
-            <span class="badge badge-primary p-2" id="invoice-type-badge"></span>
+            <div>
+                <span class="badge badge-primary p-2" id="invoice-type-badge"></span>
+                @if($isEdit && $paymentBlock === null)
+                    <a class="btn btn-primary btn-sm ml-1" href="{{ route('payments.create', ['invoice_id' => $invoice->id]) }}">
+                        Tambah Pembayaran
+                    </a>
+                @elseif($isEdit)
+                    <span class="small text-muted ml-1">{{ $paymentBlock }}</span>
+                @endif
+            </div>
         </div>
         <div class="card-body">
             <div class="row">
@@ -277,8 +286,8 @@
                         </div>
                         <div class="col-md-4 mb-3"><label>Denda per 30 Hari</label><input type="number" name="late_fee_per_month" id="late-fee-per-month" class="form-control" min="0" step="1000" value="{{ \App\Support\Rupiah::input(old('late_fee_per_month', $invoice?->late_fee_per_month ?? ($defaults['late_fee_per_month'] ?? 100000))) }}"></div>
                         <div class="col-md-4 mb-3">
-                            <label>Status</label><select name="status" id="status" class="form-control" required>
-                                @foreach(['unpaid' => 'Unpaid', 'partial' => 'Partial', 'paid' => 'Paid', 'cancelled' => 'Cancelled'] as $value => $label)<option value="{{ $value }}" @selected(old('status', $invoice?->status ?? 'unpaid') === $value)>{{ $label }}</option>@endforeach
+                            <label for="status">Status</label><select name="status" id="status" class="form-control" required>
+                                @foreach(['unpaid' => 'Belum dibayar', 'partial' => 'Dibayar sebagian', 'paid' => 'Lunas', 'cancelled' => 'Dibatalkan'] as $value => $label)<option value="{{ $value }}" @selected(old('status', $invoice?->status ?? 'unpaid') === $value)>{{ $label }}</option>@endforeach
                             </select>
                         </div>
                         <div class="col-12">
@@ -297,7 +306,19 @@
                     <dl class="row mb-0"><dt class="col-7">Subtotal</dt><dd class="col-5 text-right" id="subtotal-view">Rp 0</dd><dt class="col-7">PPN</dt><dd class="col-5 text-right" id="vat-view">Rp 0</dd><dt class="col-7">Biaya Layanan</dt><dd class="col-5 text-right" id="service-view">Rp 0</dd><dt class="col-7 text-danger">Potongan PPh</dt><dd class="col-5 text-right text-danger" id="income-tax-view">Rp 0</dd></dl>
                     <hr><div class="d-flex justify-content-between"><strong>Total Bruto</strong><strong id="gross-view">Rp 0</strong></div><div class="d-flex justify-content-between mt-2"><strong class="text-primary">Pembayaran Bersih</strong><h5 class="text-primary font-weight-bold mb-0" id="net-view">Rp 0</h5></div>
                 </div>
-                <div class="card-footer d-flex justify-content-between"><a href="{{ route('invoices.index') }}" class="btn btn-secondary">Kembali</a><button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1"></i> {{ $isEdit ? 'Simpan Perubahan' : 'Buat Invoice' }}</button></div>
+                <div class="card-footer d-flex flex-wrap align-items-center justify-content-between">
+                    <a href="{{ route('invoices.index') }}" class="btn btn-secondary mr-1 my-1">Kembali</a>
+                    <div class="d-flex flex-wrap">
+                        <button type="submit" class="btn {{ $isEdit ? 'btn-primary' : 'btn-outline-primary' }} mr-1 my-1">
+                            {{ $isEdit ? 'Simpan Perubahan' : 'Buat Invoice' }}
+                        </button>
+                        @if(!$isEdit)
+                            <button type="submit" name="continue_to_payment" value="1" class="btn btn-primary my-1">
+                                Buat Invoice &amp; Tambah Pembayaran
+                            </button>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
     </div>

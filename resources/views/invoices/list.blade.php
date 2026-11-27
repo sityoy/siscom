@@ -133,13 +133,18 @@
                         </td>
                         <td>
                             <div class="d-flex flex-column gap-2">
+                                @if($adminView)
+                                    @php($paymentBlock = $invoice->paymentBlockReason($invoice->recordedPaymentsTotal()))
+                                    @if($paymentBlock === null)
+                                        <a class="btn btn-primary btn-sm rounded-pill mb-1"
+                                           href="{{ route('payments.create', ['invoice_id' => $invoice->id]) }}">Tambah Pembayaran</a>
+                                    @else
+                                        <small class="text-muted mb-1">{{ $paymentBlock }}</small>
+                                    @endif
+                                @endif
                                 <a class="btn btn-success btn-sm rounded-pill mb-1" href="{{ route($pdfRoute, ['invoice'=>$invoice->id, 'lang'=>'id']) }}">PDF Indonesia</a>
                                 <a class="btn btn-outline-success btn-sm rounded-pill mb-1" href="{{ route($pdfRoute, ['invoice'=>$invoice->id, 'lang'=>'en']) }}">PDF English</a>
                                 @if($adminView)
-                                    @if($invoice->canReceivePayment((float) $invoice->amount_paid))
-                                        <a class="btn btn-outline-primary btn-sm rounded-pill mb-1"
-                                           href="{{ route('payments.create', ['invoice_id' => $invoice->id]) }}">Catat Pembayaran</a>
-                                    @endif
                                     <a class="btn btn-warning btn-sm rounded-pill mb-1" href="{{ route('invoices.edit', $invoice->id) }}">Edit</a>
                                     @if($invoice->status !== 'cancelled' || $invoice->agreement_exists)
                                         <a class="btn btn-outline-primary btn-sm rounded-pill mb-1" href="{{ route('agreements.create', $invoice) }}">{{ $invoice->agreement_exists ? 'Lihat MoU' : 'Buat MoU' }}</a>

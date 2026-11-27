@@ -39,8 +39,10 @@ class PaymentController extends Controller
         $selectedInvoice = $request->integer('invoice_id');
 
         if ($selectedInvoice && ! $invoices->contains('id', $selectedInvoice)) {
-            return to_route('payments.create')
-                ->with('warning', 'Invoice yang dipilih sudah lunas, dibatalkan, atau tidak memiliki sisa tagihan.');
+            $invoice = Invoice::withSum('payments as amount_paid', 'amount')->find($selectedInvoice);
+            $reason = $invoice?->paymentBlockReason($invoice->recordedPaymentsTotal()) ?? 'Invoice tidak tersedia.';
+
+            return to_route('payments.create')->with('warning', $reason);
         }
 
         return view('admin.payments.create', compact('invoices', 'selectedInvoice'));
