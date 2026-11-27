@@ -75,27 +75,14 @@ class InvoiceReminderMessageService
             $lateFeeLine = "\n💸 *Denda ({$invoice->late_months} bulan): Rp {$lateFee}*\n";
         }
 
-        $bankAccountName = $setting?->bank_bca_name
-            ?: $setting?->bank_jakarta_name
-            ?: strtoupper($senderName);
+        $bankAccounts = $setting?->activeBankAccounts
+            ->map(function ($account, int $index) {
+                $holder = filled($account->account_holder) ? " (a/n {$account->account_holder})" : '';
 
-        $bankAccounts = collect([
-            [
-                'name' => 'BCA',
-                'number' => $setting?->bank_bca,
-            ],
-            [
-                'name' => 'Bank Jakarta',
-                'number' => $setting?->bank_jakarta,
-            ],
-        ])->filter(
-            fn (array $bank) => filled($bank['number'])
-        )->values()->map(
-            fn (array $bank, int $index) =>
-                ($index + 1) . ". {$bank['name']}: {$bank['number']}"
-        )->implode("\n");
+                return ($index + 1).". {$account->bank_name}: {$account->account_number}".$holder;
+            })->implode("\n");
 
-        if ($bankAccounts === '') {
+        if (blank($bankAccounts)) {
             $bankAccounts = 'Silakan hubungi admin untuk informasi rekening.';
         }
 
@@ -113,7 +100,7 @@ Perkenalkan, saya *{$senderName}* dari *{$companyName}*. Kami mohon izin untuk m
 
 📄 *Lihat Rincian Invoice:* {$pdfUrl}
 
-💳 *Metode Pembayaran (a/n " . strtoupper($bankAccountName) . "):*
+💳 *Metode Pembayaran:*
 {$bankAccounts}
 
 Mohon kesediaannya untuk segera menyelesaikan administrasi pembayaran dan mengirimkan bukti transfer kepada kami. Silakan abaikan pesan ini apabila Bapak/Ibu telah melakukan pembayaran.

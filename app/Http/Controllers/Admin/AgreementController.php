@@ -56,11 +56,14 @@ class AgreementController extends Controller
                 'confidentiality' => 'Kedua pihak menjaga kerahasiaan soal, kredensial, dan data peserta. Akses dibatasi kepada petugas yang berwenang. Penggunaan, penyimpanan, dan penghapusan data disepakati bersama sesuai kebutuhan penyelenggaraan ujian.',
                 'disputes' => 'Perbedaan pendapat dibahas terlebih dahulu melalui musyawarah antara wakil kedua pihak. Tindak lanjut dicatat berdasarkan kesepakatan bersama.',
             ];
-            $paymentTerms = 'Pembayaran dilakukan melalui transfer ke rekening Bank DKI atas nama perusahaan yang telah dikonfirmasi kedua pihak, paling lambat 4 (empat) hari kalender setelah tanggal penerbitan invoice.';
+            $paymentTerms = 'Pembayaran dilakukan melalui transfer ke rekening aktif atas nama perusahaan yang telah dikonfirmasi kedua pihak, paling lambat 4 (empat) hari kalender setelah tanggal penerbitan invoice.';
 
             $providerName = $company?->legal_name ?: ($company?->company_name ?: 'PT SITYOY IT SOLUTIONS');
-            if (filled($company?->bank_jakarta) && Str::lower(trim((string) $company->bank_jakarta_name)) === Str::lower(trim($providerName))) {
-                $paymentTerms = "Pembayaran dilakukan melalui transfer ke rekening Bank DKI paling lambat 4 (empat) hari kalender setelah tanggal penerbitan invoice.\nAtas nama {$company->bank_jakarta_name}\nNomor rekening {$company->bank_jakarta}";
+            $providerAccount = $company?->activeBankAccounts->first(
+                fn ($account) => Str::lower(trim((string) $account->account_holder)) === Str::lower(trim($providerName))
+            );
+            if ($providerAccount) {
+                $paymentTerms = "Pembayaran dilakukan melalui transfer ke rekening {$providerAccount->bank_name} paling lambat 4 (empat) hari kalender setelah tanggal penerbitan invoice.\nAtas nama {$providerAccount->account_holder}\nNomor rekening {$providerAccount->account_number}";
             }
         }
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CompanySetting extends Model
 {
@@ -36,15 +37,6 @@ class CompanySetting extends Model
         'director_title',
         'city',
 
-        'bank_jakarta',
-        'bank_jakarta_name',
-
-        'bank_mandiri',
-        'bank_mandiri_name',
-
-        'bank_bca',
-        'bank_bca_name',
-
         'website',
 
         'logo',
@@ -63,6 +55,16 @@ class CompanySetting extends Model
         'pp55_effective_date' => 'date',
         'pp55_certificate_date' => 'date',
     ];
+
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(PaymentBankAccount::class)->orderBy('id');
+    }
+
+    public function activeBankAccounts(): HasMany
+    {
+        return $this->bankAccounts()->where('is_active', true);
+    }
 
     public function isPkp(): bool
     {

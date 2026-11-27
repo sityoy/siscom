@@ -9,32 +9,15 @@ use Illuminate\Support\Facades\Storage;
 
 class CompanySettingController extends Controller
 {
-    public function edit()
+    public function edit(Request $request)
     {
-        $setting = \App\Models\CompanySetting::first();
-
-        if (!$setting) {
-
-            $setting = \App\Models\CompanySetting::create([
-
-                'company_name' => 'SIS.COM',
-
-                'bank_jakarta' => '300-23-31341-1',
-                'bank_jakarta_name' => 'TIO IRFAN ANTONI',
-
-                'bank_mandiri' => '11800-1378-1322',
-                'bank_mandiri_name' => 'TIO IRFAN ANTONI',
-
-                'bank_bca' => '5310-74114-2',
-                'bank_bca_name' => 'TIO IRFAN ANTONI',
-
-            ]);
-
-        }
+        $setting = CompanySetting::firstOrCreate([], ['company_name' => 'SIS.COM']);
+        $bankAccounts = $setting->bankAccounts;
+        $editingAccount = $bankAccounts->find($request->integer('rekening'));
 
         return view(
             'admin.settings.index',
-            compact('setting')
+            compact('setting', 'bankAccounts', 'editingAccount')
         );
     }
 
@@ -141,15 +124,6 @@ class CompanySettingController extends Controller
             'director_name' => $request->director_name,
             'director_title' => $request->director_title,
             'city' => $request->city,
-
-            'bank_jakarta' => $request->bank_jakarta,
-            'bank_jakarta_name' => $request->bank_jakarta_name,
-
-            'bank_mandiri' => $request->bank_mandiri,
-            'bank_mandiri_name' => $request->bank_mandiri_name,
-
-            'bank_bca' => $request->bank_bca,
-            'bank_bca_name' => $request->bank_bca_name,
 
             'website' => $request->website,
 

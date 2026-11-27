@@ -42,11 +42,10 @@
         .payment-column { width: 58%; padding-right: 8px; }
         .summary-column { width: 42%; padding-left: 8px; }
         .notes { border: 1px solid #dbe2ea; padding: 8px; margin-bottom: 8px; min-height: 35px; }
+        .bank-heading { margin-top: 12px; }
         .banks { table-layout: fixed; }
-        .banks td { border: none; vertical-align: top; padding-right: 5px; }
-        .banks td:last-child { padding-right: 0; }
-        .bank-card { border: 1px solid #dbe2ea; padding: 7px; min-height: 62px; font-size: 7px; }
-        .bank-name { color: #17498f; font-size: 8px; font-weight: bold; margin-bottom: 7px; }
+        .banks th, .banks td { border: 1px solid #dbe2ea; padding: 5px 7px; text-align: left; overflow-wrap: break-word; }
+        .banks th { background: #edf3fa; color: #17498f; }
         .summary td { border: 1px solid #dbe2ea; padding: 6px; font-size: 8px; }
         .summary .late-fee { color: #dc2626; font-weight: bold; }
         .summary .tax-deduction { color: #b91c1c; }
@@ -94,8 +93,9 @@
             'to' => 's.d.',
             'notes' => 'CATATAN',
             'payment_information' => 'INFORMASI PEMBAYARAN',
+            'account_number' => 'Nomor Rekening',
             'account_holder' => 'ATAS NAMA',
-            'payment_missing' => 'Rekening pembayaran belum diatur pada Pengaturan Perusahaan.',
+            'payment_missing' => 'Silakan hubungi kami untuk informasi rekening pembayaran.',
             'subtotal' => 'Subtotal',
             'vat' => 'PPN',
             'service_fee' => 'Biaya Layanan',
@@ -146,8 +146,9 @@
             'to' => 'to',
             'notes' => 'NOTES',
             'payment_information' => 'PAYMENT INFORMATION',
+            'account_number' => 'Account Number',
             'account_holder' => 'ACCOUNT HOLDER',
-            'payment_missing' => 'Payment account has not been configured in Company Settings.',
+            'payment_missing' => 'Please contact us for payment account details.',
             'subtotal' => 'Subtotal',
             'vat' => 'VAT',
             'service_fee' => 'Service Fee',
@@ -172,11 +173,7 @@
     $configuredLogo = $company?->logo ? storage_path('app/public/'.$company->logo) : null;
     $defaultLogo = public_path('logo/siscombg2.png');
     $logoPath = $configuredLogo && file_exists($configuredLogo) ? $configuredLogo : $defaultLogo;
-    $banks = collect([
-        ['name' => 'BANK JAKARTA', 'number' => $company?->bank_jakarta, 'holder' => $company?->bank_jakarta_name],
-        ['name' => 'BANK MANDIRI', 'number' => $company?->bank_mandiri, 'holder' => $company?->bank_mandiri_name],
-        ['name' => 'BANK BCA', 'number' => $company?->bank_bca, 'holder' => $company?->bank_bca_name],
-    ])->filter(fn (array $bank) => filled($bank['number']))->values();
+    $banks = $company?->activeBankAccounts ?? collect();
     $clientSignatureMode = $invoice->clientSignatureMode();
     $schoolSignerName = $invoice->client->authorized_official_name;
     $schoolSignerTitleSource = $invoice->client->authorized_official_title
@@ -321,22 +318,6 @@
                 <div class="section-title">{{ $labels['notes'] }}</div>
                 {{ $invoice->notes ?: $labels['default_note'].' '.$companyName.'.' }}
             </div>
-            <div class="section-title">{{ $labels['payment_information'] }}</div>
-            @if($banks->isNotEmpty())
-                <table class="banks"><tr>
-                    @foreach($banks as $bank)
-                        <td width="{{ 100 / $banks->count() }}%">
-                            <div class="bank-card">
-                                <div class="bank-name">{{ $bank['name'] }}</div>
-                                <strong>{{ $bank['number'] }}</strong><br>
-                                {{ $labels['account_holder'] }}:<br>{{ $bank['holder'] ?: '-' }}
-                            </div>
-                        </td>
-                    @endforeach
-                </tr></table>
-            @else
-                <div class="notes">{{ $labels['payment_missing'] }}</div>
-            @endif
         </td>
         <td class="summary-column">
             <table class="summary">
@@ -360,6 +341,30 @@
         </td>
     </tr>
 </table>
+
+<div class="section-title bank-heading">{{ $labels['payment_information'] }}</div>
+@if($banks->isNotEmpty())
+    <table class="banks">
+        <thead>
+            <tr>
+                <th width="28%">Bank</th>
+                <th width="30%">{{ $labels['account_number'] }}</th>
+                <th width="42%">{{ $labels['account_holder'] }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($banks as $account)
+                <tr>
+                    <td>{{ $account->bank_name }}</td>
+                    <td><strong>{{ $account->account_number }}</strong></td>
+                    <td>{{ $account->account_holder ?: '-' }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+@else
+    <div class="notes">{{ $labels['payment_missing'] }}</div>
+@endif
 
 <table class="signatures">
     <tr>

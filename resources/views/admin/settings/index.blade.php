@@ -8,7 +8,10 @@
 
     <div class="card-header">
 
-        <h4>Pengaturan Perusahaan</h4>
+        <div class="d-flex flex-wrap align-items-center justify-content-between">
+            <h4 class="mb-0">Pengaturan Perusahaan</h4>
+            <a class="btn btn-sm btn-outline-primary" href="#rekening-pembayaran">Rekening Pembayaran</a>
+        </div>
 
     </div>
 
@@ -276,88 +279,6 @@
 
             </div>
 
-            <hr>
-
-            <h5>Rekening Pembayaran</h5>
-
-            <div class="row">
-
-                <div class="col-md-6 mb-3">
-
-                    <label>Bank Jakarta</label>
-
-                    <input type="text"
-                           name="bank_jakarta"
-                           class="form-control"
-                           value="{{ $setting->bank_jakarta }}">
-
-                </div>
-
-                <div class="col-md-6 mb-3">
-
-                    <label>Atas Nama</label>
-
-                    <input type="text"
-                           name="bank_jakarta_name"
-                           class="form-control"
-                           value="{{ $setting->bank_jakarta_name }}">
-
-                </div>
-
-            </div>
-
-            <div class="row">
-
-                <div class="col-md-6 mb-3">
-
-                    <label>Bank Mandiri</label>
-
-                    <input type="text"
-                           name="bank_mandiri"
-                           class="form-control"
-                           value="{{ $setting->bank_mandiri }}">
-
-                </div>
-
-                <div class="col-md-6 mb-3">
-
-                    <label>Atas Nama</label>
-
-                    <input type="text"
-                           name="bank_mandiri_name"
-                           class="form-control"
-                           value="{{ $setting->bank_mandiri_name }}">
-
-                </div>
-
-            </div>
-
-            <div class="row">
-
-                <div class="col-md-6 mb-3">
-
-                    <label>Bank BCA</label>
-
-                    <input type="text"
-                           name="bank_bca"
-                           class="form-control"
-                           value="{{ $setting->bank_bca }}">
-
-                </div>
-
-                <div class="col-md-6 mb-3">
-
-                    <label>Atas Nama</label>
-
-                    <input type="text"
-                           name="bank_bca_name"
-                           class="form-control"
-                           value="{{ $setting->bank_bca_name }}">
-
-                </div>
-
-            </div>
-
         </div>
 
 
@@ -383,5 +304,7 @@
     </form>
 
 </div>
+
+@include('admin.settings._bank-accounts')
 
 @endsection
