@@ -64,12 +64,19 @@
                 {{-- PERUSAHAAN --}}
                 <div class="col-md-6 mb-3">
 
-                    <label>Perusahaan</label>
+                    <label for="company">Nama perusahaan / sekolah</label>
 
                     <input type="text"
+                           id="company"
                            name="company"
-                           class="form-control"
-                           placeholder="Nama perusahaan">
+                           maxlength="255"
+                           aria-describedby="company-help @error('company') company-error @enderror"
+                           class="form-control @error('company') is-invalid @enderror"
+                           value="{{ old('company') }}">
+                    <small id="company-help" class="form-text text-muted">Dipakai pada invoice dan MoU.</small>
+                    @error('company')
+                        <span class="invalid-feedback" id="company-error">{{ $message }}</span>
+                    @enderror
 
                 </div>
 

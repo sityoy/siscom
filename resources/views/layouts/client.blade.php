@@ -2,6 +2,10 @@
 
 @section('title', 'SIS.COM | ' . trim($__env->yieldContent('page-title', 'Portal Client')))
 
+@section('meta_tags')
+    <meta name="author" content="PT SITYOY IT SOLUTIONS">
+@stop
+
 @section('content_header')
     @include('layouts.partials.portal-header', [
         'portal' => 'client',
@@ -18,6 +22,10 @@
     </main>
 
     <script src="{{ asset('js/siscom-ui.js') }}?v=20261116" defer></script>
+@stop
+
+@section('footer')
+    <small>Dikembangkan oleh PT SITYOY IT SOLUTIONS</small>
 @stop
 
 @section('css')
