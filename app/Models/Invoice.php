@@ -208,6 +208,20 @@ class Invoice extends Model
             && $this->outstandingBalance($amountPaid, $asOf) > 0;
     }
 
+    public function paymentBlockReason(float $amountPaid): ?string
+    {
+        if ($this->canReceivePayment($amountPaid)) {
+            return null;
+        }
+
+        return match ($this->status) {
+            'paid' => 'Invoice sudah lunas.',
+            'cancelled' => 'Invoice dibatalkan.',
+            'unpaid', 'partial' => 'Tidak ada sisa tagihan.',
+            default => 'Status invoice belum mendukung pembayaran.',
+        };
+    }
+
     public function client()
     {
         return $this->belongsTo(Client::class);

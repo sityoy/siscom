@@ -336,7 +336,8 @@ class SystemSmokeTest extends TestCase
         $this->assertSame(995000.0, $invoice->net_receivable);
 
         $create = route('payments.create', ['invoice_id' => $invoice->id]);
-        $this->get(route('invoices.index'))->assertOk()->assertSee($create);
+        $this->get(route('invoices.index'))->assertOk()->assertSee('Invoice baru siap menerima pembayaran.')->assertSee($create);
+        $this->get(route('invoices.edit', $invoice))->assertOk()->assertSee('Tambah Pembayaran')->assertSee($create);
         $html = $this->get($create)->assertOk()->assertSee('Tanpa proyek')->getContent();
         $this->assertMatchesRegularExpression('~<option value="'.$invoice->id.'"[^>]*\bselected\b~s', $html);
         $this->assertMatchesRegularExpression('~<input type="file" id="payment-proof"[^>]*>~', $html);
@@ -357,9 +358,44 @@ class SystemSmokeTest extends TestCase
 
         $this->post(route('payments.store'), $payment + ['amount' => '595.000'])->assertRedirect(route('payments.index'));
         $this->assertSame('paid', $invoice->fresh()->status);
+        $this->get(route('invoices.index'))->assertOk()->assertSee('Invoice sudah lunas.')->assertDontSee($create);
         $this->get($create)->assertRedirect(route('payments.create'));
         $this->post(route('payments.store'), $payment + ['amount' => '1'])->assertSessionHasErrors('invoice_id');
         $this->assertSame(2, $invoice->payments()->count());
+    }
+
+    public function test_manual_invoice_can_continue_directly_to_payment_on_creation(): void
+    {
+        $this->actingAs($this->admin)->get(route('invoices.create', ['type' => 'general']))
+            ->assertOk()->assertSee('Buat Invoice & Tambah Pembayaran');
+
+        $data = [
+            'client_id' => $this->client->id,
+            'invoice_type' => 'general',
+            'invoice_number' => 'INV-MANUAL-LANJUT',
+            'invoice_date' => '2026-11-16',
+            'due_date' => '2026-11-30',
+            'status' => 'unpaid',
+            'continue_to_payment' => 1,
+            'description' => ['Layanan manual'],
+            'qty' => [1],
+            'item_type' => ['service'],
+            'unit' => ['Paket'],
+            'price' => [1000000],
+        ];
+        $this->post(route('invoices.store'), array_replace($data, ['price' => [0]]))
+            ->assertSessionHasErrors(['continue_to_payment' => 'Tidak ada sisa tagihan.']);
+        $this->post(route('invoices.store'), array_replace($data, ['status' => 'paid']))
+            ->assertSessionHasErrors(['continue_to_payment' => 'Invoice sudah lunas.']);
+        $this->assertDatabaseMissing('invoices', ['invoice_number' => $data['invoice_number']]);
+
+        $response = $this->post(route('invoices.store'), $data);
+        $invoice = Invoice::where('invoice_number', $data['invoice_number'])->sole();
+        $this->assertNull($invoice->project_id);
+        $create = route('payments.create', ['invoice_id' => $invoice->id]);
+        $response->assertRedirect($create);
+        $html = $this->get($create)->assertOk()->assertSee('Tambah Pembayaran')->assertSee('Tanpa proyek')->getContent();
+        $this->assertMatchesRegularExpression('~<option value="'.$invoice->id.'"[^>]*\bselected\b~s', $html);
     }
 
     public function test_cancelled_invoices_reject_new_payments_and_keep_their_status(): void
@@ -405,6 +441,34 @@ class SystemSmokeTest extends TestCase
         $this->get(route('payments.create'))->assertOk()->assertSeeText('Tidak ada invoice dengan sisa tagihan');
         $this->post(route('payments.store'), $data)->assertSessionHasErrors('invoice_id');
         $this->assertSame(1, $this->invoice->payments()->count());
+    }
+
+    public function test_manual_invoice_backfill_restores_missing_totals_from_consistent_items(): void
+    {
+        $invoices = collect([
+            'INV-ITEM-MANUAL' => ['subtotal' => 0, 'status' => 'unpaid'],
+            'INV-ITEM-MATCH' => ['subtotal' => 1250000, 'status' => 'partial'],
+            'INV-ITEM-AMBIGUOUS' => ['subtotal' => 1000000, 'status' => 'unpaid'],
+            'INV-ITEM-CANCELLED' => ['subtotal' => 0, 'status' => 'cancelled'],
+            'INV-ITEM-TAXED' => ['subtotal' => 0, 'status' => 'unpaid', 'vat_percent' => 11],
+        ])->map(function ($fields, $number) {
+            $invoice = $this->client->invoices()->create($fields + ['invoice_number' => $number, 'vat_percent' => 0]);
+            $invoice->items()->create(['description' => 'Layanan', 'qty' => 2, 'price' => 625000, 'total' => 1250000]);
+
+            return $invoice;
+        });
+
+        $migration = require database_path('migrations/2026_11_27_000021_restore_manual_invoice_totals_from_items.php');
+        $migration->up();
+        $migration->up();
+
+        $this->assertSame('1250000.00', $invoices['INV-ITEM-MANUAL']->fresh()->grand_total);
+        $this->assertSame('1250000.00', $invoices['INV-ITEM-MATCH']->fresh()->grand_total);
+        $this->assertSame('0.00', $invoices['INV-ITEM-AMBIGUOUS']->fresh()->grand_total);
+        $this->assertSame('0.00', $invoices['INV-ITEM-CANCELLED']->fresh()->grand_total);
+        $this->assertSame('0.00', $invoices['INV-ITEM-TAXED']->fresh()->grand_total);
+        $this->actingAs($this->admin)->get(route('payments.create'))->assertOk()
+            ->assertSee('INV-ITEM-MANUAL')->assertDontSee('INV-ITEM-AMBIGUOUS')->assertDontSee('INV-ITEM-CANCELLED');
     }
 
     public function test_approval_and_addons_preserve_existing_school_modules(): void

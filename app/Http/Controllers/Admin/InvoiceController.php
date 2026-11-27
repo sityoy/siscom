@@ -145,6 +145,8 @@ class InvoiceController extends Controller
 
             'status' => 'required|in:unpaid,partial,paid,cancelled',
 
+            'continue_to_payment' => 'sometimes|boolean',
+
             'vat_percent' => 'nullable|numeric|min:0|max:100',
 
             'cashback' => 'nullable|numeric|min:0|max:20',
@@ -230,7 +232,7 @@ class InvoiceController extends Controller
         $subtotal + $vat + $serviceFee;
 
 
-        $invoice = Invoice::create([
+        $invoice = new Invoice([
 
             'client_id' => $project?->client_id ?? $request->client_id,
 
@@ -290,6 +292,14 @@ class InvoiceController extends Controller
             'notes' => $request->notes,
 
         ]);
+
+        $continueToPayment = $request->boolean('continue_to_payment');
+        $paymentBlock = $invoice->paymentBlockReason(0);
+        if ($continueToPayment && $paymentBlock) {
+            throw ValidationException::withMessages(['continue_to_payment' => $paymentBlock]);
+        }
+
+        $invoice->save();
 
         Notification::create([
 
@@ -384,15 +394,15 @@ class InvoiceController extends Controller
 
         }
 
-                return redirect()
-                ->route('invoices.index')
-                ->with(
-                    'success',
-                    'Invoice berhasil dibuat'
-                );
+        if ($continueToPayment) {
+            return to_route('payments.create', ['invoice_id' => $invoice->id])
+                ->with('success', 'Invoice berhasil dibuat. Isi rincian pembayaran di bawah.');
+        }
 
-
-            }
+        return to_route('invoices.index')
+            ->with('success', 'Invoice berhasil dibuat')
+            ->with('new_invoice_payment_id', $paymentBlock ? null : $invoice->id);
+    }
 
     public function edit(Invoice $invoice)
     {
@@ -401,6 +411,7 @@ class InvoiceController extends Controller
         $company = $this->companyTaxSetting();
 
         $projects = Project::withCount('invoices')->get();
+        $paymentBlock = $invoice->paymentBlockReason($invoice->recordedPaymentsTotal());
 
         return view(
             'admin.invoices.edit',
@@ -408,7 +419,8 @@ class InvoiceController extends Controller
                 'invoice',
                 'clients',
                 'projects',
-                'company'
+                'company',
+                'paymentBlock'
             )
         );
     }
