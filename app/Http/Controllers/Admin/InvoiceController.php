@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use App\Models\InvoiceItem;
 use App\Mail\InvoiceMail;
 use App\Services\InvoiceReminderScheduler;
+use App\Services\InvoiceApprovalArtwork;
 use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -134,6 +135,8 @@ class InvoiceController extends Controller
 
             'client_signature_mode' => ['sometimes', 'required', 'string', Rule::in(array_keys(Invoice::CLIENT_SIGNATURE_MODES))],
 
+            'company_signature_mode' => ['sometimes', 'required', 'string', Rule::in(array_keys(Invoice::COMPANY_SIGNATURE_MODES))],
+
             'invoice_number' => 'required|string|max:100|unique:invoices,invoice_number',
 
             'invoice_date' => 'required|date',
@@ -180,6 +183,7 @@ class InvoiceController extends Controller
         ]);
 
         $this->validateItemArrays($request);
+        $companySignatureMode = $this->companySignatureMode($request);
 
         $project = $request->filled('project_id')
             ? Project::findOrFail($request->integer('project_id'))
@@ -239,6 +243,9 @@ class InvoiceController extends Controller
             'invoice_type' => $request->invoice_type,
 
             'client_signature_mode' => $request->input('client_signature_mode', 'none'),
+
+            'company_signature_mode' => $companySignatureMode,
+            'verification_code' => $companySignatureMode === 'blank' ? null : bin2hex(random_bytes(20)),
 
             'subtotal' => $subtotal,
 
@@ -426,6 +433,7 @@ class InvoiceController extends Controller
                 'cashback' => 'nullable|numeric|min:0|max:20',
                 'invoice_type' => 'required|in:general,project,spj,renewal',
                 'client_signature_mode' => ['sometimes', 'required', 'string', Rule::in(array_keys(Invoice::CLIENT_SIGNATURE_MODES))],
+                'company_signature_mode' => ['sometimes', 'required', 'string', Rule::in(array_keys(Invoice::COMPANY_SIGNATURE_MODES))],
                 'late_fee_active' => 'nullable|boolean',
                 'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
                 'income_tax_withheld' => 'nullable|boolean',
@@ -444,6 +452,7 @@ class InvoiceController extends Controller
             ]);
 
             $this->validateItemArrays($request);
+            $companySignatureMode = $this->companySignatureMode($request, $invoice);
 
             $previousProjectId = $invoice->project_id;
             $project = $request->filled('project_id')
@@ -507,6 +516,9 @@ class InvoiceController extends Controller
                 'invoice_type' => $request->invoice_type,
 
                 'client_signature_mode' => $request->input('client_signature_mode', $invoice->client_signature_mode),
+
+                'company_signature_mode' => $companySignatureMode,
+                'verification_code' => $companySignatureMode === 'blank' ? null : bin2hex(random_bytes(20)),
 
                 'subtotal' => $subtotal,
 
@@ -678,6 +690,19 @@ class InvoiceController extends Controller
         return in_array($request->query('lang'), ['id', 'en'], true)
             ? $request->query('lang')
             : 'id';
+    }
+
+    private function companySignatureMode(Request $request, ?Invoice $invoice = null): string
+    {
+        $mode = $request->input('company_signature_mode', $invoice?->company_signature_mode ?? 'blank');
+
+        if ($mode === 'artwork' && ! app(InvoiceApprovalArtwork::class)->exists()) {
+            throw ValidationException::withMessages([
+                'company_signature_mode' => 'Unggah tanda tangan dan stempel PT di Pengaturan Perusahaan terlebih dahulu.',
+            ]);
+        }
+
+        return $mode;
     }
 
     private function companyTaxSetting(): CompanySetting

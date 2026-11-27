@@ -11,6 +11,8 @@ use App\Http\Controllers\Admin\NotificationController as AdminNotificationContro
 use App\Http\Controllers\Client\NotificationController as ClientNotificationController;
 use App\Http\Controllers\Admin\CompanySettingController;
 use App\Http\Controllers\Admin\PaymentBankAccountController;
+use App\Http\Controllers\Admin\InvoiceApprovalArtworkController;
+use App\Http\Controllers\InvoiceVerificationController;
 use App\Http\Controllers\Admin\CapitalContributionController;
 use App\Http\Controllers\Admin\AgreementController;
 use App\Http\Controllers\Admin\SchoolRegistrationController;
@@ -42,6 +44,15 @@ Route::get(
     '/invoice/{invoice}/whatsapp-pdf',
     [App\Http\Controllers\Admin\InvoiceController::class, 'whatsappPdf']
 )->middleware('signed')->name('invoice.whatsapp.pdf');
+
+Route::get('/verifikasi-invoice/{code}', [InvoiceVerificationController::class, 'show'])
+    ->where('code', '[a-f0-9]{40}')
+    ->middleware('throttle:30,1')
+    ->name('invoice.verify');
+
+Route::post('/admin/settings/invoice-artwork', [InvoiceApprovalArtworkController::class, 'store'])
+    ->middleware(['auth', 'role:super_admin'])
+    ->name('settings.invoice-artwork.store');
 
 Route::get('/dashboard', DashboardRedirectController::class)
     ->middleware(['auth', 'verified'])

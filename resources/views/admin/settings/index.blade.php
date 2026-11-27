@@ -307,4 +307,8 @@
 
 @include('admin.settings._bank-accounts')
 
+@role('super_admin')
+    @include('admin.settings._invoice-artwork', ['artworkReady' => app(\App\Services\InvoiceApprovalArtwork::class)->exists()])
+@endrole
+
 @endsection

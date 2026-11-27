@@ -18,7 +18,9 @@ use App\Models\User;
 use App\Services\InvoiceReminderMessageService;
 use App\Support\JobTitleTranslator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -573,6 +575,78 @@ class SystemSmokeTest extends TestCase
         $this->put(route('invoices.update', $invoice), $data + ['client_signature_mode' => 'invalid'])
             ->assertSessionHasErrors('client_signature_mode');
         $this->assertSame('received', $invoice->fresh()->client_signature_mode);
+    }
+
+    public function test_invoice_company_approval_supports_private_artwork_and_revocable_verification(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+        $upload = route('settings.invoice-artwork.store');
+        $images = [
+            'signature' => UploadedFile::fake()->image('signature.png', 120, 80),
+            'stamp' => UploadedFile::fake()->image('stamp.png', 80, 80),
+        ];
+        $this->actingAs($this->clientUser)->post($upload, $images)->assertForbidden();
+
+        $invoice = $this->invoice;
+        $update = route('invoices.update', $invoice);
+        $data = [
+            'client_id' => $invoice->client_id,
+            'invoice_type' => 'general',
+            'invoice_number' => $invoice->invoice_number,
+            'invoice_date' => '2026-11-16',
+            'due_date' => '2026-12-16',
+            'status' => 'unpaid',
+            'vat_percent' => 0,
+            'description' => ['Layanan CBT'],
+            'qty' => [1],
+            'price' => [3225000],
+            'item_type' => ['service'],
+            'unit' => ['Paket'],
+        ];
+        $company = CompanySetting::firstOrFail();
+        $render = fn () => view('admin.invoices.pdf', ['invoice' => $invoice, 'company' => $company])->render();
+
+        $this->actingAs($this->admin)->put($update, $data + ['company_signature_mode' => 'artwork'])
+            ->assertSessionHasErrors('company_signature_mode');
+        $this->assertNull($invoice->fresh()->verification_code);
+
+        $this->post($upload, $images)->assertSessionHas('success');
+        Storage::disk('local')->assertExists('company/invoice-approval.json');
+        Storage::disk('public')->assertMissing('company/invoice-approval.json');
+        $this->get(route('settings.index'))->assertOk()->assertSee('Tanda Tangan dan Stempel Invoice');
+
+        $this->put($update, $data + ['company_signature_mode' => 'artwork'])->assertRedirect(route('invoices.index'));
+        $invoice->refresh();
+        $link = $invoice->verificationUrl();
+        $this->assertNotNull($link);
+        $html = $render();
+        $this->assertStringContainsString('class="signature-image" src="data:image/png;base64,', $html);
+        $this->assertStringContainsString('class="stamp-image" src="data:image/png;base64,', $html);
+        $this->assertStringContainsString($link, $html);
+        $this->get(route('invoices.pdf', $invoice))->assertOk();
+
+        $this->app['auth']->forgetGuards();
+        $this->get($link)->assertOk()->assertHeader('X-Robots-Tag', 'noindex, nofollow')
+            ->assertSee('Invoice tercatat di SIS.COM')->assertSee($invoice->invoice_number)
+            ->assertSee('Rp 3.225.000')->assertDontSee($this->client->email);
+
+        $this->actingAs($this->admin)->put($update, $data + ['company_signature_mode' => 'qr'])
+            ->assertRedirect(route('invoices.index'));
+        $invoice->refresh();
+        $newLink = $invoice->verificationUrl();
+        $this->assertNotNull($newLink);
+        $this->assertNotSame($link, $newLink);
+        $this->get($link)->assertNotFound();
+        $this->assertStringContainsString($newLink, $render());
+        $this->assertStringNotContainsString('class="stamp-image"', $render());
+
+        $invoice->update(['status' => 'cancelled']);
+        $this->get($newLink)->assertOk()->assertSee('Invoice dibatalkan');
+        $this->assertNull($invoice->verificationUrl());
+        $this->put($update, $data + ['company_signature_mode' => 'blank'])->assertRedirect(route('invoices.index'));
+        $this->assertNull($invoice->fresh()->verification_code);
+        $this->get($newLink)->assertNotFound();
     }
 
     public function test_payment_receipt_downloads_for_admin_and_the_paying_client_only(): void

@@ -22,7 +22,15 @@ class Invoice extends Model
         'approved' => 'Disetujui oleh klien',
     ];
 
-    protected $attributes = ['client_signature_mode' => 'none'];
+    public const COMPANY_SIGNATURE_MODES = [
+        'blank' => 'Kosong untuk tanda tangan manual',
+        'artwork' => 'Tanda tangan dan stempel + QR',
+        'qr' => 'QR verifikasi saja',
+    ];
+
+    protected $attributes = ['client_signature_mode' => 'none', 'company_signature_mode' => 'blank'];
+
+    protected $hidden = ['verification_code'];
 
     protected $fillable = [
 
@@ -72,6 +80,9 @@ class Invoice extends Model
 
         'client_signature_mode',
 
+        'company_signature_mode',
+        'verification_code',
+
         'paid_at',
     ];
 
@@ -97,6 +108,15 @@ class Invoice extends Model
     {
         // Existing invoices used a client approval block before this option was added.
         return $this->client_signature_mode ?? 'approved';
+    }
+
+    public function verificationUrl(): ?string
+    {
+        if (! $this->verification_code || $this->company_signature_mode === 'blank' || $this->status === 'cancelled') {
+            return null;
+        }
+
+        return rtrim(config('app.url'), '/').route('invoice.verify', ['code' => $this->verification_code], false);
     }
 
     public function calculateLateMonths($asOf = null): int

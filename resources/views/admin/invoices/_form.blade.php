@@ -140,7 +140,7 @@
             </div>
             <div class="row">
                 <div class="col-md-4">
-                    <label for="client-signature-mode">Tanda tangan pada invoice</label>
+                    <label for="client-signature-mode">Tanda tangan klien</label>
                     <select name="client_signature_mode" id="client-signature-mode" class="form-control"
                             aria-describedby="client-signature-help">
                         @foreach(\App\Models\Invoice::CLIENT_SIGNATURE_MODES as $value => $label)
@@ -149,6 +149,19 @@
                     </select>
                     <small id="client-signature-help" class="form-text text-muted">
                         Pilihan klien menambahkan kolom tanda tangan di sebelah tanda tangan PT.
+                    </small>
+                </div>
+                <div class="col-md-5">
+                    <label for="company-signature-mode">Tanda tangan PT</label>
+                    <select name="company_signature_mode" id="company-signature-mode" class="form-control"
+                            aria-describedby="company-signature-help">
+                        @foreach(\App\Models\Invoice::COMPANY_SIGNATURE_MODES as $value => $label)
+                            <option value="{{ $value }}" @selected(old('company_signature_mode', $invoice?->company_signature_mode ?? 'blank') === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <small id="company-signature-help" class="form-text text-muted">
+                        Atur gambar di <a href="{{ route('settings.index') }}#tanda-tangan-invoice">Pengaturan Perusahaan</a>.
+                        Jika invoice diedit, unduh ulang PDF untuk mendapatkan QR terbaru.
                     </small>
                 </div>
             </div>
