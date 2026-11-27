@@ -138,6 +138,20 @@
                     <input type="date" name="due_date" id="due-date" class="form-control" value="{{ $dueDate }}" required>
                 </div>
             </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <label for="client-signature-mode">Tanda tangan pada invoice</label>
+                    <select name="client_signature_mode" id="client-signature-mode" class="form-control"
+                            aria-describedby="client-signature-help">
+                        @foreach(\App\Models\Invoice::CLIENT_SIGNATURE_MODES as $value => $label)
+                            <option value="{{ $value }}" @selected(old('client_signature_mode', $invoice?->clientSignatureMode() ?? 'none') === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <small id="client-signature-help" class="form-text text-muted">
+                        Pilihan klien menambahkan kolom tanda tangan di sebelah tanda tangan PT.
+                    </small>
+                </div>
+            </div>
         </div>
     </div>
 

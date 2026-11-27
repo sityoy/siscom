@@ -106,6 +106,7 @@
             'income_tax' => 'PPh Final UMKM Dipotong',
             'net_payment' => 'PEMBAYARAN BERSIH',
             'issued_by' => 'Dibuat oleh,',
+            'received_by' => 'Diterima oleh,',
             'approved_by' => 'Disetujui oleh,',
             'thank_you' => 'Terima kasih atas kepercayaan Anda!',
             'default_note' => 'Terima kasih telah mempercayakan kebutuhan teknologi Anda kepada',
@@ -157,6 +158,7 @@
             'income_tax' => 'Final MSME Income Tax Withheld',
             'net_payment' => 'NET PAYMENT',
             'issued_by' => 'Issued by,',
+            'received_by' => 'Received by,',
             'approved_by' => 'Approved by,',
             'thank_you' => 'Thank you for your business!',
             'default_note' => 'Thank you for entrusting your technology needs to',
@@ -175,6 +177,7 @@
         ['name' => 'BANK MANDIRI', 'number' => $company?->bank_mandiri, 'holder' => $company?->bank_mandiri_name],
         ['name' => 'BANK BCA', 'number' => $company?->bank_bca, 'holder' => $company?->bank_bca_name],
     ])->filter(fn (array $bank) => filled($bank['number']))->values();
+    $clientSignatureMode = $invoice->clientSignatureMode();
     $schoolSignerName = $invoice->client->authorized_official_name;
     $schoolSignerTitleSource = $invoice->client->authorized_official_title
         ?: ($language === 'id' ? 'Kepala Sekolah' : 'Principal');
@@ -360,22 +363,25 @@
 
 <table class="signatures">
     <tr>
+        @if($clientSignatureMode === 'none')
+            <td></td>
+        @endif
         <td>
             {{ $city }}, {{ $formatDate($invoice->invoice_date ?? $invoice->created_at) }}<br>
             {{ $labels['issued_by'] }}<br><strong>{{ $directorTitle }}</strong>
             <br> {{ $companyName }}
             <div class="signature-space"></div>
             <span class="signer-name">{{ $directorName ?: '(...................................)' }}</span>
-            
         </td>
-        <td>
-            &nbsp;<br>
-            {{ $labels['approved_by'] }}<br><strong>{{ $schoolSignerTitle }}</strong>
-            <br> {{ trim((string) $invoice->client->company) }}
-            <div class="signature-space"></div>
-            <span class="signer-name">{{ $schoolSignerName ?: '(...................................)' }}</span>
-            
-        </td>
+        @if($clientSignatureMode !== 'none')
+            <td>
+                &nbsp;<br>
+                {{ $clientSignatureMode === 'received' ? $labels['received_by'] : $labels['approved_by'] }}<br><strong>{{ $schoolSignerTitle }}</strong>
+                <br> {{ trim((string) $invoice->client->company) }}
+                <div class="signature-space"></div>
+                <span class="signer-name">{{ $schoolSignerName ?: '(...................................)' }}</span>
+            </td>
+        @endif
     </tr>
 </table>
 

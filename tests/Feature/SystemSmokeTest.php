@@ -422,6 +422,7 @@ class SystemSmokeTest extends TestCase
 
     public function test_invoice_pdf_translates_indonesian_signer_titles_to_english(): void
     {
+        $this->invoice->update(['client_signature_mode' => null]);
         $invoice = $this->invoice->load(['client.user', 'project', 'items']);
         $company = CompanySetting::firstOrFail();
 
@@ -445,9 +446,9 @@ class SystemSmokeTest extends TestCase
         $this->assertStringContainsString('Approved by,', $englishHtml);
         $this->assertMatchesRegularExpression('~DITAGIHKAN KEPADA</div>\s+<strong>Yayasan Pengujian</strong>~', $indonesianHtml);
         $this->assertMatchesRegularExpression('~BILL TO</div>\s+<strong>Yayasan Pengujian</strong>~', $englishHtml);
-        $this->assertMatchesRegularExpression('~<strong>Kepala Sekolah</strong><br>\s+Yayasan Pengujian\s*</td>~', $indonesianHtml);
-        $this->assertMatchesRegularExpression('~<strong>Principal</strong><br>\s+Yayasan Pengujian\s*</td>~', $englishHtml);
-        $this->assertStringContainsString('<strong style="text-decoration:underline">Kepala Sekolah Pengujian</strong>', $englishHtml);
+        $this->assertMatchesRegularExpression('~<strong>Kepala Sekolah</strong>\s*<br>\s+Yayasan Pengujian\s+<div~', $indonesianHtml);
+        $this->assertMatchesRegularExpression('~<strong>Principal</strong>\s*<br>\s+Yayasan Pengujian\s+<div~', $englishHtml);
+        $this->assertStringContainsString('<span class="signer-name">Kepala Sekolah Pengujian</span>', $englishHtml);
 
         $issuedByPosition = strpos($englishHtml, 'Issued by,');
         $approvedByPosition = strpos($englishHtml, 'Approved by,');
@@ -464,8 +465,78 @@ class SystemSmokeTest extends TestCase
         ])->render();
 
         $this->assertMatchesRegularExpression('~BILL TO</div>\s+<strong>SMK Pengujian SIS\.COM</strong>~', $fallbackHtml);
-        $this->assertMatchesRegularExpression('~<strong>Principal</strong><br>\s*</td>~', $fallbackHtml);
-        $this->assertStringContainsString('<strong style="text-decoration:underline">Kepala Sekolah Pengujian</strong>', $fallbackHtml);
+        $this->assertMatchesRegularExpression('~<strong>Principal</strong>\s*<br>\s*<div class="signature-space">~', $fallbackHtml);
+        $this->assertStringContainsString('<span class="signer-name">Kepala Sekolah Pengujian</span>', $fallbackHtml);
+    }
+
+    public function test_invoice_signature_can_be_enabled_per_invoice(): void
+    {
+        $data = [
+            'client_id' => $this->client->id,
+            'invoice_type' => 'general',
+            'invoice_number' => '#INV-SIGNATURE',
+            'invoice_date' => '2026-11-16',
+            'due_date' => '2026-12-16',
+            'status' => 'unpaid',
+            'vat_percent' => 0,
+            'description' => ['Layanan CBT'],
+            'qty' => [1],
+            'price' => [3225000],
+            'item_type' => ['service'],
+            'unit' => ['Paket'],
+        ];
+
+        $this->actingAs($this->admin)->post(route('invoices.store'), $data)
+            ->assertRedirect(route('invoices.index'));
+        $invoice = Invoice::where('invoice_number', $data['invoice_number'])->firstOrFail();
+        $company = CompanySetting::firstOrFail();
+
+        $this->assertSame('none', $invoice->client_signature_mode);
+        $html = view('admin.invoices.pdf', compact('invoice', 'company'))->render();
+        $this->assertStringContainsString('Dibuat oleh,', $html);
+        $this->assertStringNotContainsString('Kepala Sekolah Pengujian', $html);
+
+        $this->put(route('invoices.update', $invoice), $data + ['client_signature_mode' => 'received'])
+            ->assertRedirect(route('invoices.index'));
+        $invoice->refresh();
+        $this->assertSame('received', $invoice->client_signature_mode);
+        $html = view('admin.invoices.pdf', compact('invoice', 'company'))->render();
+        $this->assertStringContainsString('Diterima oleh,', $html);
+        $this->assertStringContainsString('Kepala Sekolah Pengujian', $html);
+        $this->assertStringNotContainsString('Disetujui oleh,', $html);
+
+        $this->put(route('invoices.update', $invoice), $data + ['client_signature_mode' => 'invalid'])
+            ->assertSessionHasErrors('client_signature_mode');
+        $this->assertSame('received', $invoice->fresh()->client_signature_mode);
+    }
+
+    public function test_payment_receipt_downloads_for_admin_and_the_paying_client_only(): void
+    {
+        $this->invoice->update(['client_signature_mode' => 'approved']);
+        $receiptNumber = 'NP-'.str_pad((string) $this->payment->id, 6, '0', STR_PAD_LEFT);
+        $filename = "nota-pembayaran-{$receiptNumber}.pdf";
+
+        $this->actingAs($this->admin)->get(route('payments.index'))
+            ->assertOk()->assertSee(route('payments.receipt', $this->payment));
+        $this->get(route('payments.receipt', $this->payment))->assertOk()->assertDownload($filename);
+
+        $this->actingAs($this->clientUser)->get(route('client.payments'))
+            ->assertOk()->assertSee(route('client.payments.receipt', $this->payment));
+        $this->get(route('client.payments.receipt', $this->payment))->assertOk()->assertDownload($filename);
+
+        $anotherUser = User::factory()->create()->assignRole('client');
+        Client::create(['user_id' => $anotherUser->id, 'name' => 'Sekolah Lain']);
+        $this->actingAs($anotherUser)->get(route('client.payments.receipt', $this->payment))->assertNotFound();
+
+        $html = view('payments.receipt', [
+            'payment' => $this->payment,
+            'company' => CompanySetting::firstOrFail(),
+            'receiptNumber' => $receiptNumber,
+        ])->render();
+        $this->assertStringContainsString('Rp 1.000.000', $html);
+        $this->assertStringContainsString('Yayasan Pengujian', $html);
+        $this->assertStringContainsString('Tio Irfan Antoni, S.Kom.', $html);
+        $this->assertStringNotContainsString('Kepala Sekolah Pengujian', $html);
     }
 
     public function test_common_company_and_school_job_titles_are_translated(): void

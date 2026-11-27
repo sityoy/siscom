@@ -32,6 +32,7 @@
                         <th>Tanggal</th>
                         <th>Nominal</th>
                         <th>Status</th>
+                        <th>Nota</th>
 
                     </tr>
 
@@ -87,13 +88,20 @@
 
                             </td>
 
+                            <td>
+                                <a href="{{ route('client.payments.receipt', $payment) }}"
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-file-pdf mr-1" aria-hidden="true"></i> Unduh Nota
+                                </a>
+                            </td>
+
                         </tr>
 
                     @empty
 
                         <tr>
 
-                            <td colspan="6"
+                            <td colspan="7"
                                 class="text-center text-muted py-5">
 
                                 Belum ada pembayaran

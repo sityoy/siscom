@@ -193,6 +193,11 @@
 
                             <td class="text-center">
 
+                                <a href="{{ route('payments.receipt', $payment) }}"
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-file-pdf mr-1" aria-hidden="true"></i> Unduh Nota
+                                </a>
+
                                 <a href="{{ route('payments.edit', $payment->id) }}"
                                    class="btn btn-warning btn-sm">
 

@@ -16,6 +16,14 @@ class Invoice extends Model
         'renewal' => 'Perpanjangan Paket',
     ];
 
+    public const CLIENT_SIGNATURE_MODES = [
+        'none' => 'Hanya pihak PT',
+        'received' => 'Diterima oleh klien',
+        'approved' => 'Disetujui oleh klien',
+    ];
+
+    protected $attributes = ['client_signature_mode' => 'none'];
+
     protected $fillable = [
 
         'client_id',
@@ -62,6 +70,8 @@ class Invoice extends Model
 
         'invoice_type',
 
+        'client_signature_mode',
+
         'paid_at',
     ];
 
@@ -82,6 +92,12 @@ class Invoice extends Model
         'income_tax_withheld' => 'boolean',
         'income_tax_amount' => 'decimal:2',
     ];
+
+    public function clientSignatureMode(): string
+    {
+        // Existing invoices used a client approval block before this option was added.
+        return $this->client_signature_mode ?? 'approved';
+    }
 
     public function calculateLateMonths($asOf = null): int
     {

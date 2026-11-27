@@ -71,8 +71,8 @@ class AgreementTest extends TestCase
             'company' => (object) $agreement->letterhead,
             'logoPath' => public_path('logo/siscombg2.png'),
         ])->render();
-        $this->assertMatchesRegularExpression('~<strong>Kepala Sekolah</strong><br>\s+Yayasan Saat Finalisasi\s*</td>~', $html);
-        $this->assertStringContainsString('<strong style="text-decoration:underline">Penandatangan Sekolah</strong>', $html);
+        $this->assertMatchesRegularExpression('~<td>Kepala Sekolah</td></tr>\s*<tr><td>[^<]+</td><td>Yayasan Saat Finalisasi</td>~', $html);
+        $this->assertStringContainsString('<td><strong>Penandatangan Sekolah</strong></td>', $html);
         $this->get($details)->assertOk()->assertSee('INV-MOU-TEST')->assertDontSee('Simpan Draf');
         $this->assertSame('0001/MOU/SIS/'.$agreement->finalized_at->year, $agreement->number);
         $this->get($pdfRoute)->assertOk()->assertDownload('MoU-'.str_replace('/', '-', $agreement->number).'.pdf');
