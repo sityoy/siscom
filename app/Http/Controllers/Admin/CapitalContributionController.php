@@ -50,9 +50,8 @@ class CapitalContributionController extends Controller
             $payments->where('invoice_id', $invoiceId);
         }
 
-        $capitalTotal = $this->money((clone $contributions)->whereNull('voided_at')->sum('amount'));
-        $paymentsTotal = $this->money($payments->sum('amount'));
-        $cashInTotal = $capitalTotal->plus($paymentsTotal);
+        $expenseTotal = $this->money((clone $contributions)->whereNull('voided_at')->sum('amount'));
+        $cashInTotal = $this->money($payments->sum('amount'));
 
         // Salary percentages use the same lifetime invoice margin as the allocation form.
         $salaryPeriod = static function ($query) use ($start) {
@@ -103,11 +102,10 @@ class CapitalContributionController extends Controller
             'invoiceId' => $invoiceId,
             'invoices' => $this->invoiceOptions()->get(),
             'invoiceBalances' => $invoiceBalances,
-            'capitalTotal' => (string) $capitalTotal,
-            'paymentsTotal' => (string) $paymentsTotal,
-            'salaryTotal' => (string) $salaryTotal,
-            'netTotal' => (string) $paymentsTotal->minus($capitalTotal)->minus($salaryTotal),
             'cashInTotal' => (string) $cashInTotal,
+            'expenseTotal' => (string) $expenseTotal,
+            'salaryTotal' => (string) $salaryTotal,
+            'netTotal' => (string) $cashInTotal->minus($expenseTotal)->minus($salaryTotal),
             'contributions' => $contributions->with('invoice:id,invoice_number')->latest('contribution_date')->orderByDesc('id')
                 ->paginate(Pagination::perPage()),
         ]);
@@ -123,7 +121,7 @@ class CapitalContributionController extends Controller
             ]);
         }, 3);
 
-        return to_route('capital.index')->with('success', 'Setoran modal berhasil dicatat.');
+        return to_route('capital.index')->with('success', 'Pengeluaran modal berhasil dicatat.');
     }
 
     public function edit(CapitalContribution $contribution): View
@@ -147,7 +145,7 @@ class CapitalContributionController extends Controller
             if ($activeContribution->invoice_id || $activeContribution->invoice_reference) {
                 if (array_key_exists('invoice_id', $data) && (string) $data['invoice_id'] !== (string) $activeContribution->invoice_id) {
                     throw ValidationException::withMessages([
-                        'invoice_id' => 'Invoice pada setoran ini sudah terkunci. Batalkan setoran jika ingin menautkannya kembali.',
+                        'invoice_id' => 'Invoice pada pengeluaran ini sudah terkunci. Batalkan pengeluaran untuk mengganti invoice.',
                     ]);
                 }
 
@@ -159,7 +157,7 @@ class CapitalContributionController extends Controller
             $activeContribution->update($data);
         }, 3);
 
-        return to_route('capital.index')->with('success', 'Setoran modal berhasil diperbarui.');
+        return to_route('capital.index')->with('success', 'Pengeluaran modal berhasil diperbarui.');
     }
 
     public function destroy(Request $request, CapitalContribution $contribution): RedirectResponse
@@ -169,7 +167,7 @@ class CapitalContributionController extends Controller
             'voided_by' => $request->user()->id,
         ]);
 
-        return to_route('capital.index')->with('success', 'Setoran modal dibatalkan dan tersimpan dalam riwayat.');
+        return to_route('capital.index')->with('success', 'Pengeluaran modal dibatalkan dan tersimpan dalam riwayat.');
     }
 
     private function invoiceQuery(): Builder
@@ -203,7 +201,7 @@ class CapitalContributionController extends Controller
 
         if ($invoice->capitalContributions()->whereNull('voided_at')->exists()) {
             throw ValidationException::withMessages([
-                'invoice_id' => 'Invoice ini sudah memiliki setoran modal aktif. Edit nominalnya atau batalkan setoran lama untuk mencatat ulang.',
+                'invoice_id' => 'Invoice ini sudah memiliki pengeluaran modal aktif. Edit nominalnya atau batalkan pengeluaran lama untuk mencatat ulang.',
             ]);
         }
 
@@ -234,12 +232,12 @@ class CapitalContributionController extends Controller
             'invoice_id' => ['nullable', 'integer', 'exists:invoices,id'],
         ], [
             'amount.regex' => 'Isi nominal dengan angka, misalnya 1.500.000 atau 1500000.',
-            'amount.min' => 'Nominal setoran minimal Rp 0,01.',
-            'contribution_date.before_or_equal' => 'Tanggal setoran maksimal hari ini.',
+            'amount.min' => 'Nominal pengeluaran minimal Rp 0,01.',
+            'contribution_date.before_or_equal' => 'Tanggal pengeluaran maksimal hari ini.',
         ], [
-            'contribution_date' => 'tanggal setoran',
-            'source' => 'sumber setoran',
-            'amount' => 'nominal setoran',
+            'contribution_date' => 'tanggal pengeluaran',
+            'source' => 'keperluan pengeluaran',
+            'amount' => 'nominal pengeluaran',
             'notes' => 'catatan',
             'invoice_id' => 'invoice',
         ]);

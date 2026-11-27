@@ -578,7 +578,9 @@ class SystemSmokeTest extends TestCase
         $this->assertDatabaseCount('salary_allocations', 2);
         $this->get(route('salary.show', $this->invoice))->assertSeeText('Rp 500.000');
         $report = route('capital.index', ['invoice_id'=>$this->invoice->id, 'month'=>'2026-11']);
-        $this->get($report)->assertOk()->assertViewHas('netTotal', '500000.00')->assertViewHas('salaryTotal', '300000.00')
+        $this->get($report)->assertOk()
+            ->assertViewHas('cashInTotal', '1000000.00')->assertViewHas('expenseTotal', '200000.00')
+            ->assertViewHas('netTotal', '500000.00')->assertViewHas('salaryTotal', '300000.00')
             ->assertViewHas('invoiceBalances', fn ($rows) => $rows->first()['difference'] === '500000.00');
         $allocation = DB::table('salary_allocations')->where('recipient','Operator')->value('id');
         $this->delete(route('salary.destroy', [$this->invoice,$allocation]))->assertRedirect();

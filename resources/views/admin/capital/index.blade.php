@@ -13,7 +13,7 @@
             <input type="month" id="capital-month" name="month" value="{{ $month }}" class="form-control mr-2 mb-2">
             <label for="capital-filter-invoice" class="mr-2 mb-2">Invoice</label>
             <select id="capital-filter-invoice" name="invoice_id" class="custom-select mr-2 mb-2">
-                <option value="">Semua invoice dan modal umum</option>
+                <option value="">Semua invoice dan pengeluaran umum</option>
                 @foreach($invoices as $invoice)
                     <option value="{{ $invoice->id }}" @selected((string) $invoiceId === (string) $invoice->id)>
                         {{ $invoice->invoice_number }} — {{ $invoice->client?->name ?? 'Client' }}
@@ -26,31 +26,36 @@
             @endif
         </form>
         <div class="row">
-            <div class="col-md-4 mb-3">
-                <div class="border rounded p-3 h-100">
-                    <div class="text-muted">Setoran Modal</div>
-                    <strong class="h5">Rp {{ number_format((float) $capitalTotal, 0, ',', '.') }}</strong>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="border rounded p-3 h-100">
-                    <div class="text-muted"><a href="{{ route('payments.index') }}">Pembayaran Client Tercatat</a></div>
-                    <strong class="h5">Rp {{ number_format((float) $paymentsTotal, 0, ',', '.') }}</strong>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-sm-6 col-xl-3 mb-3">
                 <div class="border border-primary rounded p-3 h-100">
                     <div class="text-muted">Total Dana Masuk</div>
-                    <strong class="h5 text-primary">Rp {{ number_format((float) $cashInTotal, 0, ',', '.') }}</strong>
+                    <strong class="h5 d-block text-primary mb-1">Rp {{ number_format((float) $cashInTotal, 0, ',', '.') }}</strong>
+                    <a class="small" href="{{ route('payments.index') }}">Pembayaran Klien Tercatat</a>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3 mb-3">
+                <div class="border rounded p-3 h-100">
+                    <div class="text-muted">Modal Terpakai</div>
+                    <strong class="h5">Rp {{ number_format((float) $expenseTotal, 0, ',', '.') }}</strong>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3 mb-3">
+                <div class="border rounded p-3 h-100">
+                    <div class="text-muted">Gaji Dialokasikan</div>
+                    <strong class="h5">Rp {{ number_format((float) $salaryTotal, 0, ',', '.') }}</strong>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3 mb-3">
+                <div class="border rounded p-3 h-100">
+                    <div class="text-muted">Pendapatan Bersih</div>
+                    <strong class="h5 {{ $netTotal < 0 ? 'text-danger' : '' }}">
+                        {{ $netTotal < 0 ? '−' : '' }}Rp {{ number_format(abs((float) $netTotal), 0, ',', '.') }}
+                    </strong>
                 </div>
             </div>
         </div>
-        <div class="row">
-            <div class="col-md-4 mb-3"><div class="border rounded p-3">Gaji dialokasikan<br><strong>{{ 'Rp '.number_format((float)$salaryTotal, 0, ',', '.') }}</strong></div></div>
-            <div class="col-md-4 mb-3"><div class="border rounded p-3">Pendapatan bersih<br><strong>{{ 'Rp '.number_format((float)$netTotal, 0, ',', '.') }}</strong></div></div>
-        </div>
         <p class="small text-muted mb-0">
-            {{ $month ? 'Periode '.$month : 'Semua periode' }}. Total dana masuk menjumlahkan setoran modal aktif dan pembayaran client sampai hari ini.
+            {{ $month ? 'Periode '.$month : 'Semua periode' }}. Pendapatan bersih = total dana masuk − modal terpakai − gaji yang dialokasikan.
         </p>
     </div>
 </div>
@@ -60,14 +65,14 @@
         <h2 class="card-title font-weight-bold">Pencocokan Modal per Invoice</h2>
     </div>
     <div class="card-body">
-        <p class="text-muted small">Selisih bersih = pembayaran tercatat − modal aktif − gaji dialokasikan. Filter bulan mengikuti tanggal pembagian gaji. Alokasi lama tanpa tanggal tampil di Semua periode.</p>
+        <p class="text-muted small">Selisih bersih per invoice dihitung dari pembayaran tercatat, dikurangi modal terpakai dan gaji yang dialokasikan. Filter bulan untuk gaji mengikuti tanggal pembagian. Alokasi lama tanpa tanggal tampil di Semua periode.</p>
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
                     <tr>
                         <th scope="col">Invoice dan Client</th>
                         <th scope="col" class="text-right">Nilai Invoice (Bruto)</th>
-                        <th scope="col" class="text-right">Modal Teralokasi</th>
+                        <th scope="col" class="text-right">Modal Terpakai</th>
                         <th scope="col" class="text-right">Pembayaran Tercatat</th>
                         <th scope="col" class="text-right">Gaji</th>
                         <th scope="col" class="text-right">Selisih bersih</th>
@@ -103,21 +108,21 @@
 
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title font-weight-bold">Catat Setoran Modal</h2>
+        <h2 class="card-title font-weight-bold">Catat Pengeluaran Modal</h2>
     </div>
     <div class="card-body">
-        <p class="text-muted">Masukkan dana yang sudah disetor pemilik ke kas atau rekening usaha.</p>
+        <p class="text-muted">Catat biaya yang sudah dikeluarkan untuk invoice tertentu atau operasional umum.</p>
         <form method="POST" action="{{ route('capital.store') }}">
             @csrf
             @include('admin.capital._fields', ['contribution' => null])
-            <button type="submit" class="btn btn-primary">Simpan Setoran</button>
+            <button type="submit" class="btn btn-primary">Simpan Pengeluaran</button>
         </form>
     </div>
 </div>
 
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title font-weight-bold">Riwayat Setoran Modal</h2>
+        <h2 class="card-title font-weight-bold">Riwayat Pengeluaran Modal</h2>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -125,7 +130,7 @@
                 <thead>
                     <tr>
                         <th scope="col">Tanggal</th>
-                        <th scope="col">Sumber dan Catatan</th>
+                        <th scope="col">Keperluan dan Catatan</th>
                         <th scope="col">Invoice</th>
                         <th scope="col" class="text-right">Nominal</th>
                         <th scope="col">Status</th>
@@ -150,7 +155,7 @@
                                 @elseif($contribution->invoice_reference)
                                     {{ $contribution->invoice_reference }} <small class="text-muted">(invoice dihapus)</small>
                                 @else
-                                    <span class="text-muted">Modal umum</span>
+                                    <span class="text-muted">Pengeluaran umum</span>
                                 @endif
                             </td>
                             <td class="text-right text-nowrap">Rp {{ number_format((float) $contribution->amount, 0, ',', '.') }}</td>
@@ -166,7 +171,7 @@
                                 @unless($contribution->voided_at)
                                     <a href="{{ route('capital.edit', $contribution) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                                     <form method="POST" action="{{ route('capital.destroy', $contribution) }}" class="d-inline"
-                                          onsubmit="return confirm('Batalkan setoran dan keluarkan dari ringkasan dana masuk?')">
+                                          onsubmit="return confirm('Batalkan pengeluaran ini? Nominalnya akan dikeluarkan dari perhitungan modal terpakai.')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger">Batalkan</button>
@@ -175,7 +180,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="text-center text-muted py-4">Belum ada setoran modal untuk filter ini.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-4">Belum ada pengeluaran modal untuk filter ini.</td></tr>
                     @endforelse
                 </tbody>
             </table>
