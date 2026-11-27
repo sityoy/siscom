@@ -76,9 +76,9 @@
             </div>
             <div>
                 <span class="badge badge-primary p-2" id="invoice-type-badge"></span>
-                @if($isEdit && $paymentBlock === null)
+                @if($isEdit && ($paymentBlock === null || $recordSettlement))
                     <a class="btn btn-primary btn-sm ml-1" href="{{ route('payments.create', ['invoice_id' => $invoice->id]) }}">
-                        Tambah Pembayaran
+                        {{ $recordSettlement ? 'Catat Pelunasan' : 'Tambah Pembayaran' }}
                     </a>
                 @elseif($isEdit)
                     <span class="small text-muted ml-1">{{ $paymentBlock }}</span>
@@ -289,6 +289,7 @@
                             <label for="status">Status</label><select name="status" id="status" class="form-control" required>
                                 @foreach(['unpaid' => 'Belum dibayar', 'partial' => 'Dibayar sebagian', 'paid' => 'Lunas', 'cancelled' => 'Dibatalkan'] as $value => $label)<option value="{{ $value }}" @selected(old('status', $invoice?->status ?? 'unpaid') === $value)>{{ $label }}</option>@endforeach
                             </select>
+                            <small class="form-text text-muted">Catat uang yang diterima melalui formulir Pembayaran.</small>
                         </div>
                         <div class="col-12">
                             <input type="hidden" name="income_tax_withheld" value="0">

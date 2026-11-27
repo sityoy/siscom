@@ -11,6 +11,8 @@ class Invoice extends Model
 {
     public const PAYABLE_STATUSES = ['unpaid', 'partial'];
 
+    public const MANUAL_PAYMENT_TYPES = ['general', 'project'];
+
     public const TYPES = [
         'general' => 'Invoice Umum',
         'project' => 'Invoice Jasa/Sewa',
@@ -220,6 +222,15 @@ class Invoice extends Model
             'unpaid', 'partial' => 'Tidak ada sisa tagihan.',
             default => 'Status invoice belum mendukung pembayaran.',
         };
+    }
+
+    public function canRecordUnloggedSettlement(): bool
+    {
+        return $this->status === 'paid'
+            && $this->project_id === null
+            && in_array($this->invoice_type, self::MANUAL_PAYMENT_TYPES, true)
+            && $this->outstandingBalance(0) > 0
+            && ! ($this->payments_exists ?? ($this->exists && $this->payments()->exists()));
     }
 
     public function client()

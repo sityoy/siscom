@@ -60,18 +60,26 @@ class PaymentController extends Controller
     {
         return Invoice::with(['client', 'project'])
             ->withSum('payments as amount_paid', 'amount')
+            ->withExists('payments')
             ->where('status', '!=', 'cancelled')
             ->where(function (Builder $query) use ($payment) {
                 $query->whereIn('status', Invoice::PAYABLE_STATUSES);
                 if ($payment) {
                     $query->orWhere('id', $payment->invoice_id);
+                } else {
+                    $query->orWhere(fn (Builder $paid) => $paid->where('status', 'paid')
+                        ->whereNull('project_id')
+                        ->whereIn('invoice_type', Invoice::MANUAL_PAYMENT_TYPES)
+                        ->doesntHave('payments'));
                 }
             })
+            ->when($payment?->recorded_settlement, fn (Builder $query) => $query->whereKey($payment->invoice_id))
             ->orderByDesc('invoice_date')
             ->orderByDesc('id')
             ->get()
             ->filter(fn (Invoice $invoice) => $invoice->id == $payment?->invoice_id
-                || $invoice->canReceivePayment((float) $invoice->amount_paid));
+                || $invoice->canReceivePayment((float) $invoice->amount_paid)
+                || (! $payment && $invoice->canRecordUnloggedSettlement()));
     }
 
     public function store(Request $request)
@@ -94,13 +102,15 @@ class PaymentController extends Controller
             'proof' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'payment_method' => 'nullable|string',
             'notes' => 'nullable|string',
+            'confirm_received' => 'sometimes|accepted',
         ]);
 
-        unset($data['proof']);
+        $confirmed = $request->boolean('confirm_received');
+        unset($data['proof'], $data['confirm_received']);
         $newProof = null;
         $oldProof = null;
         try {
-            DB::transaction(function () use ($request, $data, $payment, &$newProof, &$oldProof) {
+            DB::transaction(function () use ($request, $data, $payment, $confirmed, &$newProof, &$oldProof) {
                 if ($payment) {
                     $payment = Payment::lockForUpdate()->findOrFail($payment->id);
                 }
@@ -114,16 +124,37 @@ class PaymentController extends Controller
                 }
 
                 $sameInvoice = $payment && $payment->invoice_id == $invoice->id;
+                if ($payment?->recorded_settlement && (! $sameInvoice || $invoice->status !== 'paid')) {
+                    throw ValidationException::withMessages(['invoice_id' => 'Pelunasan yang tercatat harus tetap pada invoice lunas asalnya.']);
+                }
+
                 $paidByOthers = (float) $invoice->payments()
                     ->when($sameInvoice, fn ($query) => $query->where('id', '!=', $payment->id))
                     ->sum('amount');
 
-                if (! $sameInvoice && ! $invoice->canReceivePayment($paidByOthers)) {
+                $recordSettlement = ! $payment && $invoice->canRecordUnloggedSettlement();
+                if (! $sameInvoice && ! $recordSettlement && ! $invoice->canReceivePayment($paidByOthers)) {
                     throw ValidationException::withMessages(['invoice_id' => 'Invoice ini sudah lunas atau tidak memiliki sisa tagihan.']);
                 }
 
-                $remaining = $invoice->outstandingBalance($paidByOthers, $data['payment_date']);
-                if ($data['amount'] > $remaining) {
+                if ($recordSettlement && ! $confirmed) {
+                    throw ValidationException::withMessages(['confirm_received' => 'Konfirmasi bahwa pembayaran invoice sudah diterima.']);
+                }
+
+                if ($confirmed && ! $recordSettlement) {
+                    throw ValidationException::withMessages(['invoice_id' => 'Status pencatatan berubah. Pilih ulang invoice sebelum menyimpan.']);
+                }
+
+                $isSettlement = $recordSettlement || $payment?->recorded_settlement;
+                $balanceDate = $isSettlement ? ($invoice->paid_at ?? $data['payment_date']) : $data['payment_date'];
+                $remaining = $invoice->outstandingBalance($paidByOthers, $balanceDate);
+                $amount = (float) $data['amount'];
+                if ($isSettlement) {
+                    // The issued invoice shows whole rupiah; the receipt records the exact amount received.
+                    if ($amount !== $remaining && $amount !== round($remaining)) {
+                        throw ValidationException::withMessages(['amount' => 'Nominal harus sesuai tagihan bersih pada invoice.']);
+                    }
+                } elseif ($amount > $remaining) {
                     throw ValidationException::withMessages(['amount' => 'Nominal melebihi sisa tagihan.']);
                 }
 
@@ -143,16 +174,20 @@ class PaymentController extends Controller
                         $this->refreshPaymentStatus($previousInvoice, today(), false);
                     }
                 } else {
-                    Payment::create($data);
+                    Payment::create($data + ['recorded_settlement' => $recordSettlement]);
                     Notification::create([
                         'client_id' => $invoice->client_id,
-                        'title' => 'Pembayaran Baru',
+                        'title' => $recordSettlement ? 'Pelunasan Dicatat' : 'Pembayaran Baru',
                         'message' => 'Pembayaran invoice '.$invoice->invoice_number.' sebesar Rp '
                             .number_format($data['amount'], 0, ',', '.'),
                     ]);
                 }
 
-                $this->refreshPaymentStatus($invoice, $data['payment_date']);
+                if (! $isSettlement) {
+                    $this->refreshPaymentStatus($invoice, $data['payment_date']);
+                } elseif ($invoice->paid_at === null) {
+                    $invoice->update(['paid_at' => $data['payment_date']]);
+                }
             });
         } catch (\Throwable $exception) {
             if ($newProof) {
@@ -176,7 +211,9 @@ class PaymentController extends Controller
             $payment = Payment::lockForUpdate()->findOrFail($payment->id);
             $invoice = Invoice::lockForUpdate()->findOrFail($payment->invoice_id);
             $payment->delete();
-            $this->refreshPaymentStatus($invoice, today(), false);
+            if (! $payment->recorded_settlement) {
+                $this->refreshPaymentStatus($invoice, today(), false);
+            }
 
             return $payment->proof;
         });
