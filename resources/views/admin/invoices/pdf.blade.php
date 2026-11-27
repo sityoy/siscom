@@ -53,7 +53,15 @@
         .tax-note { margin-top: 5px; color: #475569; font-size: 7px; }
         .signatures { margin-top: 22px; page-break-inside: avoid; }
         .signatures td { width: 50%; border: none; vertical-align: top; text-align: center; padding: 0 18px; }
+        .signatures.with-qr-and-client td { width: 39%; padding: 0 9px; }
+        .signatures.with-qr-and-client .verification { width: 22%; }
         .signature-space { height: 52px; }
+        .approval-images { margin: 4px 0; white-space: nowrap; }
+        .approval-images img { max-height: 68px; vertical-align: middle; }
+        .approval-images .signature-image { max-width: 100px; }
+        .approval-images .stamp-image { max-width: 68px; }
+        .verification img { width: 80px; height: 80px; }
+        .verification a { display: block; color: #17498f; font-weight: bold; text-decoration: none; }
         .signer-name { display: block; font-weight: bold; text-decoration: underline; }
         .footer { margin-top: 18px; padding-top: 6px; border-top: 2px solid #17498f; text-align: center; color: #64748b; font-size: 7px; }
     </style>
@@ -106,6 +114,7 @@
             'income_tax' => 'PPh Final UMKM Dipotong',
             'net_payment' => 'PEMBAYARAN BERSIH',
             'issued_by' => 'Dibuat oleh,',
+            'verify_invoice' => 'Verifikasi invoice',
             'received_by' => 'Diterima oleh,',
             'approved_by' => 'Disetujui oleh,',
             'thank_you' => 'Terima kasih atas kepercayaan Anda!',
@@ -159,6 +168,7 @@
             'income_tax' => 'Final MSME Income Tax Withheld',
             'net_payment' => 'NET PAYMENT',
             'issued_by' => 'Issued by,',
+            'verify_invoice' => 'Verify invoice',
             'received_by' => 'Received by,',
             'approved_by' => 'Approved by,',
             'thank_you' => 'Thank you for your business!',
@@ -175,6 +185,10 @@
     $logoPath = $configuredLogo && file_exists($configuredLogo) ? $configuredLogo : $defaultLogo;
     $banks = $company?->activeBankAccounts ?? collect();
     $clientSignatureMode = $invoice->clientSignatureMode();
+    $verificationUrl = $invoice->verificationUrl();
+    $approvalImages = $verificationUrl && $invoice->company_signature_mode === 'artwork'
+        ? app(\App\Services\InvoiceApprovalArtwork::class)->images()
+        : [];
     $schoolSignerName = $invoice->client->authorized_official_name;
     $schoolSignerTitleSource = $invoice->client->authorized_official_title
         ?: ($language === 'id' ? 'Kepala Sekolah' : 'Principal');
@@ -366,19 +380,29 @@
     <div class="notes">{{ $labels['payment_missing'] }}</div>
 @endif
 
-<table class="signatures">
+<table class="signatures {{ $verificationUrl && $clientSignatureMode !== 'none' ? 'with-qr-and-client' : '' }}">
     <tr>
         @if($clientSignatureMode === 'none')
-            <td></td>
+            @include('admin.invoices._verification')
         @endif
         <td>
             {{ $city }}, {{ $formatDate($invoice->invoice_date ?? $invoice->created_at) }}<br>
             {{ $labels['issued_by'] }}<br><strong>{{ $directorTitle }}</strong>
             <br> {{ $companyName }}
-            <div class="signature-space"></div>
+            @if($approvalImages !== [])
+                <div class="approval-images">
+                    <img class="signature-image" src="{{ $approvalImages['signature'] }}" alt="">
+                    <img class="stamp-image" src="{{ $approvalImages['stamp'] }}" alt="">
+                </div>
+            @else
+                <div class="signature-space"></div>
+            @endif
             <span class="signer-name">{{ $directorName ?: '(...................................)' }}</span>
         </td>
         @if($clientSignatureMode !== 'none')
+            @if($verificationUrl)
+                @include('admin.invoices._verification')
+            @endif
             <td>
                 &nbsp;<br>
                 {{ $clientSignatureMode === 'received' ? $labels['received_by'] : $labels['approved_by'] }}<br><strong>{{ $schoolSignerTitle }}</strong>
