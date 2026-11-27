@@ -132,6 +132,8 @@ class InvoiceController extends Controller
 
             'invoice_type' => 'required|in:general,project,spj,renewal',
 
+            'client_signature_mode' => ['sometimes', 'required', 'string', Rule::in(array_keys(Invoice::CLIENT_SIGNATURE_MODES))],
+
             'invoice_number' => 'required|string|max:100|unique:invoices,invoice_number',
 
             'invoice_date' => 'required|date',
@@ -235,6 +237,8 @@ class InvoiceController extends Controller
             'invoice_date' => $request->invoice_date,
 
             'invoice_type' => $request->invoice_type,
+
+            'client_signature_mode' => $request->input('client_signature_mode', 'none'),
 
             'subtotal' => $subtotal,
 
@@ -421,6 +425,7 @@ class InvoiceController extends Controller
                 'vat_percent' => 'required|numeric|min:0|max:100',
                 'cashback' => 'nullable|numeric|min:0|max:20',
                 'invoice_type' => 'required|in:general,project,spj,renewal',
+                'client_signature_mode' => ['sometimes', 'required', 'string', Rule::in(array_keys(Invoice::CLIENT_SIGNATURE_MODES))],
                 'late_fee_active' => 'nullable|boolean',
                 'late_fee_per_month' => 'nullable|required_if:late_fee_active,1|numeric|min:0',
                 'income_tax_withheld' => 'nullable|boolean',
@@ -500,6 +505,8 @@ class InvoiceController extends Controller
                 'invoice_date' => $request->invoice_date,
 
                 'invoice_type' => $request->invoice_type,
+
+                'client_signature_mode' => $request->input('client_signature_mode', $invoice->client_signature_mode),
 
                 'subtotal' => $subtotal,
 

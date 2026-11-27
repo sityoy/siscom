@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\CapitalContributionController;
 use App\Http\Controllers\Admin\AgreementController;
 use App\Http\Controllers\Admin\SchoolRegistrationController;
 use App\Http\Controllers\DashboardRedirectController;
+use App\Http\Controllers\PaymentReceiptController;
 
 Route::get('/portal-sekolah', [\App\Http\Controllers\PortalLoginController::class, 'choose'])
     ->middleware('throttle:30,1')->name('portal-login.choose');
@@ -108,6 +109,9 @@ Route::get(
     'auth',
     'role:super_admin'
 ])->name('payments.export');
+
+Route::get('/admin/payments/{payment}/receipt', [PaymentReceiptController::class, 'admin'])
+    ->middleware(['auth', 'role:super_admin'])->name('payments.receipt');
 
 Route::resource(
     '/admin/payments',
@@ -217,6 +221,9 @@ Route::prefix('client')
             '/payments',
             [App\Http\Controllers\Client\PaymentController::class, 'index']
         )->name('client.payments');
+
+        Route::get('/payments/{payment}/receipt', [PaymentReceiptController::class, 'client'])
+            ->name('client.payments.receipt');
 
         Route::get(
             '/procurement-documents',
