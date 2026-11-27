@@ -26,7 +26,7 @@ class InvoiceController extends Controller
             'project',
             'items',
             'agreement' => fn ($query) => $query->visibleToClient($client->id),
-        ]);
+        ])->withSum('payments as amount_paid', 'amount');
 
         if (isset($filters['type'])) {
             $query->where('invoice_type', $filters['type']);

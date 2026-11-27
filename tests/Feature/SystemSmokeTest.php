@@ -313,6 +313,87 @@ class SystemSmokeTest extends TestCase
         $this->get(route('payments.create'))->assertOk()->assertSeeText($this->invoice->invoice_number);
     }
 
+    public function test_manual_invoice_can_be_paid_without_a_project_or_proof(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 24));
+        $data = [
+            'client_id' => $this->client->id,
+            'invoice_type' => 'general',
+            'invoice_number' => 'INV-MANUAL',
+            'invoice_date' => '2026-11-16',
+            'due_date' => '2026-11-30',
+            'status' => 'unpaid',
+            'description' => ['Layanan manual'],
+            'qty' => [1],
+            'item_type' => ['service'],
+            'unit' => ['Paket'],
+            'price' => [1000000],
+            'income_tax_withheld' => true,
+        ];
+        $this->actingAs($this->admin)->post(route('invoices.store'), $data)->assertRedirect(route('invoices.index'));
+        $invoice = Invoice::where('invoice_number', $data['invoice_number'])->sole();
+        $this->assertNull($invoice->project_id);
+        $this->assertSame(995000.0, $invoice->net_receivable);
+
+        $create = route('payments.create', ['invoice_id' => $invoice->id]);
+        $this->get(route('invoices.index'))->assertOk()->assertSee($create);
+        $html = $this->get($create)->assertOk()->assertSee('Tanpa proyek')->getContent();
+        $this->assertMatchesRegularExpression('~<option value="'.$invoice->id.'"[^>]*\bselected\b~s', $html);
+        $this->assertMatchesRegularExpression('~<input type="file" id="payment-proof"[^>]*>~', $html);
+        $this->assertDoesNotMatchRegularExpression('~<input type="file" id="payment-proof"[^>]*\brequired\b~', $html);
+
+        $payment = ['invoice_id' => $invoice->id, 'payment_date' => '2026-11-24', 'payment_method' => 'Cash'];
+        $this->post(route('payments.store'), $payment + ['amount' => '400.000'])->assertRedirect(route('payments.index'));
+        $invoice->refresh();
+        $receipt = $invoice->payments()->sole();
+        $this->assertSame('partial', $invoice->status);
+        $this->assertNull($receipt->proof);
+        $this->assertSame(595000.0, $invoice->outstandingBalance($invoice->recordedPaymentsTotal()));
+        $this->assertStringContainsString('SISA TAGIHAN: Rp 595.000', app(InvoiceReminderMessageService::class)->build($invoice, 'https://example.test/invoice'));
+        $this->assertStringContainsString('Rp 595.000', view('admin.invoices.pdf', [
+            'invoice' => $invoice, 'company' => CompanySetting::firstOrFail(),
+        ])->render());
+        $this->get(route('payments.receipt', $receipt))->assertOk();
+
+        $this->post(route('payments.store'), $payment + ['amount' => '595.000'])->assertRedirect(route('payments.index'));
+        $this->assertSame('paid', $invoice->fresh()->status);
+        $this->get($create)->assertRedirect(route('payments.create'));
+        $this->post(route('payments.store'), $payment + ['amount' => '1'])->assertSessionHasErrors('invoice_id');
+        $this->assertSame(2, $invoice->payments()->count());
+    }
+
+    public function test_cancelled_invoices_reject_new_payments_and_keep_their_status(): void
+    {
+        $invoice = $this->invoice;
+        $invoice->update(['status' => 'cancelled']);
+        $this->actingAs($this->admin)->get(route('payments.create'))->assertDontSee($invoice->invoice_number);
+        $this->post(route('payments.store'), [
+            'invoice_id' => $invoice->id, 'payment_date' => '2026-11-24', 'amount' => '1',
+        ])->assertSessionHasErrors('invoice_id');
+        $this->delete(route('payments.destroy', $this->payment))->assertRedirect();
+        $this->assertSame('cancelled', $invoice->fresh()->status);
+    }
+
+    public function test_legacy_invoice_backfill_only_restores_manual_invoices_without_current_totals(): void
+    {
+        $legacy = $this->client->invoices()->create(['invoice_number' => 'INV-OLD-MANUAL', 'status' => 'unpaid']);
+        $intentionalZero = $this->client->invoices()->create(['invoice_number' => 'INV-ZERO', 'status' => 'unpaid']);
+        $intentionalZero->items()->create(['description' => 'Layanan gratis', 'qty' => 1, 'price' => 0, 'total' => 0]);
+        DB::table('invoices')->whereIn('id', [$legacy->id, $intentionalZero->id, $this->invoice->id])
+            ->update(['amount' => 1250000]);
+
+        $migration = require database_path('migrations/2026_11_27_000020_sync_legacy_manual_invoice_amounts.php');
+        $migration->up();
+        $migration->up();
+
+        $this->assertSame('1250000.00', $legacy->fresh()->grand_total);
+        $this->assertSame('1250000.00', $legacy->fresh()->subtotal);
+        $this->assertSame('0.00', $intentionalZero->fresh()->grand_total);
+        $this->assertSame('5000000.00', $this->invoice->fresh()->grand_total);
+        $this->actingAs($this->admin)->get(route('payments.create'))->assertOk()
+            ->assertSee('INV-OLD-MANUAL')->assertDontSee('INV-ZERO');
+    }
+
     public function test_settled_legacy_invoices_cannot_receive_a_new_payment(): void
     {
         $this->actingAs($this->admin);

@@ -34,8 +34,7 @@ class SendInvoiceWhatsAppReminder implements ShouldQueue
         InvoiceReminderMessageService $messageService
     ): void {
         $reminder = InvoiceWhatsAppReminder::with([
-            'invoice.client',
-            'invoice.project',
+            'invoice' => fn ($query) => $query->with(['client', 'project'])->withSum('payments as amount_paid', 'amount'),
         ])->find($this->reminderId);
 
         if (!$reminder) {
@@ -56,7 +55,7 @@ class SendInvoiceWhatsAppReminder implements ShouldQueue
 
         if (
             !$invoice ||
-            !in_array($invoice->status, ['unpaid', 'partial'], true)
+            !$invoice->canReceivePayment($invoice->recordedPaymentsTotal())
         ) {
             $reminder->update([
                 'status' => 'skipped',

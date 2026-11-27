@@ -10,7 +10,8 @@ use App\Exports\PaymentsExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Notification;
 use Carbon\Carbon;
-use App\Models\Client;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -20,8 +21,7 @@ class PaymentController extends Controller
     public function index()
     {
         $payments = Payment::with([
-            'invoice.client',
-            'invoice.payments'
+            'invoice' => fn ($query) => $query->with('client')->withSum('payments as amount_paid', 'amount'),
         ])
 
             ->latest()
@@ -33,9 +33,17 @@ class PaymentController extends Controller
         );
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return view('admin.payments.create', ['invoices' => $this->availableInvoices()]);
+        $invoices = $this->availableInvoices();
+        $selectedInvoice = $request->integer('invoice_id');
+
+        if ($selectedInvoice && ! $invoices->contains('id', $selectedInvoice)) {
+            return to_route('payments.create')
+                ->with('warning', 'Invoice yang dipilih sudah lunas, dibatalkan, atau tidak memiliki sisa tagihan.');
+        }
+
+        return view('admin.payments.create', compact('invoices', 'selectedInvoice'));
     }
 
     public function edit(Payment $payment)
@@ -46,15 +54,22 @@ class PaymentController extends Controller
         ]);
     }
 
-    private function availableInvoices(?Payment $payment = null)
+    private function availableInvoices(?Payment $payment = null): Collection
     {
-        return Invoice::with('client')
+        return Invoice::with(['client', 'project'])
             ->withSum('payments as amount_paid', 'amount')
-            ->where('status', '!=', 'paid')
-            ->when($payment, fn ($query) => $query->orWhere('id', $payment->invoice_id))
+            ->where('status', '!=', 'cancelled')
+            ->where(function (Builder $query) use ($payment) {
+                $query->whereIn('status', Invoice::PAYABLE_STATUSES);
+                if ($payment) {
+                    $query->orWhere('id', $payment->invoice_id);
+                }
+            })
+            ->orderByDesc('invoice_date')
+            ->orderByDesc('id')
             ->get()
             ->filter(fn (Invoice $invoice) => $invoice->id == $payment?->invoice_id
-                || round($invoice->net_receivable - $invoice->amount_paid, 2) > 0);
+                || $invoice->canReceivePayment((float) $invoice->amount_paid));
     }
 
     public function store(Request $request)
@@ -92,16 +107,20 @@ class PaymentController extends Controller
                     ->orderBy('id')->lockForUpdate()->get()->keyBy('id');
                 $invoice = $invoices->get($data['invoice_id']);
                 abort_unless($invoice, 404);
+                if ($invoice->status === 'cancelled') {
+                    throw ValidationException::withMessages(['invoice_id' => 'Invoice ini sudah dibatalkan.']);
+                }
+
                 $sameInvoice = $payment && $payment->invoice_id == $invoice->id;
                 $paidByOthers = (float) $invoice->payments()
                     ->when($sameInvoice, fn ($query) => $query->where('id', '!=', $payment->id))
                     ->sum('amount');
 
-                if (! $sameInvoice && ($invoice->status === 'paid' || round($invoice->net_receivable - $paidByOthers, 2) <= 0)) {
-                    throw ValidationException::withMessages(['invoice_id' => 'Invoice ini sudah lunas.']);
+                if (! $sameInvoice && ! $invoice->canReceivePayment($paidByOthers)) {
+                    throw ValidationException::withMessages(['invoice_id' => 'Invoice ini sudah lunas atau tidak memiliki sisa tagihan.']);
                 }
 
-                $remaining = round($invoice->calculateNetReceivable($data['payment_date']) - $paidByOthers, 2);
+                $remaining = $invoice->outstandingBalance($paidByOthers, $data['payment_date']);
                 if ($data['amount'] > $remaining) {
                     throw ValidationException::withMessages(['amount' => 'Nominal melebihi sisa tagihan.']);
                 }
@@ -169,8 +188,12 @@ class PaymentController extends Controller
 
     private function refreshPaymentStatus(Invoice $invoice, $date, bool $applyRenewal = true): void
     {
+        if ($invoice->status === 'cancelled') {
+            return;
+        }
+
         $paid = (float) $invoice->payments()->sum('amount');
-        $settled = round($invoice->calculateNetReceivable($date) - $paid, 2) <= 0;
+        $settled = $invoice->outstandingBalance($paid, $date) === 0.0;
         $wasPaid = $invoice->status === 'paid';
         $invoice->update([
             'status' => $settled ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid'),

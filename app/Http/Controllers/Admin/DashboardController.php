@@ -22,10 +22,10 @@ class DashboardController extends Controller
 
         $totalProjects = Project::count();
         $totalIncome = Payment::sum('amount');
-        $currentMonthIncome = Payment::whereMonth(
-            'payment_date',
-            now()->month
-        )->sum('amount');
+        $currentMonthIncome = Payment::whereBetween('payment_date', [
+            now()->startOfMonth()->toDateString(),
+            now()->endOfMonth()->toDateString(),
+        ])->sum('amount');
 
         $paidInvoices = Invoice::where(
             'status',
@@ -77,14 +77,10 @@ class DashboardController extends Controller
 
         $totalPaymentAmount = Payment::sum('amount');
 
-        $pendingRevenue = Invoice::whereIn(
-            'status',
-            [
-                'unpaid',
-                'partial'
-            ]
-        )->get()
-        ->sum(fn ($invoice) => $invoice->total_due);
+        $pendingRevenue = Invoice::whereIn('status', Invoice::PAYABLE_STATUSES)
+            ->withSum('payments as amount_paid', 'amount')
+            ->get()
+            ->sum(fn (Invoice $invoice) => $invoice->outstandingBalance((float) $invoice->amount_paid));
 
         $latestInvoices = Invoice::with('client')
             ->latest()

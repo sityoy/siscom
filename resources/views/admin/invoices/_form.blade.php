@@ -98,7 +98,7 @@
                 <div class="col-md-4 mb-3">
                     <label>Project <span id="project-required" class="text-danger d-none">*</span></label>
                     <select name="project_id" id="project-id" class="form-control">
-                        <option value="">-- Pilih Project --</option>
+                        <option value="">Tanpa proyek</option>
                         @foreach($projects as $project)
                             @php($usedByOtherInvoice = $project->invoices_count > 0 && (string) $selectedProject !== (string) $project->id)
                             <option value="{{ $project->id }}"

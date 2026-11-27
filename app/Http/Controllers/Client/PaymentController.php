@@ -17,7 +17,7 @@ class PaymentController extends Controller
 
         }
 
-        $payments = Payment::whereHas(
+        $payments = Payment::with('invoice')->whereHas(
             'invoice',
             function ($query) use ($client) {
 

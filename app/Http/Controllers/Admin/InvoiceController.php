@@ -27,7 +27,7 @@ class InvoiceController extends Controller
         'client',
         'project',
         'items',
-    ])->withExists('agreement');
+    ])->withExists('agreement')->withSum('payments as amount_paid', 'amount');
 
     if ($request->type) {
 
