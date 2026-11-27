@@ -242,7 +242,7 @@
         <td>
             <div class="box">
                 <div class="section-title">{{ $labels['bill_to'] }}</div>
-                <strong>{{ $invoice->client->name }}</strong><br>
+                <strong>{{ $invoice->client->signatureCompanyName() }}</strong><br>
                 @if($invoice->client->address){{ $invoice->client->address }}<br>@endif
                 @if($invoice->client->email){{ $invoice->client->email }}@endif
             </div>
@@ -371,7 +371,7 @@
         <td>
             &nbsp;<br>
             {{ $labels['approved_by'] }}<br><strong>{{ $schoolSignerTitle }}</strong>
-            <br> {{ $invoice->client->name }}
+            <br> {{ trim((string) $invoice->client->company) }}
             <div class="signature-space"></div>
             <span class="signer-name">{{ $schoolSignerName ?: '(...................................)' }}</span>
             

@@ -67,7 +67,7 @@
     <table class="signatures">
         <tr><td><strong>Pihak Pertama</strong></td><td><strong>Pihak Kedua</strong></td></tr>
         <tr><td>{{ $agreement->provider_title }}</td><td>{{ $agreement->client_title }}</td></tr>
-        <tr><td>{{ $agreement->provider_name }}</td><td>{{ $agreement->client_name }}</td></tr>
+        <tr><td>{{ $agreement->provider_name }}</td><td>{{ $agreement->signatureCompanyName() }}</td></tr>
         <tr><td class="signature-space"></td><td></td></tr>
         <tr><td><strong>{{ $agreement->provider_signer }}</strong></td><td><strong>{{ $agreement->client_signer }}</strong></td></tr>
         
