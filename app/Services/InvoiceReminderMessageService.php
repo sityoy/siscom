@@ -55,8 +55,8 @@ class InvoiceReminderMessageService
             ->locale('id')
             ->translatedFormat('d F Y');
         $statusLabel = strtoupper($invoice->status);
-        $totalDue = number_format(
-            $invoice->total_due,
+        $balance = number_format(
+            $invoice->outstandingBalance($invoice->recordedPaymentsTotal()),
             0,
             ',',
             '.'
@@ -96,7 +96,7 @@ Perkenalkan, saya *{$senderName}* dari *{$companyName}*. Kami mohon izin untuk m
 ⏳ *Batas Pembayaran:* {$dueDateLabel}
 🚨 *Status Waktu:* *{$timeStatus}*
 {$lateFeeLine}
-💰 *TOTAL TAGIHAN: Rp {$totalDue}*
+💰 *SISA TAGIHAN: Rp {$balance}*
 
 📄 *Lihat Rincian Invoice:* {$pdfUrl}
 

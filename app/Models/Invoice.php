@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Invoice extends Model
 {
+    public const PAYABLE_STATUSES = ['unpaid', 'partial'];
+
     public const TYPES = [
         'general' => 'Invoice Umum',
         'project' => 'Invoice Jasa/Sewa',
@@ -182,8 +184,28 @@ class Invoice extends Model
     {
         return max(
             0,
-            $this->calculateTotalDue($asOf) - (float) $this->income_tax_amount,
+            $this->calculateTotalDue($asOf) - ($this->income_tax_withheld ? (float) $this->income_tax_amount : 0),
         );
+    }
+
+    public function outstandingBalance(float $amountPaid, $asOf = null): float
+    {
+        return max(0, round($this->calculateNetReceivable($asOf) - $amountPaid, 2));
+    }
+
+    public function recordedPaymentsTotal(): float
+    {
+        if (array_key_exists('amount_paid', $this->attributes)) {
+            return (float) $this->attributes['amount_paid'];
+        }
+
+        return $this->exists ? (float) $this->payments()->sum('amount') : 0.0;
+    }
+
+    public function canReceivePayment(float $amountPaid, $asOf = null): bool
+    {
+        return in_array($this->status, self::PAYABLE_STATUSES, true)
+            && $this->outstandingBalance($amountPaid, $asOf) > 0;
     }
 
     public function client()

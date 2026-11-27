@@ -71,7 +71,7 @@
                         <td>
                             <span class="badge badge-{{ $types[$invoice->invoice_type][1] ?? 'secondary' }}">{{ $invoice->type_label }}</span>
                         </td>
-                        <td>{{ $invoice->project?->title ?? '—' }}</td>
+                        <td>{{ $invoice->project?->title ?? ($invoice->invoice_type === 'general' ? 'Tanpa proyek' : '—') }}</td>
                         <td>
                             @forelse($invoice->items as $item)
                                 <div class="border rounded p-2 mb-1 bg-light small">
@@ -113,6 +113,9 @@
                             @if($invoice->income_tax_withheld && (float) $invoice->income_tax_amount > 0)
                                 <small class="d-block text-danger">PPh dipotong {{ $rupiah($invoice->income_tax_amount) }}</small>
                             @endif
+                            @if($invoice->status === 'partial')
+                                <small class="d-block">Sisa tagihan <strong>{{ $rupiah($invoice->outstandingBalance($invoice->recordedPaymentsTotal())) }}</strong></small>
+                            @endif
                         </td>
                         <td class="text-center">
                             <span class="badge badge-{{ ['paid'=>'success','partial'=>'warning','unpaid'=>'danger'][$invoice->status] ?? 'secondary' }} rounded-pill px-3 py-2">
@@ -133,6 +136,10 @@
                                 <a class="btn btn-success btn-sm rounded-pill mb-1" href="{{ route($pdfRoute, ['invoice'=>$invoice->id, 'lang'=>'id']) }}">PDF Indonesia</a>
                                 <a class="btn btn-outline-success btn-sm rounded-pill mb-1" href="{{ route($pdfRoute, ['invoice'=>$invoice->id, 'lang'=>'en']) }}">PDF English</a>
                                 @if($adminView)
+                                    @if($invoice->canReceivePayment((float) $invoice->amount_paid))
+                                        <a class="btn btn-outline-primary btn-sm rounded-pill mb-1"
+                                           href="{{ route('payments.create', ['invoice_id' => $invoice->id]) }}">Catat Pembayaran</a>
+                                    @endif
                                     <a class="btn btn-warning btn-sm rounded-pill mb-1" href="{{ route('invoices.edit', $invoice->id) }}">Edit</a>
                                     @if($invoice->status !== 'cancelled' || $invoice->agreement_exists)
                                         <a class="btn btn-outline-primary btn-sm rounded-pill mb-1" href="{{ route('agreements.create', $invoice) }}">{{ $invoice->agreement_exists ? 'Lihat MoU' : 'Buat MoU' }}</a>

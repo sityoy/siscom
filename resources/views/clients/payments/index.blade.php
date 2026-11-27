@@ -82,7 +82,7 @@
 
                                 <span class="badge bg-success">
 
-                                    Paid
+                                    Tercatat
 
                                 </span>
 

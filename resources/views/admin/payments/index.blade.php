@@ -71,7 +71,7 @@
                         <th>Tanggal</th>
                         <th>Metode</th>
                         <th>Proof</th>
-                        <th>Status</th>
+                        <th>Status Invoice</th>
                         <th class="text-center">
 
                             Aksi
@@ -90,11 +90,7 @@
 
                             $invoice = $payment->invoice;
 
-                            $totalPaid =
-                                $invoice->payments->sum('amount');
-
-                            $remaining =
-                                $invoice->net_receivable - $totalPaid;
+                            $remaining = $invoice->outstandingBalance((float) $invoice->amount_paid);
 
                         @endphp
 
@@ -116,7 +112,7 @@
 
                                 <small class="text-muted">
 
-                                    Invoice SIS.COM
+                                    {{ $invoice->type_label }}{{ $invoice->project_id ? '' : ' · Tanpa proyek' }}
 
                                 </small>
 
@@ -124,7 +120,7 @@
 
                             <td>
 
-                                {{ $invoice->client->name ?? '-' }}
+                                {{ $invoice->client?->signatureCompanyName() ?? '-' }}
 
                             </td>
 
@@ -171,7 +167,9 @@
 
                             <td>
 
-                                @if($remaining <= 0)
+                                @if($invoice->status === 'cancelled')
+                                    <span class="badge bg-secondary">Dibatalkan</span>
+                                @elseif($invoice->status === 'paid' || $remaining === 0.0)
 
                                     <span class="badge bg-success">
 
@@ -183,7 +181,7 @@
 
                                     <span class="badge bg-warning">
 
-                                        Partial
+                                        Dibayar sebagian
 
                                     </span>
 

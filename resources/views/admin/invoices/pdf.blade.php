@@ -113,6 +113,8 @@
             'gross_total' => 'Total Tagihan Bruto',
             'income_tax' => 'PPh Final UMKM Dipotong',
             'net_payment' => 'PEMBAYARAN BERSIH',
+            'amount_paid' => 'Pembayaran tercatat',
+            'balance_due' => 'Sisa Tagihan',
             'issued_by' => 'Dibuat oleh,',
             'verify_invoice' => 'Verifikasi invoice',
             'received_by' => 'Diterima oleh,',
@@ -167,6 +169,8 @@
             'gross_total' => 'Gross Invoice Total',
             'income_tax' => 'Final MSME Income Tax Withheld',
             'net_payment' => 'NET PAYMENT',
+            'amount_paid' => 'Payments recorded',
+            'balance_due' => 'Outstanding Balance',
             'issued_by' => 'Issued by,',
             'verify_invoice' => 'Verify invoice',
             'received_by' => 'Received by,',
@@ -206,6 +210,7 @@
     $companyName = $company?->legal_name ?: ($company?->company_name ?: 'SIS.COM');
     $city = $company?->city ?: 'Tangerang';
     $isOverdue = $invoice->late_months > 0 && $invoice->status !== 'paid';
+    $amountPaid = $invoice->status === 'partial' ? $invoice->recordedPaymentsTotal() : 0;
     $displayStatus = $isOverdue
         ? $labels['overdue']
         : ($labels[$invoice->status] ?? strtoupper($invoice->status));
@@ -347,6 +352,10 @@
                     <tr class="total"><td>{{ $labels['net_payment'] }}</td><td class="text-right">Rp {{ number_format($invoice->net_receivable, 0, ',', '.') }}</td></tr>
                 @else
                     <tr class="total"><td>TOTAL</td><td class="text-right">Rp {{ number_format($invoice->total_due, 0, ',', '.') }}</td></tr>
+                @endif
+                @if($amountPaid > 0)
+                    <tr><td>{{ $labels['amount_paid'] }}</td><td class="text-right">Rp {{ number_format($amountPaid, 0, ',', '.') }}</td></tr>
+                    <tr><td><strong>{{ $labels['balance_due'] }}</strong></td><td class="text-right"><strong>Rp {{ number_format($invoice->outstandingBalance($amountPaid), 0, ',', '.') }}</strong></td></tr>
                 @endif
             </table>
             @if($invoice->provider_tax_status === 'non_pkp')
