@@ -26,26 +26,35 @@
             @endif
         </form>
         <div class="row">
-            <div class="col-sm-6 col-xl-3 mb-3">
+            <div class="col-sm-6 col-xl mb-3">
                 <div class="border border-primary rounded p-3 h-100">
                     <div class="text-muted">Total Dana Masuk</div>
                     <strong class="h5 d-block text-primary mb-1">Rp {{ number_format((float) $cashInTotal, 0, ',', '.') }}</strong>
                     <a class="small" href="{{ route('payments.index') }}">Pembayaran Klien Tercatat</a>
                 </div>
             </div>
-            <div class="col-sm-6 col-xl-3 mb-3">
+            <div class="col-sm-6 col-xl mb-3">
                 <div class="border rounded p-3 h-100">
                     <div class="text-muted">Modal Terpakai</div>
                     <strong class="h5">Rp {{ number_format((float) $expenseTotal, 0, ',', '.') }}</strong>
                 </div>
             </div>
-            <div class="col-sm-6 col-xl-3 mb-3">
+            @unless($invoiceId)
+                <div class="col-sm-6 col-xl mb-3">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted">Biaya Bank Tercatat</div>
+                        <strong class="h5 d-block mb-1">Rp {{ number_format((float) $bankFeeTotal, 0, ',', '.') }}</strong>
+                        <a class="small" href="{{ route('settings.index') }}#biaya-rekening">Lihat potongan bank</a>
+                    </div>
+                </div>
+            @endunless
+            <div class="col-sm-6 col-xl mb-3">
                 <div class="border rounded p-3 h-100">
                     <div class="text-muted">Gaji Dialokasikan</div>
                     <strong class="h5">Rp {{ number_format((float) $salaryTotal, 0, ',', '.') }}</strong>
                 </div>
             </div>
-            <div class="col-sm-6 col-xl-3 mb-3">
+            <div class="col-sm-6 col-xl mb-3">
                 <div class="border rounded p-3 h-100">
                     <div class="text-muted">Pendapatan Bersih</div>
                     <strong class="h5 {{ $netTotal < 0 ? 'text-danger' : '' }}">
@@ -55,7 +64,8 @@
             </div>
         </div>
         <p class="small text-muted mb-0">
-            {{ $month ? 'Periode '.$month : 'Semua periode' }}. Pendapatan bersih = total dana masuk − modal terpakai − gaji yang dialokasikan.
+            {{ $month ? 'Periode '.$month : 'Semua periode' }}.
+            Pendapatan bersih = total dana masuk − modal terpakai{{ $invoiceId ? '' : ' − biaya bank tercatat' }} − gaji yang dialokasikan.
         </p>
     </div>
 </div>
@@ -131,6 +141,7 @@
                     <tr>
                         <th scope="col">Tanggal</th>
                         <th scope="col">Keperluan dan Catatan</th>
+                        <th scope="col">Alokasi dan Transfer</th>
                         <th scope="col">Invoice</th>
                         <th scope="col" class="text-right">Nominal</th>
                         <th scope="col">Status</th>
@@ -145,6 +156,22 @@
                                 <strong>{{ $contribution->source }}</strong>
                                 @if($contribution->notes)
                                     <small class="d-block text-muted">{{ $contribution->notes }}</small>
+                                @endif
+                            </td>
+                            <td class="text-break">
+                                @if($contribution->recipient)
+                                    <strong class="d-block">{{ $contribution->recipient }}</strong>
+                                    @if($contribution->transferred_on)
+                                        <span class="badge badge-info">Sudah ditransfer</span>
+                                        <small class="d-block text-muted">{{ $contribution->transferred_on->format('d/m/Y') }}</small>
+                                    @else
+                                        <span class="badge badge-light">Dialokasikan</span>
+                                    @endif
+                                    @if($contribution->transfer_reference)
+                                        <small class="d-block text-muted">Ref. {{ $contribution->transfer_reference }}</small>
+                                    @endif
+                                @else
+                                    <span class="text-muted">—</span>
                                 @endif
                             </td>
                             <td>
@@ -180,7 +207,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="text-center text-muted py-4">Belum ada pengeluaran modal untuk filter ini.</td></tr>
+                        <tr><td colspan="7" class="text-center text-muted py-4">Belum ada pengeluaran modal untuk filter ini.</td></tr>
                     @endforelse
                 </tbody>
             </table>

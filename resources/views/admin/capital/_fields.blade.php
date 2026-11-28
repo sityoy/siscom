@@ -51,7 +51,30 @@
         <small id="capital-invoice-help" class="form-text text-muted">Satu catatan pengeluaran aktif per invoice. Gunakan Edit untuk memperbarui totalnya.</small>
     @endif
 </div>
+<fieldset class="border rounded p-3 mb-3">
+    <legend class="h6 w-auto px-2">Alokasi dan Transfer</legend>
+    <div class="form-row">
+        <div class="form-group col-md-5">
+            <label for="capital-recipient">Tujuan Alokasi atau Penerima</label>
+            <input type="text" id="capital-recipient" name="recipient" class="form-control" maxlength="160"
+                   value="{{ old('recipient', $contribution?->recipient) }}"
+                   placeholder="Contoh: Vendor perangkat atau tim operasional">
+        </div>
+        <div class="form-group col-md-3">
+            <label for="capital-transfer-date">Tanggal Transfer</label>
+            <input type="date" id="capital-transfer-date" name="transferred_on" class="form-control"
+                   max="{{ today()->toDateString() }}"
+                   value="{{ old('transferred_on', $contribution?->transferred_on?->toDateString()) }}">
+        </div>
+        <div class="form-group col-md-4">
+            <label for="capital-transfer-reference">Referensi Transfer</label>
+            <input type="text" id="capital-transfer-reference" name="transfer_reference" class="form-control" maxlength="120"
+                   value="{{ old('transfer_reference', $contribution?->transfer_reference) }}">
+        </div>
+    </div>
+    <p class="form-text text-muted mb-0">Opsional. Isi tanggal setelah dana ditransfer agar status berubah menjadi Sudah ditransfer.</p>
+</fieldset>
 <div class="form-group">
-    <label for="capital-notes">Catatan atau Referensi Transfer <small class="text-muted">(opsional)</small></label>
+    <label for="capital-notes">Catatan <small class="text-muted">(opsional)</small></label>
     <textarea id="capital-notes" name="notes" class="form-control" maxlength="1000" rows="2">{{ old('notes', $contribution?->notes) }}</textarea>
 </div>

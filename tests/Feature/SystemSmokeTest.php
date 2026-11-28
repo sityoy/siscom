@@ -717,6 +717,57 @@ class SystemSmokeTest extends TestCase
         $this->assertStringContainsString('000-321-001 (a/n Pemilik Baru)', $message());
     }
 
+    public function test_monthly_bank_costs_use_actual_debits_and_keep_the_reserve_out_of_income(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 27));
+        $company = CompanySetting::firstOrFail();
+        $account = $company->bankAccounts()->create([
+            'bank_name' => 'Bank Jakarta',
+            'account_number' => '000-456-321',
+            'account_holder' => 'Usaha Pengujian',
+        ]);
+        $settings = route('settings.bank-accounts.update', $account);
+        $feeForm = route('settings.index', ['rekening_biaya' => $account->id]);
+        $feeUrl = route('settings.bank-accounts.fees.store', $account);
+        $report = route('capital.index', ['month' => '2026-11']);
+
+        $this->actingAs($this->admin)->put($settings, [
+            'bank_name' => $account->bank_name,
+            'account_number' => $account->account_number,
+            'account_holder' => $account->account_holder,
+            'product_label' => 'Tabungan Bisnis · Platinum',
+            'monthly_admin_fee' => '22.000',
+            'minimum_balance' => '250.000',
+        ])->assertSessionHasNoErrors();
+        $this->get($feeForm)->assertOk()->assertSeeText('Tabungan Bisnis · Platinum')->assertSeeText('Rp 250.000');
+        $this->get($report)->assertOk()->assertViewHas('bankFeeTotal', '0.00')->assertViewHas('netTotal', '1000000.00');
+
+        $this->from($feeForm)->post($feeUrl, ['debited_on' => '2026-11-28', 'amount' => '22.000'])
+            ->assertSessionHasErrorsIn('bankFee', 'debited_on');
+        $this->post($feeUrl, ['debited_on' => '2026-10-31', 'amount' => '22.000'])->assertSessionHas('success');
+        $this->post($feeUrl, ['debited_on' => '2026-11-25', 'amount' => '22.000'])->assertSessionHas('success');
+        $this->post($feeUrl, ['debited_on' => '2026-11-26', 'amount' => '23.000'])->assertSessionHas('success');
+        $this->assertSame(2, $account->administrationFees()->count());
+        $fee = $account->administrationFees()->where('period', '2026-11')->sole();
+        $this->get(route('settings.index', ['biaya' => $fee->id]))->assertOk()->assertSee('2026-11-26');
+        $this->post($feeUrl, ['period' => '2026-11', 'debited_on' => '2026-10-25', 'amount' => '23.000'])
+            ->assertSessionHasErrorsIn('bankFee', 'debited_on');
+
+        $this->get($report)->assertOk()->assertViewHas('bankFeeTotal', '23000.00')
+            ->assertViewHas('cashInTotal', '1000000.00')->assertViewHas('expenseTotal', '0.00')
+            ->assertViewHas('netTotal', '977000.00');
+        $this->get(route('capital.index'))->assertOk()->assertViewHas('bankFeeTotal', '45000.00');
+        $this->get(route('capital.index', ['month' => '2026-11', 'invoice_id' => $this->invoice->id]))
+            ->assertOk()->assertViewHas('bankFeeTotal', '0.00')->assertViewHas('netTotal', '1000000.00');
+
+        $this->patch(route('settings.bank-accounts.status', $account), ['is_active' => 0])->assertSessionHas('success');
+        $this->get($report)->assertOk()->assertViewHas('bankFeeTotal', '23000.00');
+        $this->delete(route('settings.bank-accounts.fees.void', [$account, $fee]))->assertSessionHas('success');
+        $this->get($report)->assertOk()->assertViewHas('bankFeeTotal', '0.00');
+        $this->assertNotNull($fee->fresh()->voided_at);
+        $this->actingAs($this->clientUser)->post($feeUrl, ['debited_on' => '2026-11-26', 'amount' => '22.000'])->assertForbidden();
+    }
+
     public function test_migrating_legacy_bank_accounts_keeps_numbers_and_status_on_retry(): void
     {
         $company = CompanySetting::firstOrFail();

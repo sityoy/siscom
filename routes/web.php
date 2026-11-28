@@ -345,6 +345,10 @@ Route::prefix('admin')
             ->name('settings.bank-accounts.update');
         Route::patch('/settings/bank-accounts/{bankAccount}/status', [PaymentBankAccountController::class, 'setStatus'])
             ->name('settings.bank-accounts.status');
+        Route::post('/settings/bank-accounts/{bankAccount}/fees', [PaymentBankAccountController::class, 'storeFee'])
+            ->name('settings.bank-accounts.fees.store');
+        Route::delete('/settings/bank-accounts/{bankAccount}/fees/{fee}', [PaymentBankAccountController::class, 'voidFee'])
+            ->whereNumber('fee')->name('settings.bank-accounts.fees.void');
 
         // Tickets
         Route::get(

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\BankAdministrationFee;
 use App\Models\CapitalContribution;
+use App\Models\CompanySetting;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Support\Pagination;
@@ -52,6 +54,13 @@ class CapitalContributionController extends Controller
 
         $expenseTotal = $this->money((clone $contributions)->whereNull('voided_at')->sum('amount'));
         $cashInTotal = $this->money($payments->sum('amount'));
+        $bankFeeTotal = $this->money(0);
+        if (! $invoiceId) {
+            $companyId = CompanySetting::query()->value('id');
+            $fees = BankAdministrationFee::query()->whereNull('voided_at')
+                ->whereHas('paymentBankAccount', fn (Builder $account) => $account->where('company_setting_id', $companyId));
+            $bankFeeTotal = $this->money($withinPeriod($fees, 'debited_on')->sum('amount'));
+        }
 
         // Salary percentages use the same lifetime invoice margin as the allocation form.
         $salaryPeriod = static function ($query) use ($start) {
@@ -104,8 +113,9 @@ class CapitalContributionController extends Controller
             'invoiceBalances' => $invoiceBalances,
             'cashInTotal' => (string) $cashInTotal,
             'expenseTotal' => (string) $expenseTotal,
+            'bankFeeTotal' => (string) $bankFeeTotal,
             'salaryTotal' => (string) $salaryTotal,
-            'netTotal' => (string) $cashInTotal->minus($expenseTotal)->minus($salaryTotal),
+            'netTotal' => (string) $cashInTotal->minus($expenseTotal)->minus($bankFeeTotal)->minus($salaryTotal),
             'contributions' => $contributions->with('invoice:id,invoice_number')->latest('contribution_date')->orderByDesc('id')
                 ->paginate(Pagination::perPage()),
         ]);
@@ -136,11 +146,16 @@ class CapitalContributionController extends Controller
 
     public function update(Request $request, CapitalContribution $contribution): RedirectResponse
     {
-        $data = $this->validatedContribution($request);
-
-        DB::transaction(function () use ($contribution, $data): void {
+        DB::transaction(function () use ($contribution, $request): void {
             $activeContribution = CapitalContribution::whereKey($contribution->id)
                 ->whereNull('voided_at')->lockForUpdate()->firstOrFail();
+            $input = clone $request;
+            $input->mergeIfMissing([
+                'recipient' => $activeContribution->recipient,
+                'transferred_on' => $activeContribution->transferred_on?->toDateString(),
+                'transfer_reference' => $activeContribution->transfer_reference,
+            ]);
+            $data = $this->validatedContribution($input);
 
             if ($activeContribution->invoice_id || $activeContribution->invoice_reference) {
                 if (array_key_exists('invoice_id', $data) && (string) $data['invoice_id'] !== (string) $activeContribution->invoice_id) {
@@ -230,6 +245,9 @@ class CapitalContributionController extends Controller
             'amount' => ['bail', 'required', 'regex:/\A[0-9]{1,13}(?:\.[0-9]{1,2})?\z/', 'numeric', 'min:0.01'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'invoice_id' => ['nullable', 'integer', 'exists:invoices,id'],
+            'recipient' => ['nullable', 'required_with:transferred_on,transfer_reference', 'string', 'max:160'],
+            'transferred_on' => ['nullable', 'required_with:transfer_reference', 'date_format:Y-m-d', 'before_or_equal:'.today()->toDateString()],
+            'transfer_reference' => ['nullable', 'string', 'max:120'],
         ], [
             'amount.regex' => 'Isi nominal dengan angka, misalnya 1.500.000 atau 1500000.',
             'amount.min' => 'Nominal pengeluaran minimal Rp 0,01.',
@@ -240,6 +258,9 @@ class CapitalContributionController extends Controller
             'amount' => 'nominal pengeluaran',
             'notes' => 'catatan',
             'invoice_id' => 'invoice',
+            'recipient' => 'tujuan alokasi atau penerima transfer',
+            'transferred_on' => 'tanggal transfer',
+            'transfer_reference' => 'referensi transfer',
         ]);
     }
 }
