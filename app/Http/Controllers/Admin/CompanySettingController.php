@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\BankAdministrationFee;
 use App\Models\CompanySetting;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -14,10 +15,15 @@ class CompanySettingController extends Controller
         $setting = CompanySetting::firstOrCreate([], ['company_name' => 'SIS.COM']);
         $bankAccounts = $setting->bankAccounts;
         $editingAccount = $bankAccounts->find($request->integer('rekening'));
+        $feeRows = BankAdministrationFee::query()->whereIn('payment_bank_account_id', $bankAccounts->modelKeys());
+        $editingFee = (clone $feeRows)->find($request->integer('biaya'));
+        $feeAccount = $bankAccounts->find($editingFee?->payment_bank_account_id ?? $request->integer('rekening_biaya'));
+        $feeHistory = $feeRows->with('paymentBankAccount')->orderByDesc('debited_on')->orderByDesc('id')
+            ->paginate(12, pageName: 'halaman_biaya')->withQueryString()->fragment('biaya-rekening');
 
         return view(
             'admin.settings.index',
-            compact('setting', 'bankAccounts', 'editingAccount')
+            compact('setting', 'bankAccounts', 'editingAccount', 'feeHistory', 'feeAccount', 'editingFee')
         );
     }
 

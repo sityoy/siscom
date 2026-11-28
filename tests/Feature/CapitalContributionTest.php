@@ -172,6 +172,39 @@ class CapitalContributionTest extends TestCase
         $this->assertSame(1, $invoice->capitalContributions()->whereNull('voided_at')->count());
     }
 
+    public function test_capital_records_allocation_and_later_confirms_the_transfer(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 27));
+        $admin = User::factory()->create()->assignRole(Role::create(['name' => 'super_admin']));
+        $expense = [
+            'contribution_date' => '2026-11-24',
+            'source' => 'Pembelian perlengkapan',
+            'amount' => '250.000',
+        ];
+        $payload = $expense + ['recipient' => 'Vendor Perlengkapan'];
+
+        $this->actingAs($admin)->post(route('capital.store'), $expense + ['transferred_on' => '2026-11-26'])
+            ->assertSessionHasErrors('recipient');
+        $this->post(route('capital.store'), $payload)->assertSessionHasNoErrors();
+        $entry = CapitalContribution::sole();
+        $report = route('capital.index', ['month' => '2026-11']);
+        $this->get($report)->assertOk()->assertViewHas('expenseTotal', '250000.00')
+            ->assertSeeTextInOrder(['Vendor Perlengkapan', 'Dialokasikan']);
+
+        $this->put(route('capital.update', $entry), $payload + ['transferred_on' => '2026-11-28'])
+            ->assertSessionHasErrors('transferred_on');
+        $this->put(route('capital.update', $entry), $payload + [
+            'transferred_on' => '2026-11-26',
+            'transfer_reference' => 'TF-UJI-3246',
+        ])->assertSessionHasNoErrors();
+
+        $this->get($report)->assertOk()->assertViewHas('expenseTotal', '250000.00')
+            ->assertSeeTextInOrder(['Vendor Perlengkapan', 'Sudah ditransfer', '26/11/2026', 'TF-UJI-3246']);
+        $this->get(route('capital.edit', $entry))->assertOk()->assertSee('TF-UJI-3246');
+        $this->put(route('capital.update', $entry), $expense + ['recipient' => null])->assertSessionHasErrors('recipient');
+        $this->assertSame('2026-11-26', $entry->fresh()->transferred_on->toDateString());
+    }
+
     public function test_clients_cannot_view_or_record_capital(): void
     {
         $client = User::factory()->create()->assignRole(Role::create(['name' => 'client']));
